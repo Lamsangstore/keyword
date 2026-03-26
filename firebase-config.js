@@ -4,6 +4,7 @@
 window.FIREBASE_CONFIG = {
   apiKey: "AIzaSyDfYW6HJ0zEKpdxWzAjNl28STy3l5yr2Rc",
   authDomain: "lamsang-keyword.firebaseapp.com",
+  databaseURL:       "https://lamsang-keyword-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "lamsang-keyword",
   storageBucket: "lamsang-keyword.firebasestorage.app",
   messagingSenderId: "450847281629",
