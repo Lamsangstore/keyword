@@ -273,26 +273,23 @@
       padding:0 16px 8px;
     }
 
-    /* ── PRODUCT CARD — Magazine Style ── */
+    /* ── PRODUCT CARD — Card + Button Below ── */
     .pcard{
       border-radius:16px;
-      overflow:hidden;
+      overflow:visible; /* ปุ่มอยู่ล่าง ไม่ clip */
       cursor:pointer;
       position:relative;
-      aspect-ratio:1/1;
-      background:#1a1a2e;
-      box-shadow:
-        0 4px 16px rgba(0,0,0,.12),
-        0 1px 4px rgba(0,0,0,.08);
+      background:transparent;
       border:none;
       transition:transform .35s var(--ease), box-shadow .35s var(--ease);
       animation:fadeUp .5s var(--ease) both;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
     }
-    .pcard:hover{
-      transform:translateY(-8px) scale(1.02);
-      box-shadow:
-        0 24px 48px rgba(0,0,0,.18),
-        0 8px 16px rgba(255,59,107,.15);
+    .pcard:hover{ transform:translateY(-5px); }
+    .pcard:hover .pcard-img-wrap{
+      box-shadow:0 16px 36px rgba(0,0,0,.18),0 4px 12px rgba(255,59,107,.12);
     }
     .pcard:active{transform:scale(.97)}
     @keyframes fadeUp{
@@ -300,10 +297,20 @@
       to{opacity:1;transform:translateY(0)}
     }
 
-    /* รูปภาพเต็มการ์ด */
+    /* กล่องรูป — aspect ratio 1:1 */
+    .pcard-img-wrap{
+      border-radius:16px;
+      overflow:hidden;
+      position:relative;
+      aspect-ratio:1/1;
+      background:linear-gradient(160deg,#2a1a35,#1a1a2e);
+      box-shadow:0 4px 14px rgba(0,0,0,.12);
+      transition:box-shadow .35s var(--ease);
+    }
+
+    /* รูปภาพ */
     .pcard-img{
       position:absolute;inset:0;
-      background:linear-gradient(160deg,#2a1a35,#1a1a2e);
     }
     .pcard-img::before{
       content:'';position:absolute;inset:0;z-index:2;
@@ -325,92 +332,86 @@
       font-size:3em;opacity:.2;
     }
 
-    /* gradient overlay ด้านล่าง */
+    /* gradient overlay ชื่อ+ราคา ที่ล่างรูป */
     .pcard-overlay{
       position:absolute;
       bottom:0;left:0;right:0;
       z-index:3;
+      border-radius:0 0 16px 16px;
       background:linear-gradient(
         to top,
-        rgba(10,8,20,.9) 0%,
-        rgba(10,8,20,.55) 38%,
-        transparent       68%
+        rgba(10,8,20,.88) 0%,
+        rgba(10,8,20,.5)  40%,
+        transparent       70%
       );
-      padding:30px 12px 11px;
+      padding:28px 10px 10px;
     }
-
-    /* type badge */
     .pcard-type{
-      display:inline-block;
-      font-size:.6em;font-weight:800;
+      font-size:.58em;font-weight:800;
       letter-spacing:.06em;text-transform:uppercase;
-      color:rgba(255,255,255,.65);
-      margin-bottom:4px;
+      color:rgba(255,255,255,.6);
+      margin-bottom:2px;display:block;
     }
     .pcard-name{
-      font-size:.88em;font-weight:700;
-      color:#fff;
-      line-height:1.3;
-      margin-bottom:6px;
-      display:-webkit-box;-webkit-line-clamp:2;
+      font-size:.82em;font-weight:700;
+      color:#fff;line-height:1.25;
+      display:-webkit-box;-webkit-line-clamp:1;
       -webkit-box-orient:vertical;overflow:hidden;
-      text-shadow:0 1px 4px rgba(0,0,0,.4);
+      text-shadow:0 1px 3px rgba(0,0,0,.5);
     }
     .pcard-price{
-      font-size:.82em;font-weight:800;
-      color:var(--pink2);
-      letter-spacing:.02em;
+      font-size:.8em;font-weight:800;
+      color:var(--pink2);margin-top:1px;
     }
 
-    /* action bar — บนสุด เงาเบาๆ */
-    .pcard-actions{
-      position:absolute;top:0;left:0;right:0;z-index:4;
-      display:flex;justify-content:flex-end;gap:5px;
-      padding:8px 8px 16px;
-      background:linear-gradient(to bottom,rgba(0,0,0,.38) 0%,transparent 100%);
-    }
-
-    /* ปุ่มบนการ์ด */
-    .pcard .btn{
-      backdrop-filter:blur(10px);
-      -webkit-backdrop-filter:blur(10px);
-      font-size:.7em!important;
-      padding:5px 11px!important;
-      border-radius:20px!important;
-      min-height:30px;
-    }
-    .pcard .btn-info{
-      background:rgba(0,0,0,.5)!important;
-      color:#fff!important;
-      border:1px solid rgba(255,255,255,.28)!important;
-      font-weight:700!important;
-    }
-    .pcard .btn-info:hover{background:rgba(0,0,0,.65)!important}
-    .pcard .btn-loc{
-      background:rgba(0,0,0,.5)!important;
-      color:#ffb3cc!important;
-      border:1px solid rgba(255,154,190,.35)!important;
-      padding:5px 9px!important;
-    }
-    .pcard .btn-loc:hover{background:rgba(255,59,107,.55)!important;color:#fff!important}
-    .pcard .btn.copied{
-      background:rgba(39,174,96,.5)!important;
-      color:#fff!important;
-      border-color:rgba(39,174,96,.6)!important;
-    }
-
-    /* fav btn */
+    /* ⭐ fav btn — มุมบนซ้ายของรูป */
     .fav-btn{
-      position:absolute;top:8px;left:8px;z-index:5;
+      position:absolute;top:7px;left:7px;z-index:5;
       width:28px;height:28px;border-radius:50%;
       background:rgba(0,0,0,.45);backdrop-filter:blur(8px);
-      border:1px solid rgba(255,255,255,.22);
+      border:1px solid rgba(255,255,255,.2);
       display:flex;align-items:center;justify-content:center;
       font-size:.8em;cursor:pointer;
       transition:background .2s,transform .2s var(--ease);
     }
     .fav-btn:hover{background:rgba(255,59,107,.5);transform:scale(1.1)}
     .fav-btn.faved{background:rgba(255,59,107,.6);border-color:rgba(255,59,107,.7)}
+
+    /* ── ปุ่มใต้การ์ด ── */
+    .pcard-actions{
+      display:flex;gap:6px;
+      padding:0 2px;
+    }
+    .pcard .btn{
+      flex:1;
+      font-size:.75em!important;
+      padding:8px 6px!important;
+      border-radius:10px!important;
+      font-weight:700!important;
+      text-align:center;
+    }
+    .pcard .btn-info{
+      background:var(--surface)!important;
+      color:var(--ink)!important;
+      border:1.5px solid var(--border)!important;
+    }
+    .pcard .btn-info:hover{border-color:var(--pink)!important;color:var(--pink)!important}
+    .pcard .btn-loc{
+      flex:0 0 auto;
+      background:var(--surface)!important;
+      color:var(--pink)!important;
+      border:1.5px solid rgba(255,59,107,.25)!important;
+      padding:8px 10px!important;
+    }
+    .pcard .btn-loc:hover{background:rgba(255,59,107,.08)!important;border-color:var(--pink)!important}
+    .pcard .btn.copied{
+      background:#dcfce7!important;color:#15803d!important;
+      border-color:#86efac!important;
+    }
+    body.dark .pcard .btn-info{
+      background:var(--surface)!important;color:var(--ink2)!important;
+      border-color:var(--border)!important;
+    }
 
     /* ── GENERAL LIST ── */
     .general-list{
@@ -637,6 +638,10 @@
        RESPONSIVE — Mobile / Tablet / Desktop
        ══════════════════════════════════════ */
 
+    /* base: mobile/tablet — sidebar ซ่อน, layout block */
+    .desktop-sidebar{display:none}
+    .page-inner{display:block}
+
     /* ── TABLET 600px+ ── */
     @media(min-width:600px){
       .product-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
@@ -788,10 +793,6 @@
       .general-list{padding:0 12px 8px}
       .section-head{padding:20px 14px 12px}
     }
-
-    /* ── hide desktop sidebar on mobile/tablet ── */
-    .desktop-sidebar{display:none}
-    .page-inner{display:block}
 
     /* ══════════════════════════════════════
        NEW FEATURES CSS
@@ -1195,16 +1196,21 @@ function buildCatPills(rows) {
 
 function selectCatPill(cat, el) {
   selectedCat = cat;
+  showingFavOnly = false; // ปิด fav mode เมื่อกด category
   // sync pill bar
   document.querySelectorAll('.cat-pill').forEach(p=>p.classList.remove('active'));
   // sync sidebar
   document.querySelectorAll('.sidebar-cat-btn').forEach(p=>p.classList.remove('active'));
   // activate clicked element
-  if (el) {
+  if(el){
     el.classList.add('active');
-    el.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+    if(el.scrollIntoView) el.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
   }
-  renderProductGrid(productRows);
+  // reset fav pill UI
+  const favPill=document.getElementById('fav-tab-pill');
+  if(favPill) favPill.classList.remove('active-fav');
+  // re-render (ใช้ window.renderProductGrid เพื่อ pass through fav patch)
+  window.renderProductGrid(productRows);
 }
 
 // ── FIREBASE ────────────────────────────────────────────────
@@ -1291,21 +1297,22 @@ function renderProductGrid(rows){
       const img=item.img||'';
       const d=(delay%8)*60;
       const hasPikad=!!productRows[item.i]?.[9];
+      const faved=isFav(item.i);
       html+=`<div class="pcard" style="animation-delay:${d}ms" onclick="showProductDetail(${item.i})">
-        <div class="pcard-img">
-          ${img
-            ? `<img src="${img}" loading="lazy" onload="onImgLoad(this)">`
-            : `<div class="no-img">📦</div>`}
+        <div class="pcard-img-wrap">
+          <div class="pcard-img">
+            ${img?`<img src="${img}" loading="lazy" onload="onImgLoad(this)">`:'<div class="no-img">📦</div>'}
+          </div>
+          <button class="fav-btn ${faved?'faved':''}" onclick="event.stopPropagation();toggleFav(${item.i},this)">${faved?'⭐':'☆'}</button>
+          <div class="pcard-overlay">
+            <span class="pcard-type">${esc(item.type||'')}</span>
+            <div class="pcard-name">${esc(item.name)}</div>
+            <div class="pcard-price">${esc(item.price)}</div>
+          </div>
         </div>
-        <button class="fav-btn ${isFav(item.i)?'faved':''}" onclick="event.stopPropagation();toggleFav(${item.i},this)">${isFav(item.i)?'⭐':'☆'}</button>
         <div class="pcard-actions">
-          <button class="btn btn-info" onclick="event.stopPropagation();copyProductInfo(${item.i},this)">Copy</button>
-          ${hasPikad?`<button class="btn btn-loc" onclick="event.stopPropagation();copyText(productRows[${item.i}][9],this)" title="Copy พิกัด">📍</button>`:''}
-        </div>
-        <div class="pcard-overlay">
-          <div class="pcard-type">${esc(item.type||'')}</div>
-          <div class="pcard-name">${esc(item.name)}</div>
-          <div class="pcard-price">${esc(item.price)}</div>
+          <button class="btn btn-info" onclick="event.stopPropagation();copyProductInfo(${item.i},this)">📋 Copy</button>
+          ${hasPikad?`<button class="btn btn-loc" onclick="event.stopPropagation();copyText(productRows[${item.i}][9],this)">📍 พิกัด</button>`:''}
         </div>
       </div>`;
       delay++;
@@ -1623,87 +1630,83 @@ function renderRecentRow(){
   }).join('');
 }
 
-// ── FAVORITES ───────────────────────────────────
-function getFavs(){ try{ return JSON.parse(localStorage.getItem('favs_v2')||'[]'); }catch(e){ return []; } }
-function isFav(idx){ return getFavs().includes(idx); }
-function saveFavs(arr){ localStorage.setItem('favs_v2', JSON.stringify(arr)); }
+// ── FAVORITES — ใช้ชื่อสินค้า+ประเภท เป็น key เพื่อ persist ได้ถูกต้อง ──
+function favKey(idx){ const r=productRows[idx]; return r?`${r[0]}__${r[1]}`:''; }
+function getFavs(){ try{ return JSON.parse(localStorage.getItem('favs_v3')||'[]'); }catch(e){ return []; } }
+function isFav(idx){ const k=favKey(idx); return k?getFavs().includes(k):false; }
+function saveFavs(arr){ localStorage.setItem('favs_v3', JSON.stringify(arr)); }
 function updateFavPill(){
-  const favs = getFavs().filter(i=>productRows[i]);
+  const favs = getFavs(); // array of "name__type" strings
   const pill = document.getElementById('fav-tab-pill');
   const cnt  = document.getElementById('fav-count');
-  if(pill){ pill.classList.toggle('has-fav', favs.length>0); }
+  if(pill) pill.classList.toggle('has-fav', favs.length>0);
   if(cnt)  cnt.textContent = favs.length;
 }
 function toggleFav(idx, btn){
+  const k = favKey(idx); if(!k) return;
   let arr = getFavs();
-  const has = arr.includes(idx);
-  if(has){ arr = arr.filter(i=>i!==idx); }
-  else { arr.push(idx); }
+  const has = arr.includes(k);
+  arr = has ? arr.filter(x=>x!==k) : [...arr,k];
   saveFavs(arr);
-  if(btn){ btn.classList.toggle('faved',!has); btn.textContent = has?'☆':'⭐'; }
+  if(btn){ btn.classList.toggle('faved',!has); btn.textContent=has?'☆':'⭐'; }
   updateFavPill();
   if(showingFavOnly) renderProductGrid(productRows);
 }
 function toggleFavDetail(idx, btn){
+  const k = favKey(idx); if(!k) return;
   let arr = getFavs();
-  const has = arr.includes(idx);
-  if(has){ arr = arr.filter(i=>i!==idx); }
-  else { arr.push(idx); }
+  const has = arr.includes(k);
+  arr = has ? arr.filter(x=>x!==k) : [...arr,k];
   saveFavs(arr);
-  const nowFav = !has;
+  const nowFav=!has;
   if(btn){
-    btn.textContent = nowFav ? '⭐ โปรด' : '☆ บันทึก';
-    btn.style.cssText = nowFav
-      ? 'background:rgba(255,59,107,.15);color:var(--pink);border:1px solid rgba(255,59,107,.3)'
-      : 'background:rgba(0,0,0,.05);color:var(--muted);border:1px solid var(--border)';
+    btn.textContent=nowFav?'⭐ โปรด':'☆ บันทึก';
+    btn.style.cssText=nowFav
+      ?'background:rgba(255,59,107,.15);color:var(--pink);border:1px solid rgba(255,59,107,.3)'
+      :'background:rgba(0,0,0,.05);color:var(--muted);border:1px solid var(--border)';
   }
   updateFavPill();
-  showToast(nowFav?'บันทึกในรายการโปรด':'นำออกจากรายการโปรด');
+  showToast(nowFav?'บันทึกในรายการโปรด ⭐':'นำออกจากรายการโปรด');
 }
 function toggleFavTab(){
-  showingFavOnly = !showingFavOnly;
-  const pill = document.getElementById('fav-tab-pill');
-  if(pill) pill.classList.toggle('active-fav', showingFavOnly);
+  showingFavOnly=!showingFavOnly;
+  const pill=document.getElementById('fav-tab-pill');
+  if(pill) pill.classList.toggle('active-fav',showingFavOnly);
   renderProductGrid(productRows);
 }
 // patch renderProductGrid to support fav filter
 const _origRender = renderProductGrid;
 window.renderProductGrid = function(rows){
   if(showingFavOnly){
-    const favIdxs = getFavs();
-    // filter จริงๆ โดยใช้ original productRows index
-    const favRows = favIdxs
-      .filter(i => productRows[i])
-      .map(i => productRows[i]);
-    if(!favRows.length){
-      document.getElementById('product-grid-view').innerHTML=
-        '<div class="loading-state" style="padding:60px 20px">⭐ ยังไม่มีรายการโปรด<br><small style="opacity:.5;font-size:.8em">กดดาว ☆ บนการ์ดเพื่อบันทึก</small></div>';
-      return;
-    }
-    // ส่ง favRows ไปให้ _origRender — index ยังคงเป็น index ใน productRows
-    _origRender.call(window, productRows); // pass full rows เพื่อให้ indexOf ทำงาน
-    // override content หลัง render โดย filter เฉพาะ fav
     const el = document.getElementById('product-grid-view');
     if(!el) return;
-    // rebuild เฉพาะ fav cards
+    const favKeys = getFavs();
+    // map favKeys กลับเป็น index ใน productRows
+    const favIdxs = productRows.reduce((acc,r,i)=>{
+      if(favKeys.includes(`${r[0]}__${r[1]}`)) acc.push(i);
+      return acc;
+    },[]);
+    if(!favIdxs.length){
+      el.innerHTML='<div class="loading-state" style="padding:60px 20px">⭐ ยังไม่มีรายการโปรด<br><small style="opacity:.5;font-size:.8em">กดดาว ☆ บนการ์ดเพื่อบันทึก</small></div>';
+      return;
+    }
     let html='<div class="product-grid">';
     let delay=0;
-    favIdxs.filter(i=>productRows[i]).forEach(i=>{
-      const row=productRows[i];
-      const img=row[4]||'';
-      const d=(delay%8)*60;
-      const hasPikad=!!row[9];
+    favIdxs.forEach(i=>{
+      const row=productRows[i], img=row[4]||'', d=(delay%8)*60, hasPikad=!!row[9];
       html+=`<div class="pcard" style="animation-delay:${d}ms" onclick="showProductDetail(${i})">
-        <div class="pcard-img">${img?`<img src="${img}" loading="lazy" onload="onImgLoad(this)">`:'<div class="no-img">📦</div>'}</div>
-        <button class="fav-btn faved" onclick="event.stopPropagation();toggleFav(${i},this)">⭐</button>
-        <div class="pcard-actions">
-          <button class="btn btn-info" onclick="event.stopPropagation();copyProductInfo(${i},this)">Copy</button>
-          ${hasPikad?`<button class="btn btn-loc" onclick="event.stopPropagation();copyText(productRows[${i}][9],this)" title="Copy พิกัด">📍</button>`:''}
+        <div class="pcard-img-wrap">
+          <div class="pcard-img">${img?`<img src="${img}" loading="lazy" onload="onImgLoad(this)">`:'<div class="no-img">📦</div>'}</div>
+          <button class="fav-btn faved" onclick="event.stopPropagation();toggleFav(${i},this)">⭐</button>
+          <div class="pcard-overlay">
+            <span class="pcard-type">${esc(row[1]||'')}</span>
+            <div class="pcard-name">${esc(row[0])}</div>
+            <div class="pcard-price">${esc(row[2])}</div>
+          </div>
         </div>
-        <div class="pcard-overlay">
-          <div class="pcard-type">${esc(row[1]||'')}</div>
-          <div class="pcard-name">${esc(row[0])}</div>
-          <div class="pcard-price">${esc(row[2])}</div>
+        <div class="pcard-actions">
+          <button class="btn btn-info" onclick="event.stopPropagation();copyProductInfo(${i},this)">📋 Copy</button>
+          ${hasPikad?`<button class="btn btn-loc" onclick="event.stopPropagation();copyText(productRows[${i}][9],this)">📍 พิกัด</button>`:''}
         </div>
       </div>`;
       delay++;
