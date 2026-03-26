@@ -420,10 +420,14 @@
     body.dark .fav-btn{background:rgba(0,0,0,.4);border-color:rgba(255,255,255,.15)}
     body.dark .skel-card{background:linear-gradient(180deg,#1e1c2e,#16142a);border-color:rgba(255,255,255,.05)}
 
-    /* ── GENERAL LIST ── */
+    /* ── GENERAL LIST — Responsive Grid ── */
     .general-list{
-      display:flex;flex-direction:column;
+      display:grid;
+      grid-template-columns:1fr;
       gap:8px;padding:0 16px 8px;
+    }
+    @media(min-width:600px){
+      .general-list{grid-template-columns:repeat(2,1fr);gap:10px}
     }
     .gcard{
       background:var(--surface);
@@ -754,7 +758,7 @@
       #product-grid-view, #general-grid-view{padding-bottom:60px}
 
       .cat-head{padding:28px 32px 10px;font-size:1.15em}
-      .general-list{padding:0 32px 8px;gap:10px}
+      .general-list{grid-template-columns:repeat(3,1fr);padding:0 32px 8px;gap:12px}
       .section-head{padding:28px 32px 16px}
 
       /* detail view: side-by-side hero + info */
