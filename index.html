@@ -44,23 +44,64 @@
       pointer-events:none;
     }
 
-    /* ── LOGO HEADER ── */
-    .logo-header{
-      position:relative;z-index:10;
-      padding:0;
-      background:var(--surface);
-      box-shadow:0 1px 0 var(--border);
+    /* ── APP STORE TOPBAR ── */
+    .as-topbar{
+      position:sticky;top:0;z-index:200;
+      background:rgba(18,18,30,.92);
+      backdrop-filter:blur(24px) saturate(200%);
+      -webkit-backdrop-filter:blur(24px) saturate(200%);
+      padding:12px 18px 10px;
+      display:flex;align-items:center;gap:14px;
+      border-bottom:1px solid rgba(255,255,255,.07);
+      box-shadow:0 2px 20px rgba(0,0,0,.25);
     }
-    .logo-header img{
-      width:100%;max-height:160px;
-      object-fit:cover;object-position:center;
-      display:block;
+    .as-logo{
+      width:36px;height:36px;flex-shrink:0;
+      border-radius:10px;overflow:hidden;
+      box-shadow:0 2px 8px rgba(0,0,0,.4);
     }
+    .as-logo img{width:100%;height:100%;object-fit:cover;display:block}
+    .as-brand{
+      font-size:1.15em;font-weight:800;
+      color:#fff;letter-spacing:-0.01em;
+      white-space:nowrap;
+    }
+    .as-search{
+      flex:1;
+      display:flex;align-items:center;gap:8px;
+      background:rgba(255,255,255,.1);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:12px;
+      padding:8px 14px;
+      cursor:text;
+      transition:background .2s;
+    }
+    .as-search:focus-within{background:rgba(255,255,255,.15)}
+    .as-search-icon{font-size:.9em;opacity:.5;flex-shrink:0}
+    .as-search input{
+      background:none;border:none;outline:none;
+      width:100%;
+      font-family:'Prompt',sans-serif;
+      font-size:.85em;font-weight:500;
+      color:#fff;
+    }
+    .as-search input::placeholder{color:rgba(255,255,255,.4)}
+    .as-settings{
+      width:34px;height:34px;flex-shrink:0;
+      background:rgba(255,255,255,.1);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:10px;
+      display:flex;align-items:center;justify-content:center;
+      font-size:1em;cursor:pointer;
+      text-decoration:none;
+      transition:background .2s;
+    }
+    .as-settings:hover{background:rgba(255,255,255,.18)}
 
     /* ── STICKY TAB BAR ── */
     .tab-bar{
-      position:sticky;top:0;z-index:100;
-      background:rgba(245,244,250,.85);
+      position:sticky;top:58px;z-index:100;
+      background:rgba(245,244,250,.92);
       backdrop-filter:blur(20px) saturate(180%);
       -webkit-backdrop-filter:blur(20px) saturate(180%);
       border-bottom:1px solid var(--border);
@@ -84,28 +125,28 @@
     /* ── TOP NAV (detail back bar) ── */
     #top-nav{
       display:none;
-      position:sticky;top:0;z-index:100;
-      background:rgba(245,244,250,.9);
-      backdrop-filter:blur(20px) saturate(180%);
-      -webkit-backdrop-filter:blur(20px) saturate(180%);
-      border-bottom:1px solid var(--border);
+      position:sticky;top:0;z-index:150;
+      background:rgba(18,18,30,.92);
+      backdrop-filter:blur(24px) saturate(200%);
+      -webkit-backdrop-filter:blur(24px) saturate(200%);
+      border-bottom:1px solid rgba(255,255,255,.07);
       padding:10px 16px;
       align-items:center;gap:10px;
+      box-shadow:0 2px 20px rgba(0,0,0,.2);
     }
     .back-btn{
       display:inline-flex;align-items:center;gap:5px;
       padding:8px 16px;
-      background:var(--surface);
-      border:1px solid var(--border);
+      background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.18);
       border-radius:30px;
       font-family:'Prompt',sans-serif;
       font-size:.82em;font-weight:700;
-      color:var(--pink);
+      color:#fff;
       cursor:pointer;
-      box-shadow:0 2px 8px rgba(0,0,0,.06);
       transition:all .2s var(--ease);
     }
-    .back-btn:hover{background:var(--pink);color:#fff;border-color:var(--pink)}
+    .back-btn:hover{background:var(--pink);border-color:var(--pink)}
     .live-pill{
       display:inline-flex;align-items:center;gap:5px;
       font-size:.7em;font-weight:700;
@@ -441,9 +482,17 @@
 </head>
 <body>
 
-<!-- LOGO -->
-<header class="logo-header">
-  <img src="https://i.postimg.cc/XNG0gfWq/image0.png" alt="LAMSANG" fetchpriority="high">
+<!-- APP STORE TOPBAR -->
+<header class="as-topbar" id="main-topbar">
+  <div class="as-logo">
+    <img src="https://i.postimg.cc/XNG0gfWq/image0.png" alt="LAMSANG" fetchpriority="high">
+  </div>
+  <span class="as-brand">App Store</span>
+  <div class="as-search" onclick="document.getElementById('search-input').focus()">
+    <span class="as-search-icon">🔍</span>
+    <input id="search-input" type="text" placeholder="ค้นหาสินค้า..." oninput="handleSearch(this.value)">
+  </div>
+  <a href="admin.html" class="as-settings" title="Admin">⚙️</a>
 </header>
 
 <!-- TOP NAV (detail) -->
@@ -498,6 +547,7 @@
 // ── STATE ────────────────────────────────────────────────────
 let productRows=[], generalRows=[];
 let currentSort='name_asc', currentTab='product';
+let searchQuery='';
 const CAT_ICONS = {
   'เสื้อ':'👕','เสื้อยืด':'👕','เสื้อเชิ้ต':'👔','กางเกง':'👖',
   'กระโปรง':'👗','เข็มขัด':'🪡','รองเท้า':'👟','กระเป๋า':'👜',
@@ -507,6 +557,12 @@ const CAT_ICONS = {
 function catIcon(t) {
   for (const k in CAT_ICONS) if (t.includes(k)) return CAT_ICONS[k];
   return '📁';
+}
+
+function handleSearch(q) {
+  searchQuery = q.toLowerCase().trim();
+  if (currentTab==='product') renderProductGrid(productRows);
+  else renderGeneralGrid(generalRows);
 }
 
 // ── FIREBASE ────────────────────────────────────────────────
@@ -552,8 +608,20 @@ function renderProductGrid(rows){
   const el = document.getElementById('product-grid-view');
   if (!rows?.length){ el.innerHTML='<div class="loading-state">ไม่พบข้อมูลสินค้า</div>'; return }
 
+  // filter by search
+  const filtered = searchQuery
+    ? rows.filter((_,i) => {
+        const r=rows[i];
+        return (r[0]||'').toLowerCase().includes(searchQuery)
+            || (r[1]||'').toLowerCase().includes(searchQuery)
+            || (r[6]||'').toLowerCase().includes(searchQuery);
+      })
+    : rows;
+
   const map = {};
-  rows.forEach((r,i)=>{
+  filtered.forEach((r,fi)=>{
+    // find original index in productRows
+    const i = productRows.indexOf(r);
     const t = r[1]||'ไม่ระบุ';
     if (!map[t]) map[t]=[];
     map[t].push({i,name:r[0],price:r[2],priceNum:parsePrice(r[2]),img:r[4],sku:r[6]});
@@ -607,6 +675,7 @@ function showProductDetail(idx,push=true){
   document.getElementById('product-grid-view').style.display='none';
   document.getElementById('main-tabs').style.display='none';
   document.getElementById('product-header').style.display='none';
+  document.getElementById('main-topbar').style.display='none';
   document.getElementById('top-nav').style.display='flex';
 
   const copyTxt=`ชื่อสินค้า: ${row[0]}\nประเภท: ${row[1]}\nราคา: ${row[2]}\nรายละเอียด: ${row[3]}`;
@@ -648,8 +717,18 @@ function renderGeneralGrid(rows){
   const el = document.getElementById('general-grid-view');
   if (!rows?.length){ el.innerHTML='<div class="loading-state">ไม่พบข้อมูล</div>'; return }
 
+  const filtered = searchQuery
+    ? rows.filter(r =>
+        (r[1]||'').toLowerCase().includes(searchQuery)
+     || (r[0]||'').toLowerCase().includes(searchQuery)
+     || (r[2]||'').toLowerCase().includes(searchQuery))
+    : rows;
+
+  if (!filtered.length){ el.innerHTML=`<div class="loading-state">🔍 ไม่พบ "${searchQuery}"</div>`; return }
+
   const map={};
-  rows.forEach((r,i)=>{
+  filtered.forEach((r)=>{
+    const i = generalRows.indexOf(r);
     const t=r[0]||'ทั่วไป';
     if(!map[t])map[t]=[];
     map[t].push({i,name:r[1]});
@@ -682,6 +761,7 @@ function showGeneralDetail(idx,push=true){
   document.getElementById('general-grid-view').style.display='none';
   document.getElementById('main-tabs').style.display='none';
   document.getElementById('general-header').style.display='none';
+  document.getElementById('main-topbar').style.display='none';
   document.getElementById('top-nav').style.display='flex';
 
   const imgHtml=row[3]?`<img class="gdetail-img" src="${row[3]}" onload="onImgLoad(this)" loading="lazy">`:'';
@@ -713,6 +793,7 @@ function showProductGrid(push=true){
   document.getElementById('product-details-view').style.display='none';
   document.getElementById('main-tabs').style.display='flex';
   document.getElementById('product-header').style.display='block';
+  document.getElementById('main-topbar').style.display='flex';
   document.getElementById('top-nav').style.display='none';
   if(push) history.pushState({view:'grid',tab:'product'},'');
 }
@@ -721,6 +802,7 @@ function showGeneralGrid(push=true){
   document.getElementById('general-details-view').style.display='none';
   document.getElementById('main-tabs').style.display='flex';
   document.getElementById('general-header').style.display='block';
+  document.getElementById('main-topbar').style.display='flex';
   document.getElementById('top-nav').style.display='none';
   if(push) history.pushState({view:'grid',tab:'general'},'');
 }
