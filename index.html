@@ -968,10 +968,10 @@ function renderProductGrid(rows){
           <div class="pcard-name">${esc(item.name)}</div>
           <div class="pcard-price">${esc(item.price)}</div>
           <div class="pcard-actions">
-            <button class="btn btn-info" onclick="event.stopPropagation();copyProductInfo(${item.i},this)">Copy</button>
-            ${productRows[item.i]?.[7]?`<button class="btn btn-shopee" onclick="event.stopPropagation();openLink(productRows[${item.i}][7])">🛒</button>`:''}
-            ${productRows[item.i]?.[8]?`<button class="btn btn-tiktok" onclick="event.stopPropagation();openLink(productRows[${item.i}][8])">♪</button>`:''}
-            ${productRows[item.i]?.[10]?`<button class="btn btn-laz" onclick="event.stopPropagation();openLink(productRows[${item.i}][10])">🟠</button>`:''}
+            <button class="btn btn-info" style="flex:1" onclick="event.stopPropagation();copyProductInfo(${item.i},this)">Copy</button>
+            ${productRows[item.i]?.[9]
+              ? `<button class="btn btn-loc" onclick="event.stopPropagation();copyText(productRows[${item.i}][9],this)" title="Copy พิกัด">📍</button>`
+              : ''}
           </div>
         </div>
       </div>`;
