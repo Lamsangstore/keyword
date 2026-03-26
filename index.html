@@ -1,606 +1,282 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
   <meta charset="UTF-8">
-  <title>คีย์ลัดสินค้า & General</title>
+  <title>คีย์ลัดสินค้า</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
   <style>
-    /* General Styles - Pastel Theme */
-    html { font-size: 22px; }
-    body {
-      background: #FFFBF5;
-      font-family: 'Prompt', sans-serif;
-      margin: 0;
-      padding: 0;
-      color: #5C5470;
+    :root {
+      --pink:#E87A90; --pink-light:#FFD1DC; --pink-pale:#FFF0F3;
+      --purple:#5C5470; --purple-mid:#B9B4C7; --purple-pale:#EADDFB;
+      --bg:#FFFBF5; --white:#FFFFFF; --text:#352F44;
+      --radius:16px; --shadow:0 4px 20px rgba(92,84,112,.10);
     }
-
-    /* Top Navigation Bar */
-    #top-nav {
-        display: none;
-        background: #FFFBF5;
-        padding: 10px 20px;
-        position: sticky;
-        top: 0;
-        z-index: 100;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-    }
-
-    .logo-container {
-        width: 100%;
-        background: #fff;
-        text-align: center;
-        aspect-ratio: 4 / 1;
-        padding: 0; 
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        overflow: hidden;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .logo-container img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        object-position: center;
-        display: block;
-        image-rendering: -webkit-optimize-contrast;
-    }
-    .container { width: 100%; min-height: 100vh; box-sizing: border-box; padding: 0 0 48px 0; }
-
-    /* Tabs */
-    .tabs { display: flex; border-bottom: 2px solid #EADDFB; margin: 0; position: sticky; top: 0; background: #FFFBF5; z-index: 10; }
-    .tab-btn {
-      flex: 1 1 0; text-align: center; padding: 23px 0 17px 0;
-      font-size: 1.31em; font-weight: 700; cursor: pointer;
-      color: #A9A2B6;
-      background: none; border: none; border-bottom: 4px solid transparent; transition: color .2s, border-color .2s;
-    }
-    .tab-btn.active { color: #E87A90; border-bottom-color: #E87A90; }
-
-    /* Header & Sorting Section */
-    .view-header {
-      padding: 20px 20px 10px 20px;
-      text-align: center;
-    }
-    h2 {
-      font-size: 2.45em; color: #E87A90; font-weight: 700; margin: 0 0 15px 0;
-      letter-spacing: 0.01em;
-    }
-    .sort-container {
-      margin-bottom: 15px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 10px;
-    }
-    .sort-label { font-size: 0.8em; font-weight: 600; color: #A9A2B6; }
-    .sort-select {
-      padding: 8px 15px;
-      border-radius: 12px;
-      border: 2px solid #EADDFB;
-      font-family: 'Prompt', sans-serif;
-      color: #5C5470;
-      background: #fff;
-      cursor: pointer;
-    }
-
-    /* Loading Status */
-    .loading-status {
-      text-align: center;
-      padding: 60px 20px;
-      color: #A9A2B6;
-      font-size: 1.1em;
-      font-weight: 600;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 15px;
-    }
-    .loading-status::before {
-      content: "";
-      width: 40px;
-      height: 40px;
-      border: 4px solid #EADDFB;
-      border-top-color: #E87A90;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    /* Grid/List Sections */
-    #product-grid-view, #general-grid-view { padding: 0 20px; }
-    .category-section h3 {
-        font-size: 1.8em; color: #352F44; margin: 40px 0 20px 0;
-        padding-bottom: 10px; border-bottom: 1px solid #EADDFB;
-    }
-    .category-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 24px;
-    }
-    
-    .product-card, .general-list-card {
-        background: #FFFFFF; border-radius: 16px; overflow: hidden;
-        cursor: pointer; transition: transform 0.2s, border-color 0.2s;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #EADDFB;
-    }
-    .product-card:hover, .general-list-card:hover { transform: translateY(-5px); border-color: #FFC0CB; }
-    
-    /* General List Card - Horizontal Layout */
-    .general-list-container {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        margin-bottom: 30px;
-    }
-    .general-list-card {
-        display: flex;
-        align-items: center;
-        padding: 20px 25px;
-        width: 100%;
-        box-sizing: border-box;
-    }
-    .general-item-name {
-        flex: 1;
-        font-weight: 700;
-        font-size: 1.1em;
-        color: #352F44;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        padding-right: 15px;
-    }
-
-    .img-wrapper {
-      width: 100%;
-      aspect-ratio: 1 / 1;
-      background: #f3f3f3;
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .img-wrapper::after {
-      content: "";
-      position: absolute;
-      top: 0; right: 0; bottom: 0; left: 0;
-      transform: translateX(-100%);
-      background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
-      animation: shimmer 1.5s infinite;
-    }
-    
-    @keyframes shimmer {
-      100% { transform: translateX(100%); }
-    }
-
-    .product-card img, .picbox img { 
-        width: 100%; 
-        height: 100%;
-        object-fit: cover; 
-        opacity: 0;
-        transition: opacity 0.4s ease-in-out;
-        display: block;
-        position: relative;
-        z-index: 1;
-    }
-    
-    .product-card img.loaded, .picbox img.loaded {
-        opacity: 1;
-    }
-
-    .product-card .product-info-grid { padding: 16px; text-align: center; }
-    .product-name-grid { font-size: 1.1em; font-weight: 600; margin-bottom: 4px; }
-    .product-price-grid { font-size: 0.95em; font-weight: 700; color: #E87A90; margin-bottom: 10px; }
-
-    /* Buttons */
-    .grid-btn-container {
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      margin-top: 10px;
-      padding: 0 5px;
-    }
-    .btn-copy-sm {
-      flex: 1;
-      padding: 12px 6px !important; 
-      font-size: 0.85em !important; 
-      border-radius: 12px !important;
-      background: #F0F0F0 !important;
-      color: #5C5470 !important;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
-      transition: all 0.2s;
-      border: 1px solid transparent !important;
-      font-weight: 600 !important;
-    }
-    .btn-copy-sm.link-style { background: #E3F2FD !important; color: #1976D2 !important; border-color: #BBDEFB !important; }
-    .btn-copy-sm.info-style { background: #FCE4EC !important; color: #C2185B !important; border-color: #F8BBD0 !important; }
-    .btn-copy-sm:active { transform: scale(0.95); background-color: #eee !important; }
-    .btn-copy-sm.copied { background: #B3E5FC !important; color: #01579B !important; border-color: #81D4FA !important; }
-    
-    .btn-list-copy {
-        background: #FCE4EC !important;
-        color: #C2185B !important;
-        border: 1px solid #F8BBD0 !important;
-        padding: 12px 20px !important;
-        border-radius: 12px !important;
-        font-size: 0.85em !important;
-        font-weight: 700 !important;
-        box-shadow: none !important;
-        min-width: 100px;
-        flex: 0 0 auto;
-    }
-
-    /* Detail View Styles */
-    .item {
-      background: #FFFFFF; border-radius: 1.55em; margin: 20px auto 32px auto;
-      padding: 20px 3vw 28px 3vw; box-shadow: 0 4px 28px rgba(0,0,0,0.07);
-      border-left: 9px solid #FFC0CB; max-width: 1400px;
-    }
-    .detail-controls { display: flex; justify-content: flex-end; align-items: center; margin-bottom: 20px; }
-    button {
-      padding: 12px 25px; border: none; border-radius: 15px;
-      background: linear-gradient(90deg, #FFC0CB 70%, #FFD1DC 100%);
-      color: #352F44; font-size: 1.1em; font-weight: 700;
-      cursor: pointer; transition: all .2s; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    button.back-btn { background: #B9B4C7; color: #FFFFFF; font-size: 1.0em; }
-
-    .details-white {
-      color: #5C5470; background: #F0F8FF; border-radius: 15px;
-      padding: 20px; margin: 0 0 24px 0; font-size: 1.17em; word-break: break-word;
-    }
-    .name { font-weight: 700; font-size: 1.7em; color: #E87A90; margin-bottom: 12px; }
-    .picgrid { display: flex; gap: 30px; justify-content: center; flex-wrap: wrap; }
-    .picbox { flex: 1 1 400px; max-width: 100%; position: relative; background: #f3f3f3; border-radius: 20px; overflow: hidden; }
-    .piccap { font-size: 0.8em; color: #A9A2B6; margin-bottom: 5px; text-align: center; font-weight: 600; }
-    .picbox img {
-      width: 100%; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-      border: 3px solid #FFD1DC; object-fit: contain; margin-bottom: 10px;
-    }
-
-    @media (max-width: 800px) {
-      html { font-size: 18px; }
-      .btn-copy-sm { padding: 14px 8px !important; font-size: 0.9em !important; }
-      .general-list-card { padding: 18px 20px; }
-      .btn-list-copy { padding: 14px 18px !important; font-size: 0.9em !important; }
-    }
+    html{font-size:20px} *{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--bg);font-family:'Prompt',sans-serif;color:var(--text)}
+    .logo-wrap{width:100%;aspect-ratio:4/1;background:var(--white);display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+    .logo-wrap img{width:100%;height:100%;object-fit:cover}
+    .tabs{display:flex;border-bottom:2px solid var(--purple-pale);position:sticky;top:0;background:var(--bg);z-index:50}
+    .tab-btn{flex:1;padding:18px 0;font-size:1.05em;font-weight:700;cursor:pointer;color:var(--purple-mid);background:none;border:none;border-bottom:3px solid transparent;transition:color .2s,border-color .2s;font-family:'Prompt',sans-serif}
+    .tab-btn.active{color:var(--pink);border-bottom-color:var(--pink)}
+    #top-nav{display:none;background:var(--bg);padding:12px 20px;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(0,0,0,.06);align-items:center;gap:12px}
+    .back-btn{padding:10px 22px;border:none;border-radius:12px;background:var(--purple-mid);color:var(--white);font-size:.9em;font-weight:700;cursor:pointer;font-family:'Prompt',sans-serif;transition:background .2s}
+    .back-btn:hover{background:var(--purple)}
+    .live-dot{display:inline-flex;align-items:center;gap:5px;font-size:.6em;font-weight:600;color:#27ae60;background:#eafaf1;border:1px solid #a9dfbf;padding:3px 9px;border-radius:20px}
+    .live-dot::before{content:'';width:7px;height:7px;background:#27ae60;border-radius:50%;animation:pulse 1.5s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+    .view-header{padding:24px 20px 12px;text-align:center}
+    h2{font-size:1.9em;color:var(--pink);font-weight:700;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:10px}
+    .sort-row{display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap}
+    .sort-label{font-size:.75em;font-weight:600;color:var(--purple-mid)}
+    .sort-select{padding:7px 14px;border-radius:10px;border:2px solid var(--purple-pale);font-family:'Prompt',sans-serif;color:var(--purple);background:var(--white);cursor:pointer}
+    .loading-box{text-align:center;padding:60px 20px;color:var(--purple-mid);font-size:1em;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:14px}
+    .spinner{width:36px;height:36px;border:4px solid var(--purple-pale);border-top-color:var(--pink);border-radius:50%;animation:spin 1s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    #product-grid-view,#general-grid-view{padding:0 20px 40px}
+    .category-section h3{font-size:1.4em;color:var(--text);margin:32px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--purple-pale)}
+    .category-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px}
+    .product-card{background:var(--white);border-radius:var(--radius);overflow:hidden;cursor:pointer;border:1px solid var(--purple-pale);transition:transform .2s,box-shadow .2s;box-shadow:var(--shadow)}
+    .product-card:hover{transform:translateY(-4px);box-shadow:0 8px 28px rgba(232,122,144,.18);border-color:var(--pink-light)}
+    .img-wrap{width:100%;aspect-ratio:1/1;background:#f5f5f5;overflow:hidden;position:relative}
+    .img-wrap::after{content:'';position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);animation:shimmer 1.5s infinite}
+    @keyframes shimmer{100%{transform:translateX(100%)}}
+    .img-wrap img{width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .4s;position:relative;z-index:1}
+    .img-wrap img.loaded{opacity:1}
+    .card-body{padding:14px;text-align:center}
+    .card-name{font-size:1em;font-weight:600;margin-bottom:4px}
+    .card-price{font-size:.9em;font-weight:700;color:var(--pink);margin-bottom:10px}
+    .card-btns{display:flex;gap:8px;justify-content:center}
+    .general-list{display:flex;flex-direction:column;gap:10px;margin-bottom:24px}
+    .general-card{background:var(--white);border-radius:14px;border:1px solid var(--purple-pale);display:flex;align-items:center;padding:16px 20px;cursor:pointer;transition:transform .2s,border-color .2s;box-shadow:var(--shadow)}
+    .general-card:hover{transform:translateY(-2px);border-color:var(--pink-light)}
+    .general-name{flex:1;font-weight:700;font-size:1em;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:12px}
+    .btn{padding:10px 22px;border:none;border-radius:12px;cursor:pointer;font-family:'Prompt',sans-serif;font-weight:700;font-size:.9em;transition:all .2s}
+    .btn-pink{background:linear-gradient(90deg,var(--pink-light),var(--pink));color:var(--white)}
+    .btn-pink:hover{filter:brightness(1.08)}
+    .btn-sm{padding:9px 12px!important;font-size:.78em!important;border-radius:10px!important;font-weight:600!important;border:1px solid transparent!important}
+    .btn-link{background:#E3F2FD!important;color:#1565C0!important;border-color:#BBDEFB!important}
+    .btn-info{background:#FCE4EC!important;color:#AD1457!important;border-color:#F8BBD0!important}
+    .btn-copy{background:#FCE4EC!important;color:#AD1457!important;border-color:#F8BBD0!important;min-width:80px}
+    .btn.copied{background:#B3E5FC!important;color:#01579B!important;border-color:#81D4FA!important}
+    .detail-wrap{background:var(--white);border-radius:20px;margin:20px 16px 32px;padding:20px 20px 28px;box-shadow:var(--shadow);border-left:8px solid var(--pink-light)}
+    .detail-top{display:flex;justify-content:flex-end;margin-bottom:16px}
+    .detail-body{background:#F0F8FF;border-radius:14px;padding:18px;font-size:1.05em;word-break:break-word;margin-bottom:20px}
+    .detail-name{font-weight:700;font-size:1.6em;color:var(--pink);margin-bottom:10px}
+    .detail-tag{font-size:.75em;color:var(--purple-mid);margin-bottom:6px}
+    .detail-price{font-weight:700;color:var(--pink);margin-bottom:10px}
+    .picgrid{display:flex;gap:20px;flex-wrap:wrap;justify-content:center}
+    .picbox{flex:1 1 340px;max-width:100%;border-radius:16px;overflow:hidden;background:#f5f5f5}
+    .piccap{font-size:.72em;color:var(--purple-mid);text-align:center;padding:8px 0 4px;font-weight:600}
+    .picbox img{width:100%;border-radius:16px;object-fit:contain;border:2px solid var(--pink-light)}
+    @media(max-width:600px){html{font-size:17px}.category-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}}
   </style>
 </head>
 <body>
-  <div id="top-nav">
-      <button class="back-btn" onclick="handleBack()"> &laquo; ย้อนกลับ</button>
+
+<div class="logo-wrap">
+  <img src="https://i.postimg.cc/XNG0gfWq/image0.png" alt="โลโก้" fetchpriority="high">
+</div>
+
+<div id="top-nav">
+  <button class="back-btn" onclick="handleBack()">« ย้อนกลับ</button>
+  <span class="live-dot">Live</span>
+</div>
+
+<div class="container" style="padding-bottom:60px">
+  <div class="tabs" id="main-tabs">
+    <button class="tab-btn active" id="tabProduct" onclick="switchTab('product')">คีย์ลัดสินค้า</button>
+    <button class="tab-btn" id="tabGeneral" onclick="switchTab('general')">คีย์ลัดทั่วไป</button>
   </div>
 
-  <div class="logo-container">
-    <img src="https://i.postimg.cc/XNG0gfWq/image0.png" alt="โลโก้ร้าน" fetchpriority="high">
+  <div id="tab-product-content">
+    <div class="view-header" id="product-header">
+      <h2>คีย์ลัดสินค้า <span class="live-dot">Live</span></h2>
+      <div class="sort-row">
+        <span class="sort-label">เรียงลำดับ:</span>
+        <select id="sortProduct" class="sort-select" onchange="handleSortChange(this.value)">
+          <option value="name_asc">ชื่อสินค้า (ก-ฮ)</option>
+          <option value="price_asc">ราคา น้อย → มาก</option>
+          <option value="price_desc">ราคา มาก → น้อย</option>
+        </select>
+      </div>
+    </div>
+    <div id="product-grid-view"><div class="loading-box"><div class="spinner"></div>กำลังโหลด...</div></div>
+    <div id="product-details-view" style="display:none"></div>
   </div>
 
-  <div class="container">
-    <div class="tabs" id="main-tabs">
-      <button class="tab-btn active" id="tabProduct" onclick="switchTab('product')">คีย์ลัดสินค้า</button>
-      <button class="tab-btn" id="tabGeneral" onclick="switchTab('general')">คีย์ลัดทั่วไป</button>
+  <div id="tab-general-content" style="display:none">
+    <div class="view-header" id="general-header">
+      <h2>คีย์ลัดทั่วไป <span class="live-dot">Live</span></h2>
     </div>
-
-    <!-- Tab คีย์ลัดสินค้า -->
-    <div id="tab-product-content">
-      <div class="view-header" id="product-header">
-        <h2>คีย์ลัดสินค้า</h2>
-        <div class="sort-container">
-          <span class="sort-label">เรียงลำดับ:</span>
-          <select id="sortProduct" class="sort-select" onchange="handleSortChange(this.value)">
-            <option value="name_asc">ชื่อสินค้า (ก-ฮ)</option>
-            <option value="price_asc">ราคาน้อยไปมาก</option>
-            <option value="price_desc">ราคามากไปน้อย</option>
-          </select>
-        </div>
-      </div>
-      <div id="product-grid-view">
-        <div class="loading-status">กำลังโหลดข้อมูลสินค้า...</div>
-      </div>
-      <div id="product-details-view" style="display:none;"></div>
-    </div>
-
-    <!-- Tab คีย์ลัดทั่วไป -->
-    <div id="tab-general-content" style="display:none;">
-      <div class="view-header" id="general-header">
-        <h2>คีย์ลัดทั่วไป</h2>
-      </div>
-      <div id="general-grid-view">
-        <div class="loading-status">กำลังโหลดข้อมูลทั่วไป...</div>
-      </div>
-      <div id="general-details-view" style="display:none;"></div>
-    </div>
+    <div id="general-grid-view"><div class="loading-box"><div class="spinner"></div>กำลังโหลด...</div></div>
+    <div id="general-details-view" style="display:none"></div>
   </div>
+</div>
 
 <script>
-    let productRows = [], generalRows = [];
-    let currentSort = 'name_asc';
-    let currentTab = 'product';
-    const pastelColors = ["#FFD1DC", "#D6EEFC", "#FFB6C1", "#B3E5FC", "#FFACC7", "#A0DFFC"]; 
+let productRows=[],generalRows=[],currentSort='name_asc',currentTab='product';
+const PASTEL=["#FFD1DC","#D6EEFC","#FFB6C1","#B3E5FC","#FFACC7","#DCEEFB","#FFF9C4","#E8F5E9"];
 
-    function initHistory() {
-        if (!window.history.state) {
-            window.history.replaceState({ view: 'grid', tab: 'product' }, '');
-        }
-    }
+function initFirebase(){
+  firebase.initializeApp(window.FIREBASE_CONFIG);
+  const db=firebase.database();
+  db.ref('products').on('value',snap=>{
+    const d=snap.val();
+    productRows=d?Object.values(d):[];
+    if(currentTab==='product')renderProductGrid(productRows);
+  });
+  db.ref('general').on('value',snap=>{
+    const d=snap.val();
+    generalRows=d?Object.values(d):[];
+    if(currentTab==='general')renderGeneralGrid(generalRows);
+  });
+}
 
-    window.onpopstate = function(event) {
-        if (event.state && event.state.view === 'details') {
-            if (event.state.tab === 'product') displayProductDetails(event.state.idx, false);
-            else displayGeneralDetails(event.state.idx, false);
-        } else {
-            if (event.state && event.state.tab) switchTab(event.state.tab, false);
-            else showProductGridView(false);
-        }
-    };
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function onImgLoad(img){img.classList.add('loaded')}
+function parsePrice(s){return parseInt(String(s||'').replace(/[^0-9]/g,''))||0}
 
-    function handleBack() {
-        if (window.history.length > 1) {
-            window.history.back();
-        } else {
-            if (currentTab === 'product') showProductGridView();
-            else showGeneralGridView();
-        }
-    }
+function copyInfo(text,btn){
+  const t=String(text||'').trim();
+  if(!t||t==='undefined'){const o=btn.innerText;btn.innerText='ไม่มีข้อมูล';setTimeout(()=>btn.innerText=o,1000);return}
+  navigator.clipboard?.writeText(t).catch(()=>{const ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;left:-9999px';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta)});
+  const o=btn.innerText;btn.innerText='Copied! ✓';btn.classList.add('copied');
+  setTimeout(()=>{btn.innerText=o;btn.classList.remove('copied')},1200);
+}
 
-    function htmlEscape(s) {
-      return String(s ?? "").replace(/[&<>\"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-    }
-
-    function onImgLoad(img) {
-      img.classList.add('loaded');
-    }
-
-    function parsePrice(priceStr) {
-      if (!priceStr) return 0;
-      const numeric = priceStr.toString().replace(/[^0-9]/g, '');
-      return numeric ? parseInt(numeric, 10) : 0;
-    }
-
-    function copyInfo(text, btn) {
-      if (!text || String(text).trim() === "" || String(text) === "undefined") {
-        const oldText = btn.innerText;
-        btn.innerText = "ไม่มีข้อมูล";
-        btn.style.borderColor = "#FFCDD2";
-        setTimeout(() => {
-          btn.innerText = oldText;
-          btn.style.borderColor = "";
-        }, 1000);
-        return;
-      }
-
-      const textArea = document.createElement("textarea");
-      textArea.value = String(text).trim();
-      textArea.style.position = "fixed";
-      textArea.style.left = "-9999px";
-      textArea.style.top = "0";
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
-      try {
-        document.execCommand('copy');
-        const oldText = btn.innerText;
-        btn.innerText = "Copied!";
-        btn.classList.add("copied");
-        setTimeout(() => {
-          btn.innerText = oldText;
-          btn.classList.remove("copied");
-        }, 1000);
-      } catch (err) {
-        console.error('Copy failed', err);
-      }
-      document.body.removeChild(textArea);
-    }
-
-    // --- ส่วนตรรกะสินค้า ---
-    function handleGridCopy(idx, type, btn) {
-      const row = productRows[idx];
-      if (!row) return;
-      if (type === 'link') copyInfo(row[7], btn);
-      else if (type === 'info') copyInfo(`ชื่อสินค้า: ${row[0]}\nราคา: ${row[2]}\nรายละเอียด: ${row[3]}`, btn);
-    }
-
-    function renderProductGrid(rows) {
-        const gridView = document.getElementById('product-grid-view');
-        if (!rows || rows.length === 0) {
-            gridView.innerHTML = '<div style="text-align:center; padding: 20px;">ไม่พบข้อมูล</div>';
-            return;
-        }
-
-        const groupMap = {};
-        rows.forEach((row, i) => {
-            const type = row[1] || "ไม่ระบุประเภท";
-            if (!groupMap[type]) groupMap[type] = [];
-            groupMap[type].push({ idx: i, name: row[0], price: row[2], priceNum: parsePrice(row[2]), image: row[4] });
-        });
-
-        Object.keys(groupMap).forEach(key => {
-          groupMap[key].sort((a, b) => {
-            if (currentSort === 'name_asc') return a.name.localeCompare(b.name, 'th');
-            if (currentSort === 'price_asc') return a.priceNum - b.priceNum;
-            if (currentSort === 'price_desc') return b.priceNum - a.priceNum;
-            return 0;
-          });
-        });
-
-        const sortedTypes = Object.keys(groupMap).sort((a, b) => a.localeCompare(b, 'th'));
-
-        let gridHtml = '';
-        sortedTypes.forEach(type => {
-            gridHtml += `<div class="category-section"><h3>${htmlEscape(type)}</h3><div class="category-grid">`;
-            groupMap[type].forEach(item => {
-                const img = item.image || `https://placehold.co/400x400?text=${encodeURIComponent(item.name)}`;
-                gridHtml += `
-                    <div class="product-card" onclick="displayProductDetails(${item.idx})">
-                        <div class="img-wrapper"><img src="${img}" loading="lazy" onload="onImgLoad(this)"></div>
-                        <div class="product-info-grid">
-                            <div class="product-name-grid">${htmlEscape(item.name)}</div>
-                            <div class="product-price-grid">${htmlEscape(item.price)}</div>
-                            <div class="grid-btn-container">
-                                <button class="btn-copy-sm link-style" onclick="event.stopPropagation(); handleGridCopy(${item.idx}, 'link', this)">Copy Link</button>
-                                <button class="btn-copy-sm info-style" onclick="event.stopPropagation(); handleGridCopy(${item.idx}, 'info', this)">Copy ข้อมูล</button>
-                            </div>
-                        </div>
-                    </div>`;
-            });
-            gridHtml += `</div></div>`;
-        });
-        gridView.innerHTML = gridHtml;
-    }
-
-    function showProductGridView(shouldPushState = true) {
-        document.getElementById('product-grid-view').style.display = 'block';
-        document.getElementById('product-details-view').style.display = 'none';
-        document.getElementById('main-tabs').style.display = 'flex';
-        document.getElementById('product-header').style.display = 'block';
-        document.getElementById('top-nav').style.display = 'none'; 
-        if (shouldPushState) window.history.pushState({ view: 'grid', tab: 'product' }, '');
-    }
-
-    function displayProductDetails(idx, shouldPushState = true) {
-        const detailsView = document.getElementById('product-details-view');
-        const row = productRows[idx];
-        const pastel = pastelColors[idx % pastelColors.length];
-        if (shouldPushState) window.history.pushState({ view: 'details', tab: 'product', idx: idx }, '');
-
-        document.getElementById('product-grid-view').style.display = 'none';
-        document.getElementById('main-tabs').style.display = 'none';
-        document.getElementById('product-header').style.display = 'none';
-        document.getElementById('top-nav').style.display = 'block'; 
-
-        let imgHtml = '';
-        if (row[4]) imgHtml += `<div class="picbox"><div class="piccap">ภาพสินค้า</div><img src='${row[4]}' loading="lazy" onload="onImgLoad(this)"></div>`;
-        if (row[5]) imgHtml += `<div class="picbox"><div class="piccap">ตารางไซส์</div><img src='${row[5]}' loading="lazy" onload="onImgLoad(this)"></div>`;
-
-        detailsView.innerHTML = `
-            <div class='item' style='border-left-color:${pastel}'>
-                <div class="detail-controls">
-                    <button class="copy-btn" onclick="handleCopyProduct(${idx}, this)" data-original-text="Copy ข้อความ">Copy ข้อความ</button>
-                </div>
-                <div class="details-white">
-                    <div class='name'>${htmlEscape(row[0])}</div>
-                    <div style="margin-bottom:7px;">ประเภท: ${htmlEscape(row[1])}</div>
-                    <div style="margin-bottom:12px; font-weight:700; color:#E87A90;">ราคา: ${htmlEscape(row[2])}</div>
-                    <div>${htmlEscape(String(row[3] || '')).replace(/\n/g, "<br>")}</div>
-                </div>
-                <div class='picgrid'>${imgHtml}</div>
-            </div>`;
-        detailsView.style.display = 'block';
-        window.scrollTo(0, 0);
-    }
-
-    function handleCopyProduct(idx, btn) {
-        const row = productRows[idx];
-        copyInfo(`ชื่อสินค้า: ${row[0]}\nประเภท: ${row[1]}\nราคา: ${row[2]}\nรายละเอียด: ${row[3]}`, btn);
-    }
-
-    // --- ส่วนตรรกะคีย์ลัดทั่วไป (ปรับโครงสร้างใหม่) ---
-    function renderGeneralGrid(rows) {
-        const gridView = document.getElementById('general-grid-view');
-        if (!rows || rows.length === 0) {
-            gridView.innerHTML = '<div style="text-align:center; padding: 20px;">ไม่พบข้อมูล</div>';
-            return;
-        }
-
-        const groupMap = {};
-        rows.forEach((row, i) => {
-            // โครงสร้างชีท: B (Index 0) = ประเภท, C (Index 1) = ชื่อรายการ, D (Index 2) = รายละเอียด
-            const type = row[0] || "ทั่วไป"; 
-            if (!groupMap[type]) groupMap[type] = [];
-            groupMap[type].push({ idx: i, name: row[1] }); // เก็บเฉพาะชื่อ (Index 1) มาแสดง
-        });
-
-        const sortedTypes = Object.keys(groupMap).sort((a, b) => a.localeCompare(b, 'th'));
-
-        let listHtml = '';
-        sortedTypes.forEach(type => {
-            listHtml += `<div class="category-section"><h3>${htmlEscape(type)}</h3><div class="general-list-container">`;
-            groupMap[type].forEach(item => {
-                // แสดงเฉพาะชื่อรายการ (item.name) และปุ่ม Copy (ซึ่งจะก๊อปข้อมูล Index 2)
-                // ไม่มีการใส่ Column D (Index 2) ลงใน HTML ส่วนที่มองเห็นได้ในหน้านี้
-                listHtml += `
-                    <div class="general-list-card" onclick="displayGeneralDetails(${item.idx})">
-                        <div class="general-item-name">${htmlEscape(item.name)}</div>
-                        <button class="btn-copy-sm btn-list-copy" onclick="event.stopPropagation(); copyInfo(generalRows[${item.idx}][2], this)">Copy</button>
-                    </div>`;
-            });
-            listHtml += `</div></div>`;
-        });
-        gridView.innerHTML = listHtml;
-    }
-
-    function showGeneralGridView(shouldPushState = true) {
-        document.getElementById('general-grid-view').style.display = 'block';
-        document.getElementById('general-details-view').style.display = 'none';
-        document.getElementById('main-tabs').style.display = 'flex';
-        document.getElementById('general-header').style.display = 'block';
-        document.getElementById('top-nav').style.display = 'none'; 
-        if (shouldPushState) window.history.pushState({ view: 'grid', tab: 'general' }, '');
-    }
-
-    function displayGeneralDetails(idx, shouldPushState = true) {
-        const detailsView = document.getElementById('general-details-view');
-        const row = generalRows[idx]; // row[0]=ประเภท, row[1]=ชื่อ, row[2]=รายละเอียด, row[3]=รูป
-        const pastel = pastelColors[idx % pastelColors.length];
-        if (shouldPushState) window.history.pushState({ view: 'details', tab: 'general', idx: idx }, '');
-
-        document.getElementById('general-grid-view').style.display = 'none';
-        document.getElementById('main-tabs').style.display = 'none';
-        document.getElementById('general-header').style.display = 'none';
-        document.getElementById('top-nav').style.display = 'block'; 
-
-        let imgHtml = row[3] ? `<div class='picgrid'><div class="picbox"><img src='${row[3]}' loading="lazy" onload="onImgLoad(this)"></div></div>` : '';
-
-        // แสดงรายละเอียด (row[2]) เต็มๆ ในหน้านี้
-        detailsView.innerHTML = `
-            <div class='item' style='border-left-color:${pastel}'>
-                <div class="detail-controls">
-                   <button onclick="copyInfo(generalRows[${idx}][2], this)" data-original-text="Copy ข้อความ">Copy ข้อความ</button>
-                </div>
-                <div class="details-white">
-                    <div class='name'>${htmlEscape(row[1])}</div>
-                    <div style="font-size:0.8em; color:#A9A2B6; margin-bottom:10px;">หมวดหมู่: ${htmlEscape(row[0])}</div>
-                    <div>${htmlEscape(String(row[2] || '')).replace(/\n/g, "<br>")}</div>
-                </div>
-                ${imgHtml}
-            </div>`;
-        detailsView.style.display = 'block';
-        window.scrollTo(0, 0);
-    }
-
-    // --- การจัดการ Tab ---
-    function switchTab(tab, shouldPushState = true) {
-      currentTab = tab;
-      document.getElementById('tabProduct').classList.toggle('active', tab === 'product');
-      document.getElementById('tabGeneral').classList.toggle('active', tab === 'general');
-      document.getElementById('tab-product-content').style.display = tab === 'product' ? 'block' : 'none';
-      document.getElementById('tab-general-content').style.display = tab === 'general' ? 'block' : 'none';
-      
-      if (tab === 'product') showProductGridView(shouldPushState);
-      else showGeneralGridView(shouldPushState);
-    }
-
-    function handleSortChange(val) {
-      currentSort = val;
-      renderProductGrid(productRows);
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        initHistory();
-        if (typeof google !== 'undefined' && google.script && google.script.run) {
-            google.script.run.withSuccessHandler(data => { 
-              productRows = data.rows; 
-              renderProductGrid(productRows); 
-            }).getAllProducts();
-            google.script.run.withSuccessHandler(data => { 
-              generalRows = data.rows; 
-              renderGeneralGrid(generalRows); 
-            }).getGeneralList();
-        }
+function renderProductGrid(rows){
+  const el=document.getElementById('product-grid-view');
+  if(!rows?.length){el.innerHTML='<div class="loading-box">ไม่พบข้อมูลสินค้า</div>';return}
+  const map={};
+  rows.forEach((row,i)=>{const t=row[1]||'ไม่ระบุประเภท';if(!map[t])map[t]=[];map[t].push({i,name:row[0],price:row[2],priceNum:parsePrice(row[2]),img:row[4]})});
+  Object.values(map).forEach(arr=>arr.sort((a,b)=>currentSort==='name_asc'?a.name.localeCompare(b.name,'th'):currentSort==='price_asc'?a.priceNum-b.priceNum:b.priceNum-a.priceNum));
+  let html='';
+  Object.keys(map).sort((a,b)=>a.localeCompare(b,'th')).forEach(type=>{
+    html+=`<div class="category-section"><h3>${esc(type)}</h3><div class="category-grid">`;
+    map[type].forEach(item=>{
+      const img=item.img||`https://placehold.co/400x400/FFD1DC/E87A90?text=${encodeURIComponent(item.name)}`;
+      html+=`<div class="product-card" onclick="showProductDetail(${item.i})">
+        <div class="img-wrap"><img src="${img}" loading="lazy" onload="onImgLoad(this)"></div>
+        <div class="card-body">
+          <div class="card-name">${esc(item.name)}</div>
+          <div class="card-price">${esc(item.price)}</div>
+          <div class="card-btns">
+            <button class="btn btn-sm btn-link" onclick="event.stopPropagation();copyInfo(productRows[${item.i}]?.[7],this)">Copy Link</button>
+            <button class="btn btn-sm btn-info" onclick="event.stopPropagation();copyInfo('ชื่อสินค้า: '+(productRows[${item.i}]?.[0]||'')+'\\nราคา: '+(productRows[${item.i}]?.[2]||'')+'\\nรายละเอียด: '+(productRows[${item.i}]?.[3]||''),this)">Copy ข้อมูล</button>
+          </div>
+        </div>
+      </div>`;
     });
+    html+='</div></div>';
+  });
+  el.innerHTML=html;
+}
+
+function showProductDetail(idx,push=true){
+  const row=productRows[idx];if(!row)return;
+  if(push)history.pushState({view:'detail',tab:'product',idx},'');
+  document.getElementById('product-grid-view').style.display='none';
+  document.getElementById('main-tabs').style.display='none';
+  document.getElementById('product-header').style.display='none';
+  document.getElementById('top-nav').style.display='flex';
+  const color=PASTEL[idx%PASTEL.length];
+  let pics='';
+  if(row[4])pics+=`<div class="picbox"><div class="piccap">ภาพสินค้า</div><img src="${row[4]}" loading="lazy" onload="onImgLoad(this)"></div>`;
+  if(row[5])pics+=`<div class="picbox"><div class="piccap">ตารางไซส์</div><img src="${row[5]}" loading="lazy" onload="onImgLoad(this)"></div>`;
+  const copyText=`ชื่อสินค้า: ${row[0]}\nประเภท: ${row[1]}\nราคา: ${row[2]}\nรายละเอียด: ${row[3]}`;
+  document.getElementById('product-details-view').innerHTML=`
+    <div class="detail-wrap" style="border-left-color:${color}">
+      <div class="detail-top">
+        <button class="btn btn-pink" onclick='copyInfo(${JSON.stringify(copyText)},this)'>Copy ข้อความ</button>
+      </div>
+      <div class="detail-body">
+        <div class="detail-name">${esc(row[0])}</div>
+        <div class="detail-tag">ประเภท: ${esc(row[1])}</div>
+        <div class="detail-price">ราคา: ${esc(row[2])}</div>
+        <div>${esc(String(row[3]||'')).replace(/\n/g,'<br>')}</div>
+      </div>
+      ${pics?`<div class="picgrid">${pics}</div>`:''}
+    </div>`;
+  document.getElementById('product-details-view').style.display='block';
+  window.scrollTo(0,0);
+}
+
+function renderGeneralGrid(rows){
+  const el=document.getElementById('general-grid-view');
+  if(!rows?.length){el.innerHTML='<div class="loading-box">ไม่พบข้อมูล</div>';return}
+  const map={};
+  rows.forEach((row,i)=>{const t=row[0]||'ทั่วไป';if(!map[t])map[t]=[];map[t].push({i,name:row[1]})});
+  let html='';
+  Object.keys(map).sort((a,b)=>a.localeCompare(b,'th')).forEach(type=>{
+    html+=`<div class="category-section"><h3>${esc(type)}</h3><div class="general-list">`;
+    map[type].forEach(item=>{html+=`<div class="general-card" onclick="showGeneralDetail(${item.i})"><div class="general-name">${esc(item.name)}</div><button class="btn btn-sm btn-copy" onclick="event.stopPropagation();copyInfo(generalRows[${item.i}]?.[2],this)">Copy</button></div>`});
+    html+='</div></div>';
+  });
+  el.innerHTML=html;
+}
+
+function showGeneralDetail(idx,push=true){
+  const row=generalRows[idx];if(!row)return;
+  if(push)history.pushState({view:'detail',tab:'general',idx},'');
+  document.getElementById('general-grid-view').style.display='none';
+  document.getElementById('main-tabs').style.display='none';
+  document.getElementById('general-header').style.display='none';
+  document.getElementById('top-nav').style.display='flex';
+  const color=PASTEL[idx%PASTEL.length];
+  const img=row[3]?`<div class="picgrid"><div class="picbox"><img src="${row[3]}" loading="lazy" onload="onImgLoad(this)"></div></div>`:'';
+  document.getElementById('general-details-view').innerHTML=`
+    <div class="detail-wrap" style="border-left-color:${color}">
+      <div class="detail-top">
+        <button class="btn btn-pink" onclick='copyInfo(${JSON.stringify(String(row[2]||''))},this)'>Copy ข้อความ</button>
+      </div>
+      <div class="detail-body">
+        <div class="detail-name">${esc(row[1])}</div>
+        <div class="detail-tag">หมวดหมู่: ${esc(row[0])}</div>
+        <div>${esc(String(row[2]||'')).replace(/\n/g,'<br>')}</div>
+      </div>
+      ${img}
+    </div>`;
+  document.getElementById('general-details-view').style.display='block';
+  window.scrollTo(0,0);
+}
+
+function switchTab(tab,push=true){
+  currentTab=tab;
+  document.getElementById('tabProduct').classList.toggle('active',tab==='product');
+  document.getElementById('tabGeneral').classList.toggle('active',tab==='general');
+  document.getElementById('tab-product-content').style.display=tab==='product'?'block':'none';
+  document.getElementById('tab-general-content').style.display=tab==='general'?'block':'none';
+  if(tab==='product')showProductGrid(push);else showGeneralGrid(push);
+}
+function showProductGrid(push=true){
+  document.getElementById('product-grid-view').style.display='block';
+  document.getElementById('product-details-view').style.display='none';
+  document.getElementById('main-tabs').style.display='flex';
+  document.getElementById('product-header').style.display='block';
+  document.getElementById('top-nav').style.display='none';
+  if(push)history.pushState({view:'grid',tab:'product'},'');
+}
+function showGeneralGrid(push=true){
+  document.getElementById('general-grid-view').style.display='block';
+  document.getElementById('general-details-view').style.display='none';
+  document.getElementById('main-tabs').style.display='flex';
+  document.getElementById('general-header').style.display='block';
+  document.getElementById('top-nav').style.display='none';
+  if(push)history.pushState({view:'grid',tab:'general'},'');
+}
+function handleBack(){history.length>1?history.back():(currentTab==='product'?showProductGrid():showGeneralGrid())}
+function handleSortChange(v){currentSort=v;renderProductGrid(productRows)}
+window.onpopstate=e=>{
+  if(!e.state)return;
+  const s=e.state;
+  if(s.view==='detail'){if(s.tab==='product')showProductDetail(s.idx,false);else showGeneralDetail(s.idx,false)}
+  else switchTab(s.tab||'product',false);
+};
+document.addEventListener('DOMContentLoaded',()=>{history.replaceState({view:'grid',tab:'product'},'');initFirebase()});
 </script>
 </body>
 </html>
