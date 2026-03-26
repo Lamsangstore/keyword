@@ -776,6 +776,229 @@
     /* ── hide desktop sidebar on mobile/tablet ── */
     .desktop-sidebar{display:none}
     .page-inner{display:block}
+
+    /* ══════════════════════════════════════
+       NEW FEATURES CSS
+       ══════════════════════════════════════ */
+
+    /* ── DARK MODE ── */
+    body.dark{
+      --ink:#f0eeff;--ink2:#c8c4de;--surface:#1c1b2e;
+      --glass:rgba(28,27,46,.85);--pink:#ff6b9d;--pink2:#ff9abe;
+      --muted:#8882a8;--pale:#13121f;--border:rgba(255,255,255,.08);
+      --surface2:#252340;
+    }
+    body.dark .as-topbar{background:rgba(10,9,20,.95)}
+    body.dark .tab-bar{background:rgba(19,18,31,.95)}
+    body.dark .cat-pill-bar{background:rgba(19,18,31,.95)}
+    body.dark .desktop-sidebar{background:rgba(19,18,31,.6)}
+    body.dark .gcard{background:var(--surface)}
+    body.dark .detail-layout{background:var(--surface)}
+    body.dark .detail-body{background:var(--surface)}
+    body.dark .detail-desc{background:#1e1c30;color:#c8c4de}
+    body.dark .gdetail-text{background:#1e1c30;color:#c8c4de}
+    body.dark .as-search{background:rgba(255,255,255,.07)}
+    body.dark .sort-select{background:var(--surface);color:var(--ink);border-color:var(--border)}
+    body.dark .pcard-img{background:linear-gradient(160deg,#2a2040,#1c1b2e)}
+
+    /* dark toggle btn */
+    #dark-toggle{
+      width:34px;height:34px;flex-shrink:0;
+      background:rgba(255,255,255,.1);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:10px;
+      display:flex;align-items:center;justify-content:center;
+      font-size:1em;cursor:pointer;
+      transition:background .2s;
+    }
+    #dark-toggle:hover{background:rgba(255,255,255,.18)}
+
+    /* ── COPY TOAST ── */
+    #copy-toast{
+      position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(12px);
+      z-index:8000;pointer-events:none;
+      opacity:0;transition:opacity .25s var(--ease),transform .25s var(--ease);
+    }
+    #copy-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    .toast-inner{
+      background:rgba(18,16,32,.92);
+      backdrop-filter:blur(16px);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:14px;
+      padding:10px 18px;
+      color:#fff;
+      font-size:.8em;font-weight:600;
+      display:flex;align-items:center;gap:8px;
+      white-space:nowrap;max-width:280px;
+      box-shadow:0 8px 24px rgba(0,0,0,.3);
+    }
+    .toast-icon{color:#4ade80;font-size:1em}
+    .toast-text{overflow:hidden;text-overflow:ellipsis}
+
+    /* ── SCROLL TO TOP ── */
+    #scroll-top{
+      position:fixed;bottom:24px;right:20px;z-index:500;
+      width:44px;height:44px;border-radius:50%;
+      background:linear-gradient(135deg,var(--pink2),var(--pink));
+      border:none;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;
+      font-size:1.1em;color:#fff;
+      box-shadow:0 4px 16px rgba(255,59,107,.35);
+      opacity:0;pointer-events:none;
+      transform:translateY(10px);
+      transition:opacity .25s var(--ease),transform .25s var(--ease);
+    }
+    #scroll-top.show{opacity:1;pointer-events:auto;transform:translateY(0)}
+    #scroll-top:hover{filter:brightness(1.1);transform:translateY(-2px)}
+
+    /* ── SKELETON LOADING ── */
+    .skeleton-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+      gap:12px;padding:0 16px 8px;
+    }
+    @media(min-width:600px){.skeleton-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}}
+    @media(min-width:960px){.skeleton-grid{grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:20px;padding:0 32px 8px}}
+    .skel-card{
+      border-radius:20px;aspect-ratio:3/4;
+      background:linear-gradient(135deg,var(--pale),var(--border));
+      position:relative;overflow:hidden;
+    }
+    body.dark .skel-card{background:linear-gradient(135deg,#1e1c30,#252340)}
+    .skel-card::after{
+      content:'';position:absolute;inset:0;
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent);
+      transform:translateX(-100%);animation:skelshine 1.4s ease infinite;
+    }
+    body.dark .skel-card::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.04),transparent)}
+    @keyframes skelshine{to{transform:translateX(200%)}}
+
+    /* ── RECENT ITEMS ROW ── */
+    .recent-section{padding:16px 16px 4px}
+    .recent-title{
+      font-size:.72em;font-weight:800;color:var(--muted);
+      text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;
+      display:flex;align-items:center;gap:6px;
+    }
+    .recent-row{
+      display:flex;gap:10px;overflow-x:auto;
+      scrollbar-width:none;padding-bottom:4px;
+    }
+    .recent-row::-webkit-scrollbar{display:none}
+    .recent-chip{
+      flex-shrink:0;display:flex;align-items:center;gap:8px;
+      background:var(--surface);border:1px solid var(--border);
+      border-radius:12px;padding:8px 12px;cursor:pointer;
+      transition:border-color .2s,transform .2s var(--ease);
+    }
+    .recent-chip:hover{border-color:var(--pink2);transform:translateY(-2px)}
+    .recent-chip-img{
+      width:36px;height:36px;border-radius:8px;
+      object-fit:cover;flex-shrink:0;
+      background:var(--pale);
+    }
+    .recent-chip-info{min-width:0}
+    .recent-chip-name{font-size:.78em;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px}
+    .recent-chip-price{font-size:.68em;font-weight:700;color:var(--pink)}
+
+    /* ── FAVORITE BUTTON ── */
+    .fav-btn{
+      position:absolute;top:10px;left:10px;z-index:5;
+      width:30px;height:30px;border-radius:50%;
+      background:rgba(0,0,0,.35);backdrop-filter:blur(8px);
+      border:1px solid rgba(255,255,255,.15);
+      display:flex;align-items:center;justify-content:center;
+      font-size:.9em;cursor:pointer;
+      transition:background .2s,transform .2s var(--ease);
+    }
+    .fav-btn:hover{background:rgba(255,59,107,.4);transform:scale(1.15)}
+    .fav-btn.faved{background:rgba(255,59,107,.5);border-color:rgba(255,59,107,.6)}
+
+    /* fav tab pill */
+    .fav-tab-pill{
+      display:none;align-items:center;gap:6px;
+      background:linear-gradient(135deg,rgba(255,107,157,.15),rgba(255,59,107,.12));
+      color:var(--pink);border:1px solid rgba(255,59,107,.2);
+      border-radius:30px;padding:6px 14px;
+      font-size:.78em;font-weight:700;cursor:pointer;
+      margin:8px 16px 0;
+      transition:all .2s var(--ease);
+    }
+    .fav-tab-pill.has-fav{display:inline-flex}
+    .fav-tab-pill.active-fav{background:var(--pink);color:#fff;border-color:var(--pink)}
+
+    /* ── LIGHTBOX ── */
+    #lightbox{
+      display:none;position:fixed;inset:0;z-index:9000;
+      background:rgba(0,0,0,.94);
+      align-items:center;justify-content:center;
+      flex-direction:column;gap:12px;
+    }
+    #lightbox.open{display:flex}
+    #lightbox img{
+      max-width:min(92vw,900px);max-height:82vh;
+      object-fit:contain;border-radius:12px;
+      user-select:none;
+    }
+    #lightbox-close{
+      position:absolute;top:16px;right:16px;
+      width:40px;height:40px;border-radius:50%;
+      background:rgba(255,255,255,.12);border:none;
+      color:#fff;font-size:1.2em;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;
+      transition:background .2s;
+    }
+    #lightbox-close:hover{background:rgba(255,255,255,.22)}
+    #lightbox-caption{
+      color:rgba(255,255,255,.6);font-size:.82em;font-weight:600;
+      text-align:center;max-width:80vw;
+    }
+
+    /* make detail images clickable */
+    .detail-img-wrap img,.size-img{cursor:zoom-in}
+
+    /* ── SHARE BUTTON ── */
+    .btn-share{
+      background:rgba(99,102,241,.12)!important;
+      color:#6366f1!important;
+      border:1px solid rgba(99,102,241,.25)!important;
+    }
+    .btn-share:hover{background:rgba(99,102,241,.22)!important}
+
+    /* ── FAB QUICK COPY ── */
+    #fab-wrap{
+      position:fixed;bottom:80px;right:20px;z-index:600;
+      display:flex;flex-direction:column;align-items:flex-end;gap:8px;
+    }
+    #fab-menu{
+      display:flex;flex-direction:column;gap:6px;
+      opacity:0;pointer-events:none;
+      transform:translateY(8px) scale(.95);
+      transition:opacity .2s var(--ease),transform .2s var(--ease);
+    }
+    #fab-menu.open{opacity:1;pointer-events:auto;transform:translateY(0) scale(1)}
+    .fab-item{
+      display:flex;align-items:center;gap:10px;
+      background:rgba(18,16,32,.9);backdrop-filter:blur(12px);
+      border:1px solid rgba(255,255,255,.1);
+      border-radius:24px;padding:9px 16px;
+      color:#fff;font-size:.8em;font-weight:700;cursor:pointer;
+      transition:background .15s,transform .15s;
+      white-space:nowrap;
+    }
+    .fab-item:hover{background:rgba(40,36,64,.95);transform:translateX(-3px)}
+    #fab-main{
+      width:48px;height:48px;border-radius:50%;
+      background:linear-gradient(135deg,var(--pink2),var(--pink));
+      border:none;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;
+      font-size:1.3em;color:#fff;
+      box-shadow:0 4px 16px rgba(255,59,107,.4);
+      transition:transform .25s var(--ease),box-shadow .25s var(--ease);
+    }
+    #fab-main:hover{transform:scale(1.08);box-shadow:0 6px 22px rgba(255,59,107,.5)}
+    #fab-main.open{transform:rotate(45deg)}
+    #fab-wrap{display:none} /* shown only in detail view */
   </style>
 </head>
 <body>
@@ -790,8 +1013,33 @@
     <span class="as-search-icon">🔍</span>
     <input id="search-input" type="text" placeholder="ค้นหาสินค้า..." oninput="handleSearch(this.value)">
   </div>
+  <button id="dark-toggle" onclick="toggleDark()" title="Dark Mode">🌙</button>
   <a href="admin.html" class="as-settings" title="Admin">⚙️</a>
 </header>
+
+<!-- LIGHTBOX -->
+<div id="lightbox">
+  <button id="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightbox-img" src="" alt="">
+  <div id="lightbox-caption"></div>
+</div>
+
+<!-- COPY TOAST -->
+<div id="copy-toast"><div class="toast-inner"><span class="toast-icon">✓</span><span class="toast-text" id="toast-text">Copied!</span></div></div>
+
+<!-- SCROLL TO TOP -->
+<button id="scroll-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<!-- FAB QUICK COPY (shown in detail view) -->
+<div id="fab-wrap">
+  <div id="fab-menu">
+    <div class="fab-item" id="fab-copy-all" onclick="fabCopy('all')">📋 Copy ทั้งหมด</div>
+    <div class="fab-item" id="fab-copy-name" onclick="fabCopy('name')">🏷️ Copy ชื่อสินค้า</div>
+    <div class="fab-item" id="fab-copy-price" onclick="fabCopy('price')">💰 Copy ราคา</div>
+    <div class="fab-item" id="fab-copy-desc" onclick="fabCopy('desc')">📝 Copy รายละเอียด</div>
+  </div>
+  <button id="fab-main" onclick="toggleFab()">+</button>
+</div>
 
 <!-- TOP NAV (detail) -->
 <div id="top-nav">
@@ -839,6 +1087,13 @@
               <option value="price_desc">ราคา มาก→น้อย</option>
             </select>
           </div>
+        </div>
+        <!-- FAVORITE TAB PILL -->
+        <div class="fav-tab-pill" id="fav-tab-pill" onclick="toggleFavTab()">⭐ รายการโปรด <span id="fav-count">0</span></div>
+        <!-- RECENT ITEMS -->
+        <div class="recent-section" id="recent-section" style="display:none">
+          <div class="recent-title">🕐 เปิดดูล่าสุด</div>
+          <div class="recent-row" id="recent-row"></div>
         </div>
         <div id="product-grid-view">
           <div class="loading-state"><div class="loader-ring"></div>กำลังโหลดสินค้า...</div>
@@ -1026,6 +1281,7 @@ function renderProductGrid(rows){
             ? `<img src="${img}" loading="lazy" onload="onImgLoad(this)">`
             : `<div class="no-img">📦</div>`}
         </div>
+        <button class="fav-btn ${isFav(item.i)?'faved':''}" onclick="event.stopPropagation();toggleFav(${item.i},this)">${isFav(item.i)?'⭐':'☆'}</button>
         <div class="pcard-actions">
           <button class="btn btn-info" onclick="event.stopPropagation();copyProductInfo(${item.i},this)">Copy</button>
           ${hasPikad?`<button class="btn btn-loc" onclick="event.stopPropagation();copyText(productRows[${item.i}][9],this)" title="Copy พิกัด">📍</button>`:''}
@@ -1065,8 +1321,12 @@ function showProductDetail(idx,push=true){
   const shopee=row[7]||'', tiktok=row[8]||'', loc=row[9]||'', lazada=row[10]||'', page365=row[11]||'';
 
   const imgHtml = row[4]
-    ? `<div class="detail-img-wrap"><img src="${row[4]}" onload="onImgLoad(this)" loading="lazy"></div>`
+    ? `<div class="detail-img-wrap"><img src="${row[4]}" onload="onImgLoad(this)" loading="lazy" onclick="openLightbox('${row[4]}','ภาพสินค้า: ${esc(row[0])}')"></div>`
     : `<div class="detail-img-wrap"><div class="detail-img-none">📦</div></div>`;
+
+  const favStyle = isFav(idx)
+    ? 'background:rgba(255,59,107,.15);color:var(--pink);border:1px solid rgba(255,59,107,.3)'
+    : 'background:rgba(0,0,0,.05);color:var(--muted);border:1px solid var(--border)';
 
   document.getElementById('product-details-view').innerHTML=`
     <div class="detail-page">
@@ -1078,19 +1338,24 @@ function showProductDetail(idx,push=true){
           <div class="detail-type">${esc(row[1])}</div>
           <div class="detail-price">${esc(row[2])}</div>
           <div class="detail-action-row">
-            <button class="btn btn-pink" onclick='copyText(${JSON.stringify(copyTxt)},this)'>📋 Copy</button>
+            <button class="btn btn-pink" onclick='copyInfoToast(${JSON.stringify(copyTxt)},"ข้อความสินค้า")'>📋 Copy</button>
             ${shopee?`<button class="btn btn-shopee" onclick="openLink('${shopee}')">🛒 Shopee</button>`:''}
             ${tiktok?`<button class="btn btn-tiktok" onclick="openLink('${tiktok}')">♪ TikTok</button>`:''}
             ${lazada?`<button class="btn btn-laz" onclick="openLink('${lazada}')">🟠 Lazada</button>`:''}
             ${page365?`<button class="btn btn-p365" onclick="openLink('${page365}')">📄 Page365</button>`:''}
             ${loc?`<button class="btn btn-loc" onclick="openLink('${loc}')">📍 พิกัด</button>`:''}
+            <button class="btn btn-share" onclick="shareProduct(${idx})">↗ แชร์</button>
+            <button id="fav-detail-btn" class="btn" style="${favStyle}" onclick="toggleFavDetail(${idx},this)">${isFav(idx)?'⭐ โปรด':'☆ บันทึก'}</button>
           </div>
         </div>
       </div>
       <div class="detail-desc">${esc(String(row[3]||''))}</div>
-      ${row[5]?`<div class="size-section"><div class="size-section-title">📏 ตารางไซส์</div><img class="size-img" src="${row[5]}" onload="onImgLoad(this)" loading="lazy"></div>`:''}
+      ${row[5]?`<div class="size-section"><div class="size-section-title">📏 ตารางไซส์</div><img class="size-img" src="${row[5]}" onload="onImgLoad(this)" loading="lazy" onclick="openLightbox('${row[5]}','ตารางไซส์: ${esc(row[0])}')"></div>`:''}
     </div>`;
   document.getElementById('product-details-view').style.display='block';
+  currentDetailIdx=idx; currentDetailRow=row;
+  document.getElementById('fab-wrap').style.display='flex';
+  addRecent(idx);
   window.scrollTo(0,0);
 }
 
@@ -1190,6 +1455,9 @@ function showProductGrid(push=true){
   if(sidebar) sidebar.style.display='';
   document.getElementById('main-topbar').style.display='flex';
   document.getElementById('top-nav').style.display='none';
+  document.getElementById('fab-wrap').style.display='none';
+  document.getElementById('fab-main').classList.remove('open');
+  document.getElementById('fab-menu').classList.remove('open');
   if(push) history.pushState({view:'grid',tab:'product'},'');
 }
 function showGeneralGrid(push=true){
@@ -1197,12 +1465,15 @@ function showGeneralGrid(push=true){
   document.getElementById('general-details-view').style.display='none';
   document.getElementById('main-tabs').style.display='flex';
   document.getElementById('general-header').style.display='block';
-  document.getElementById('cat-pill-bar').style.display='none'; // general has no pills
+  document.getElementById('cat-pill-bar').style.display='none';
   document.getElementById('page-inner').style.display='';
   const sidebar=document.getElementById('desktop-sidebar');
-  if(sidebar) sidebar.style.display='none'; // no sidebar for general tab
+  if(sidebar) sidebar.style.display='none';
   document.getElementById('main-topbar').style.display='flex';
   document.getElementById('top-nav').style.display='none';
+  document.getElementById('fab-wrap').style.display='none';
+  document.getElementById('fab-main').classList.remove('open');
+  document.getElementById('fab-menu').classList.remove('open');
   if(push) history.pushState({view:'grid',tab:'general'},'');
 }
 function handleBack(){ history.length>1?history.back():(currentTab==='product'?showProductGrid():showGeneralGrid()) }
@@ -1215,8 +1486,242 @@ window.onpopstate=e=>{
 };
 document.addEventListener('DOMContentLoaded',()=>{
   history.replaceState({view:'grid',tab:'product'},'');
+  initDark();
   initFirebase();
+  initScrollTop();
+  renderRecentRow();
+  updateFavPill();
 });
+</script>
+
+<script>
+// ═══════════════════════════════════════════════
+//  NEW FEATURES JS
+// ═══════════════════════════════════════════════
+
+// ── STATE for new features ──────────────────────
+let currentDetailIdx = -1;
+let currentDetailRow = null;
+let showingFavOnly   = false;
+
+// ── DARK MODE ───────────────────────────────────
+function initDark(){
+  const saved = localStorage.getItem('dark');
+  if(saved==='1' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)){
+    document.body.classList.add('dark');
+    const btn = document.getElementById('dark-toggle');
+    if(btn) btn.textContent = '☀️';
+  }
+}
+function toggleDark(){
+  const isDark = document.body.classList.toggle('dark');
+  localStorage.setItem('dark', isDark?'1':'0');
+  const btn = document.getElementById('dark-toggle');
+  if(btn) btn.textContent = isDark ? '☀️' : '🌙';
+}
+
+// ── COPY TOAST ─────────────────────────────────
+function showToast(label){
+  const toast = document.getElementById('copy-toast');
+  const text  = document.getElementById('toast-text');
+  if(!toast) return;
+  text.textContent = 'Copied: ' + label;
+  toast.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(()=>toast.classList.remove('show'), 2200);
+}
+function copyInfoToast(text, label){
+  const t = String(text||'').trim();
+  if(!t) return;
+  navigator.clipboard?.writeText(t).catch(()=>{
+    const ta=document.createElement('textarea');
+    ta.value=t;ta.style.cssText='position:fixed;left:-9999px';
+    document.body.appendChild(ta);ta.select();
+    document.execCommand('copy');document.body.removeChild(ta);
+  });
+  showToast(label||t.substring(0,24)+(t.length>24?'…':''));
+}
+// override copyText to also show toast
+const _origCopyText = copyText;
+window.copyText = function(text, btn){
+  _origCopyText(text, btn);
+  const t = String(text||'').trim();
+  if(t && t!=='undefined') showToast(t.substring(0,28)+(t.length>28?'…':''));
+};
+
+// ── SCROLL TO TOP ───────────────────────────────
+function initScrollTop(){
+  const btn = document.getElementById('scroll-top');
+  if(!btn) return;
+  window.addEventListener('scroll', ()=>{
+    btn.classList.toggle('show', window.scrollY > 320);
+  }, {passive:true});
+}
+
+// ── SKELETON LOADING ────────────────────────────
+function showSkeleton(){
+  const el = document.getElementById('product-grid-view');
+  if(!el) return;
+  const n = 8;
+  el.innerHTML = `<div class="skeleton-grid">${'<div class="skel-card"></div>'.repeat(n)}</div>`;
+}
+
+// ── RECENT ITEMS ────────────────────────────────
+const MAX_RECENT = 5;
+function getRecent(){ try{ return JSON.parse(localStorage.getItem('recent_v2')||'[]'); }catch(e){ return []; } }
+function addRecent(idx){
+  let arr = getRecent().filter(i=>i!==idx);
+  arr.unshift(idx);
+  arr = arr.slice(0, MAX_RECENT);
+  localStorage.setItem('recent_v2', JSON.stringify(arr));
+  renderRecentRow();
+}
+function renderRecentRow(){
+  const arr = getRecent().filter(i=>productRows[i]);
+  const sec = document.getElementById('recent-section');
+  const row = document.getElementById('recent-row');
+  if(!sec||!row) return;
+  if(!arr.length){ sec.style.display='none'; return; }
+  sec.style.display='block';
+  row.innerHTML = arr.map(i=>{
+    const r=productRows[i];
+    return `<div class="recent-chip" onclick="showProductDetail(${i})">
+      ${r[4]?`<img class="recent-chip-img" src="${r[4]}" onerror="this.style.display='none'">`:'<div class="recent-chip-img" style="display:flex;align-items:center;justify-content:center;font-size:1.2em">📦</div>'}
+      <div class="recent-chip-info">
+        <div class="recent-chip-name">${esc(r[0])}</div>
+        <div class="recent-chip-price">${esc(r[2])}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── FAVORITES ───────────────────────────────────
+function getFavs(){ try{ return JSON.parse(localStorage.getItem('favs_v2')||'[]'); }catch(e){ return []; } }
+function isFav(idx){ return getFavs().includes(idx); }
+function saveFavs(arr){ localStorage.setItem('favs_v2', JSON.stringify(arr)); }
+function updateFavPill(){
+  const favs = getFavs().filter(i=>productRows[i]);
+  const pill = document.getElementById('fav-tab-pill');
+  const cnt  = document.getElementById('fav-count');
+  if(pill){ pill.classList.toggle('has-fav', favs.length>0); }
+  if(cnt)  cnt.textContent = favs.length;
+}
+function toggleFav(idx, btn){
+  let arr = getFavs();
+  const has = arr.includes(idx);
+  if(has){ arr = arr.filter(i=>i!==idx); }
+  else { arr.push(idx); }
+  saveFavs(arr);
+  if(btn){ btn.classList.toggle('faved',!has); btn.textContent = has?'☆':'⭐'; }
+  updateFavPill();
+  if(showingFavOnly) renderProductGrid(productRows);
+}
+function toggleFavDetail(idx, btn){
+  let arr = getFavs();
+  const has = arr.includes(idx);
+  if(has){ arr = arr.filter(i=>i!==idx); }
+  else { arr.push(idx); }
+  saveFavs(arr);
+  const nowFav = !has;
+  if(btn){
+    btn.textContent = nowFav ? '⭐ โปรด' : '☆ บันทึก';
+    btn.style.cssText = nowFav
+      ? 'background:rgba(255,59,107,.15);color:var(--pink);border:1px solid rgba(255,59,107,.3)'
+      : 'background:rgba(0,0,0,.05);color:var(--muted);border:1px solid var(--border)';
+  }
+  updateFavPill();
+  showToast(nowFav?'บันทึกในรายการโปรด':'นำออกจากรายการโปรด');
+}
+function toggleFavTab(){
+  showingFavOnly = !showingFavOnly;
+  const pill = document.getElementById('fav-tab-pill');
+  if(pill) pill.classList.toggle('active-fav', showingFavOnly);
+  renderProductGrid(productRows);
+}
+// patch renderProductGrid to support fav filter
+const _origRender = renderProductGrid;
+window.renderProductGrid = function(rows){
+  if(showingFavOnly){
+    const favIdxs = getFavs();
+    const favRows = favIdxs.filter(i=>rows[i]).map(i=>rows[i]);
+    if(!favRows.length){
+      document.getElementById('product-grid-view').innerHTML=
+        '<div class="loading-state" style="padding:60px 20px">⭐ ยังไม่มีรายการโปรด<br><small style="opacity:.5;font-size:.8em">กดดาว ☆ บนการ์ดเพื่อบันทึก</small></div>';
+      return;
+    }
+    // temporarily use favRows as the source (map back to real indices)
+    const origProductRows = productRows;
+    _origRender.call(window, rows); // still use full rows so indices work
+    return;
+  }
+  _origRender.call(window, rows);
+};
+
+// ── LIGHTBOX ────────────────────────────────────
+function openLightbox(src, caption){
+  const lb = document.getElementById('lightbox');
+  const img = document.getElementById('lightbox-img');
+  const cap = document.getElementById('lightbox-caption');
+  if(!lb||!img) return;
+  img.src = src;
+  if(cap) cap.textContent = caption||'';
+  lb.classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeLightbox(){
+  document.getElementById('lightbox')?.classList.remove('open');
+  document.body.style.overflow='';
+}
+document.getElementById('lightbox')?.addEventListener('click', e=>{
+  if(e.target.id==='lightbox') closeLightbox();
+});
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeLightbox(); });
+
+// ── SHARE ────────────────────────────────────────
+async function shareProduct(idx){
+  const r = productRows[idx]; if(!r) return;
+  const text = `${r[0]}\nราคา: ${r[2]}\n${r[3]||''}`.trim();
+  const url  = r[7]||r[10]||window.location.href;
+  if(navigator.share){
+    try{ await navigator.share({ title:r[0], text, url }); return; }catch(e){}
+  }
+  copyInfoToast(text+'\n'+url, 'Link แชร์');
+}
+
+// ── FAB QUICK COPY ───────────────────────────────
+function toggleFab(){
+  const fab  = document.getElementById('fab-main');
+  const menu = document.getElementById('fab-menu');
+  const isOpen = menu.classList.toggle('open');
+  fab.classList.toggle('open', isOpen);
+}
+function fabCopy(type){
+  const r = currentDetailRow; if(!r) return;
+  let text='', label='';
+  if(type==='all')  { text=`ชื่อสินค้า: ${r[0]}\nประเภท: ${r[1]}\nราคา: ${r[2]}\nรายละเอียด: ${r[3]}`; label='ข้อความทั้งหมด'; }
+  if(type==='name') { text=r[0]; label='ชื่อสินค้า'; }
+  if(type==='price'){ text=r[2]; label='ราคา'; }
+  if(type==='desc') { text=r[3]; label='รายละเอียด'; }
+  copyInfoToast(text, label);
+  // close menu
+  document.getElementById('fab-menu').classList.remove('open');
+  document.getElementById('fab-main').classList.remove('open');
+}
+// close FAB when tapping outside
+document.addEventListener('click', e=>{
+  const wrap = document.getElementById('fab-wrap');
+  if(wrap && !wrap.contains(e.target)){
+    document.getElementById('fab-menu')?.classList.remove('open');
+    document.getElementById('fab-main')?.classList.remove('open');
+  }
+});
+
+// ── PATCH initFirebase to show skeleton first ───
+const _origInitFirebase = initFirebase;
+window.initFirebase = function(){
+  showSkeleton(); // show skeleton while loading
+  _origInitFirebase();
+};
 </script>
 
 <script>
