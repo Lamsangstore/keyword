@@ -296,6 +296,10 @@
       <div><label>🛒 Link Shopee</label><input type="text" id="p-shopee" placeholder="https://shopee.co.th/..."></div>
       <div><label>🎵 Link TikTok</label><input type="text" id="p-tiktok" placeholder="https://vt.tiktok.com/..."></div>
     </div>
+    <div class="form-row">
+      <div><label>🟠 Link Lazada</label><input type="text" id="p-lazada" placeholder="https://www.lazada.co.th/..."></div>
+      <div><label>📄 Page 365</label><input type="text" id="p-page365" placeholder="https://lamsangstore..."></div>
+    </div>
     <div class="form-row full">
       <div><label>📍 พิกัด Link (optional)</label><input type="text" id="p-link" placeholder="https://..."></div>
     </div>
@@ -524,25 +528,26 @@ function deleteItem(collection, key, name) {
 function openProductModal(key = null) {
   editProductKey = key;
   document.getElementById('product-modal-title').textContent = key ? '✏️ แก้ไขสินค้า' : '➕ เพิ่มสินค้า';
-  const fields = ['p-name','p-type','p-price','p-sku','p-shopee','p-tiktok','p-link','p-img1','p-img2','p-detail'];
+  const fields = ['p-name','p-type','p-price','p-sku','p-shopee','p-tiktok','p-lazada','p-page365','p-link','p-img1','p-img2','p-detail'];
   fields.forEach(id => document.getElementById(id).value = '');
   [1,2].forEach(n => { document.getElementById(`upload-preview-${n}`).style.display='none'; document.getElementById(`upload-status-${n}`).textContent=''; });
 
   if (key && allProducts[key]) {
     const r = allProducts[key];
-    // r[0]=ชื่อ r[1]=ประเภท r[2]=ราคา r[3]=รายละเอียด
-    // r[4]=รูปหลัก r[5]=รูปไซส์ r[6]=SKU
-    // r[7]=Shopee r[8]=Tiktok r[9]=พิกัด
-    document.getElementById('p-name').value   = r[0] || '';
-    document.getElementById('p-type').value   = r[1] || '';
-    document.getElementById('p-price').value  = r[2] || '';
-    document.getElementById('p-detail').value = r[3] || '';
-    document.getElementById('p-img1').value   = r[4] || '';
-    document.getElementById('p-img2').value   = r[5] || '';
-    document.getElementById('p-sku').value    = r[6] || '';
-    document.getElementById('p-shopee').value = r[7] || '';
-    document.getElementById('p-tiktok').value = r[8] || '';
-    document.getElementById('p-link').value   = r[9] || '';
+    // [0]ชื่อ [1]ประเภท [2]ราคา [3]รายละเอียด [4]รูปหลัก [5]รูปไซส์
+    // [6]SKU [7]Shopee [8]TikTok [9]พิกัด [10]Lazada [11]Page365
+    document.getElementById('p-name').value    = r[0]  || '';
+    document.getElementById('p-type').value    = r[1]  || '';
+    document.getElementById('p-price').value   = r[2]  || '';
+    document.getElementById('p-detail').value  = r[3]  || '';
+    document.getElementById('p-img1').value    = r[4]  || '';
+    document.getElementById('p-img2').value    = r[5]  || '';
+    document.getElementById('p-sku').value     = r[6]  || '';
+    document.getElementById('p-shopee').value  = r[7]  || '';
+    document.getElementById('p-tiktok').value  = r[8]  || '';
+    document.getElementById('p-link').value    = r[9]  || '';
+    document.getElementById('p-lazada').value  = r[10] || '';
+    document.getElementById('p-page365').value = r[11] || '';
     if (r[4]) { document.getElementById('upload-preview-1').style.display='block'; document.getElementById('preview-img-1').src=r[4]; }
     if (r[5]) { document.getElementById('upload-preview-2').style.display='block'; document.getElementById('preview-img-2').src=r[5]; }
   }
@@ -560,12 +565,13 @@ async function saveProduct() {
   const shopee = document.getElementById('p-shopee').value.trim();
   const tiktok = document.getElementById('p-tiktok').value.trim();
   const loc    = document.getElementById('p-link').value.trim();
+  const lazada = document.getElementById('p-lazada').value.trim();
+  const page365= document.getElementById('p-page365').value.trim();
   if (!name || !type) { toast('กรุณากรอกชื่อสินค้าและประเภท','warn'); return; }
 
-  // ตรง index map: [0]ชื่อ [1]ประเภท [2]ราคา [3]รายละเอียด
-  //               [4]รูปหลัก [5]รูปไซส์ [6]SKU
-  //               [7]Shopee [8]Tiktok [9]พิกัด
-  const row = [name, type, price, detail, img1, img2, sku, shopee, tiktok, loc];
+  // [0]ชื่อ [1]ประเภท [2]ราคา [3]รายละเอียด [4]รูปหลัก [5]รูปไซส์
+  // [6]SKU [7]Shopee [8]TikTok [9]พิกัด [10]Lazada [11]Page365
+  const row = [name, type, price, detail, img1, img2, sku, shopee, tiktok, loc, lazada, page365];
   const btn = document.getElementById('save-product-btn');
   btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
 
