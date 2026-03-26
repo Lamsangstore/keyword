@@ -1,5 +1,5 @@
 // ── LAMSANG Service Worker ──
-const CACHE = 'lamsang-v1';
+const CACHE = 'lamsang-v3';  // ← bump version ทุกครั้งที่ deploy ใหม่
 const PRECACHE = [
   './',
   './index.html',
@@ -23,14 +23,35 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Firebase และ Cloudinary — network first
-  if (e.request.url.includes('firebasedatabase') ||
-      e.request.url.includes('cloudinary') ||
-      e.request.url.includes('googleapis')) {
+  const url = e.request.url;
+
+  // Firebase, Cloudinary, googleapis — network only
+  if (url.includes('firebasedatabase') ||
+      url.includes('cloudinary') ||
+      url.includes('googleapis') ||
+      url.includes('gstatic')) {
     e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
     return;
   }
-  // Static assets — cache first
+
+  // HTML files — network first (ได้ไฟล์ใหม่เสมอ)
+  if (e.request.headers.get('accept')?.includes('text/html') ||
+      url.endsWith('.html') || url.endsWith('/')) {
+    e.respondWith(
+      fetch(e.request)
+        .then(res => {
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE).then(c => c.put(e.request, clone));
+          }
+          return res;
+        })
+        .catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
+  // Static assets (JS, CSS, images) — cache first
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
       if (res.ok) {
