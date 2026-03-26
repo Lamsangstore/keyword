@@ -570,13 +570,11 @@ function initFirebase(){
   firebase.initializeApp(window.FIREBASE_CONFIG);
   const db = firebase.database();
   db.ref('products').on('value', snap => {
-    const d = snap.val();
-    productRows = d ? Object.values(d) : [];
+    productRows = snap.val() ? Object.values(snap.val()) : [];
     if (currentTab==='product') renderProductGrid(productRows);
   });
   db.ref('general').on('value', snap => {
-    const d = snap.val();
-    generalRows = d ? Object.values(d) : [];
+    generalRows = snap.val() ? Object.values(snap.val()) : [];
     if (currentTab==='general') renderGeneralGrid(generalRows);
   });
 }
@@ -606,25 +604,23 @@ function copyText(text, btn){
 // ── PRODUCT GRID ────────────────────────────────────────────
 function renderProductGrid(rows){
   const el = document.getElementById('product-grid-view');
-  if (!rows?.length){ el.innerHTML='<div class="loading-state">ไม่พบข้อมูลสินค้า</div>'; return }
+  if (!rows?.length){ el.innerHTML='<div class="loading-state"><div class="loader-ring"></div>กำลังโหลดสินค้า...</div>'; return }
 
-  // filter by search
   const filtered = searchQuery
-    ? rows.filter((_,i) => {
-        const r=rows[i];
-        return (r[0]||'').toLowerCase().includes(searchQuery)
-            || (r[1]||'').toLowerCase().includes(searchQuery)
-            || (r[6]||'').toLowerCase().includes(searchQuery);
-      })
+    ? rows.filter(r =>
+        (r[0]||'').toLowerCase().includes(searchQuery)
+     || (r[1]||'').toLowerCase().includes(searchQuery)
+     || (r[6]||'').toLowerCase().includes(searchQuery))
     : rows;
 
+  if (!filtered.length){ el.innerHTML=`<div class="loading-state">🔍 ไม่พบ "${searchQuery}"</div>`; return }
+
   const map = {};
-  filtered.forEach((r,fi)=>{
-    // find original index in productRows
+  filtered.forEach(r => {
     const i = productRows.indexOf(r);
     const t = r[1]||'ไม่ระบุ';
     if (!map[t]) map[t]=[];
-    map[t].push({i,name:r[0],price:r[2],priceNum:parsePrice(r[2]),img:r[4],sku:r[6]});
+    map[t].push({i, name:r[0], price:r[2], priceNum:parsePrice(r[2]), img:r[4], sku:r[6]});
   });
   Object.values(map).forEach(arr=>arr.sort((a,b)=>
     currentSort==='name_asc'? a.name.localeCompare(b.name,'th')
@@ -786,7 +782,14 @@ function switchTab(tab,push=true){
   document.getElementById('tabGeneral').classList.toggle('active',tab==='general');
   document.getElementById('tab-product-content').style.display=tab==='product'?'block':'none';
   document.getElementById('tab-general-content').style.display=tab==='general'?'block':'none';
-  if(tab==='product') showProductGrid(push); else showGeneralGrid(push);
+  if(tab==='product'){
+    showProductGrid(push);
+    // render เสมอ ไม่ว่าข้อมูลจะโหลดมาตอนไหน
+    if(productRows.length) renderProductGrid(productRows);
+  } else {
+    showGeneralGrid(push);
+    if(generalRows.length) renderGeneralGrid(generalRows);
+  }
 }
 function showProductGrid(push=true){
   document.getElementById('product-grid-view').style.display='block';
