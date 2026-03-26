@@ -268,72 +268,133 @@
     /* ── PRODUCT GRID ── */
     .product-grid{
       display:grid;
-      grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
-      gap:14px;
+      grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+      gap:12px;
       padding:0 16px 8px;
     }
 
-    /* ── PRODUCT CARD ── */
+    /* ── PRODUCT CARD — Magazine Style ── */
     .pcard{
-      background:var(--surface);
-      border-radius:var(--r);
+      border-radius:20px;
       overflow:hidden;
       cursor:pointer;
-      box-shadow:0 2px 12px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
-      border:1px solid var(--border);
-      transition:transform .3s var(--ease), box-shadow .3s var(--ease);
+      position:relative;
+      aspect-ratio:3/4;
+      background:#1a1a2e;
+      box-shadow:
+        0 4px 16px rgba(0,0,0,.12),
+        0 1px 4px rgba(0,0,0,.08);
+      border:none;
+      transition:transform .35s var(--ease), box-shadow .35s var(--ease);
       animation:fadeUp .5s var(--ease) both;
     }
     .pcard:hover{
-      transform:translateY(-6px) scale(1.01);
-      box-shadow:0 16px 40px rgba(255,59,107,.14),0 4px 12px rgba(0,0,0,.06);
+      transform:translateY(-8px) scale(1.02);
+      box-shadow:
+        0 24px 48px rgba(0,0,0,.18),
+        0 8px 16px rgba(255,59,107,.15);
     }
     .pcard:active{transform:scale(.97)}
     @keyframes fadeUp{
-      from{opacity:0;transform:translateY(20px)}
+      from{opacity:0;transform:translateY(24px)}
       to{opacity:1;transform:translateY(0)}
     }
 
+    /* รูปภาพเต็มการ์ด */
     .pcard-img{
-      width:100%;aspect-ratio:1/1;
-      background:linear-gradient(135deg,#f8f7ff,#f0eef8);
-      overflow:hidden;position:relative;
+      position:absolute;inset:0;
+      background:linear-gradient(160deg,#2a1a35,#1a1a2e);
     }
     .pcard-img::before{
-      content:'';position:absolute;inset:0;
-      background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.5) 50%,transparent 100%);
+      content:'';position:absolute;inset:0;z-index:2;
+      background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.18) 50%,transparent 100%);
       transform:translateX(-100%);
       animation:shimmer 1.8s ease infinite;
     }
     @keyframes shimmer{to{transform:translateX(200%)}}
     .pcard-img img{
       width:100%;height:100%;object-fit:cover;
-      opacity:0;transition:opacity .4s var(--ease);
+      opacity:0;transition:opacity .5s var(--ease);
       position:relative;z-index:1;
       display:block;
     }
     .pcard-img img.loaded{opacity:1}
     .pcard-img .no-img{
-      position:absolute;inset:0;
+      position:absolute;inset:0;z-index:1;
       display:flex;align-items:center;justify-content:center;
-      font-size:2em;opacity:.3;
+      font-size:3em;opacity:.2;
     }
 
-    .pcard-body{padding:12px 12px 14px}
+    /* gradient overlay ด้านล่าง */
+    .pcard-overlay{
+      position:absolute;
+      bottom:0;left:0;right:0;
+      z-index:3;
+      background:linear-gradient(
+        to top,
+        rgba(10,8,20,.92) 0%,
+        rgba(10,8,20,.75) 40%,
+        rgba(10,8,20,.2)  70%,
+        transparent       100%
+      );
+      padding:44px 14px 14px;
+    }
+
+    /* type badge */
+    .pcard-type{
+      display:inline-block;
+      font-size:.6em;font-weight:800;
+      letter-spacing:.06em;text-transform:uppercase;
+      color:rgba(255,255,255,.65);
+      margin-bottom:4px;
+    }
     .pcard-name{
-      font-size:.85em;font-weight:700;
-      color:var(--ink);
-      margin-bottom:3px;
+      font-size:.88em;font-weight:700;
+      color:#fff;
       line-height:1.3;
-      display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+      margin-bottom:6px;
+      display:-webkit-box;-webkit-line-clamp:2;
+      -webkit-box-orient:vertical;overflow:hidden;
+      text-shadow:0 1px 4px rgba(0,0,0,.4);
     }
     .pcard-price{
       font-size:.82em;font-weight:800;
-      color:var(--pink);
-      margin-bottom:10px;
+      color:var(--pink2);
+      letter-spacing:.02em;
     }
-    .pcard-sku{font-size:.65em;color:var(--muted);margin-bottom:8px}
-    .pcard-actions{display:flex;gap:5px;flex-wrap:wrap}
+
+    /* action bar อยู่บนสุดของ overlay */
+    .pcard-actions{
+      position:absolute;top:0;left:0;right:0;z-index:4;
+      display:flex;justify-content:flex-end;gap:6px;
+      padding:10px 10px 0;
+    }
+
+    /* ปุ่มบนการ์ด — glass style */
+    .pcard .btn{
+      backdrop-filter:blur(12px);
+      -webkit-backdrop-filter:blur(12px);
+      font-size:.72em!important;
+      padding:6px 12px!important;
+      border-radius:20px!important;
+    }
+    .pcard .btn-info{
+      background:rgba(255,255,255,.18)!important;
+      color:#fff!important;
+      border:1px solid rgba(255,255,255,.25)!important;
+    }
+    .pcard .btn-info:hover{background:rgba(255,255,255,.28)!important}
+    .pcard .btn-loc{
+      background:rgba(255,59,107,.25)!important;
+      color:#fff!important;
+      border:1px solid rgba(255,59,107,.4)!important;
+    }
+    .pcard .btn-loc:hover{background:rgba(255,59,107,.45)!important}
+    .pcard .btn.copied{
+      background:rgba(39,174,96,.35)!important;
+      color:#fff!important;
+      border-color:rgba(39,174,96,.5)!important;
+    }
 
     /* ── GENERAL LIST ── */
     .general-list{
@@ -562,7 +623,7 @@
 
     /* ── TABLET 600px+ ── */
     @media(min-width:600px){
-      .product-grid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:18px}
+      .product-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
       .as-brand{font-size:1.25em}
     }
 
@@ -940,7 +1001,7 @@ function renderProductGrid(rows){
     const i = productRows.indexOf(r);
     const t = r[1]||'ไม่ระบุ';
     if (!map[t]) map[t]=[];
-    map[t].push({i, name:r[0], price:r[2], priceNum:parsePrice(r[2]), img:r[4], sku:r[6]});
+    map[t].push({i, name:r[0], type:r[1], price:r[2], priceNum:parsePrice(r[2]), img:r[4], sku:r[6]});
   });
   Object.values(map).forEach(arr=>arr.sort((a,b)=>
     currentSort==='name_asc'? a.name.localeCompare(b.name,'th')
@@ -958,21 +1019,21 @@ function renderProductGrid(rows){
     map[type].forEach(item=>{
       const img=item.img||'';
       const d=(delay%8)*60;
+      const hasPikad=!!productRows[item.i]?.[9];
       html+=`<div class="pcard" style="animation-delay:${d}ms" onclick="showProductDetail(${item.i})">
         <div class="pcard-img">
           ${img
             ? `<img src="${img}" loading="lazy" onload="onImgLoad(this)">`
             : `<div class="no-img">📦</div>`}
         </div>
-        <div class="pcard-body">
+        <div class="pcard-actions">
+          <button class="btn btn-info" onclick="event.stopPropagation();copyProductInfo(${item.i},this)">Copy</button>
+          ${hasPikad?`<button class="btn btn-loc" onclick="event.stopPropagation();copyText(productRows[${item.i}][9],this)" title="Copy พิกัด">📍</button>`:''}
+        </div>
+        <div class="pcard-overlay">
+          <div class="pcard-type">${esc(item.type||'')}</div>
           <div class="pcard-name">${esc(item.name)}</div>
           <div class="pcard-price">${esc(item.price)}</div>
-          <div class="pcard-actions">
-            <button class="btn btn-info" style="flex:1" onclick="event.stopPropagation();copyProductInfo(${item.i},this)">Copy</button>
-            ${productRows[item.i]?.[9]
-              ? `<button class="btn btn-loc" onclick="event.stopPropagation();copyText(productRows[${item.i}][9],this)" title="Copy พิกัด">📍</button>`
-              : ''}
-          </div>
         </div>
       </div>`;
       delay++;
