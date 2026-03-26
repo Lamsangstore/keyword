@@ -273,57 +273,49 @@
       padding:0 16px 8px;
     }
 
-    /* ── PRODUCT CARD — Card + Button Below ── */
+    /* ── PRODUCT CARD — Unified Single Piece ── */
     .pcard{
       border-radius:16px;
-      overflow:visible; /* ปุ่มอยู่ล่าง ไม่ clip */
+      overflow:hidden;
       cursor:pointer;
       position:relative;
-      background:transparent;
-      border:none;
-      transition:transform .35s var(--ease), box-shadow .35s var(--ease);
+      background:linear-gradient(180deg,#1a1826 0%,#0e0c18 100%);
+      box-shadow:0 4px 20px rgba(0,0,0,.18),0 1px 4px rgba(0,0,0,.1);
+      border:1px solid rgba(255,255,255,.06);
+      transition:transform .3s var(--ease),box-shadow .3s var(--ease);
       animation:fadeUp .5s var(--ease) both;
       display:flex;
       flex-direction:column;
-      gap:8px;
     }
-    .pcard:hover{ transform:translateY(-5px); }
-    .pcard:hover .pcard-img-wrap{
-      box-shadow:0 16px 36px rgba(0,0,0,.18),0 4px 12px rgba(255,59,107,.12);
+    .pcard:hover{
+      transform:translateY(-6px);
+      box-shadow:0 20px 40px rgba(0,0,0,.22),0 4px 12px rgba(255,59,107,.12);
     }
-    .pcard:active{transform:scale(.97)}
+    .pcard:active{transform:scale(.98)}
     @keyframes fadeUp{
-      from{opacity:0;transform:translateY(24px)}
+      from{opacity:0;transform:translateY(20px)}
       to{opacity:1;transform:translateY(0)}
     }
 
-    /* กล่องรูป — aspect ratio 1:1 */
+    /* รูปภาพ 1:1 */
     .pcard-img-wrap{
-      border-radius:16px;
-      overflow:hidden;
       position:relative;
       aspect-ratio:1/1;
+      flex-shrink:0;
       background:linear-gradient(160deg,#2a1a35,#1a1a2e);
-      box-shadow:0 4px 14px rgba(0,0,0,.12);
-      transition:box-shadow .35s var(--ease);
+      overflow:hidden;
     }
-
-    /* รูปภาพ */
-    .pcard-img{
-      position:absolute;inset:0;
-    }
+    .pcard-img{position:absolute;inset:0;}
     .pcard-img::before{
       content:'';position:absolute;inset:0;z-index:2;
-      background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.18) 50%,transparent 100%);
-      transform:translateX(-100%);
-      animation:shimmer 1.8s ease infinite;
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);
+      transform:translateX(-100%);animation:shimmer 1.8s ease infinite;
     }
     @keyframes shimmer{to{transform:translateX(200%)}}
     .pcard-img img{
       width:100%;height:100%;object-fit:cover;
       opacity:0;transition:opacity .5s var(--ease);
-      position:relative;z-index:1;
-      display:block;
+      position:relative;z-index:1;display:block;
     }
     .pcard-img img.loaded{opacity:1}
     .pcard-img .no-img{
@@ -332,44 +324,40 @@
       font-size:3em;opacity:.2;
     }
 
-    /* gradient overlay ชื่อ+ราคา ที่ล่างรูป */
+    /* gradient overlay — ไหลจากรูปลงมาถึงล่างสุด */
     .pcard-overlay{
       position:absolute;
-      bottom:0;left:0;right:0;
-      z-index:3;
-      border-radius:0 0 16px 16px;
+      bottom:0;left:0;right:0;z-index:3;
+      /* gradient ไม่มี border-radius เพราะเราต้องการให้ไหลออกนอก img-wrap */
       background:linear-gradient(
         to top,
-        rgba(10,8,20,.88) 0%,
-        rgba(10,8,20,.5)  40%,
-        transparent       70%
+        rgba(10,8,20,1)    0%,
+        rgba(10,8,20,.92)  30%,
+        rgba(10,8,20,.6)   55%,
+        transparent        78%
       );
-      padding:28px 10px 10px;
+      padding:32px 12px 12px;
     }
     .pcard-type{
-      font-size:.58em;font-weight:800;
-      letter-spacing:.06em;text-transform:uppercase;
-      color:rgba(255,255,255,.6);
+      font-size:.58em;font-weight:800;letter-spacing:.06em;
+      text-transform:uppercase;color:rgba(255,255,255,.5);
       margin-bottom:2px;display:block;
     }
     .pcard-name{
-      font-size:.82em;font-weight:700;
-      color:#fff;line-height:1.25;
+      font-size:.85em;font-weight:700;color:#fff;line-height:1.25;
       display:-webkit-box;-webkit-line-clamp:1;
       -webkit-box-orient:vertical;overflow:hidden;
-      text-shadow:0 1px 3px rgba(0,0,0,.5);
     }
     .pcard-price{
-      font-size:.8em;font-weight:800;
-      color:var(--pink2);margin-top:1px;
+      font-size:.82em;font-weight:800;color:#ff9abe;margin-top:2px;
     }
 
-    /* ⭐ fav btn — มุมบนซ้ายของรูป */
+    /* ⭐ fav btn */
     .fav-btn{
       position:absolute;top:7px;left:7px;z-index:5;
       width:28px;height:28px;border-radius:50%;
-      background:rgba(0,0,0,.45);backdrop-filter:blur(8px);
-      border:1px solid rgba(255,255,255,.2);
+      background:rgba(0,0,0,.4);backdrop-filter:blur(8px);
+      border:1px solid rgba(255,255,255,.18);
       display:flex;align-items:center;justify-content:center;
       font-size:.8em;cursor:pointer;
       transition:background .2s,transform .2s var(--ease);
@@ -377,40 +365,44 @@
     .fav-btn:hover{background:rgba(255,59,107,.5);transform:scale(1.1)}
     .fav-btn.faved{background:rgba(255,59,107,.6);border-color:rgba(255,59,107,.7)}
 
-    /* ── ปุ่มใต้การ์ด ── */
+    /* ── ปุ่มใต้ — ต่อเนื่องจาก overlay โดย background เดียวกัน ── */
     .pcard-actions{
       display:flex;gap:6px;
-      padding:0 2px;
+      padding:10px 10px 12px;
+      background:#0e0c18; /* สีเดียวกับ bottom ของ gradient */
+      margin-top:-1px; /* ต่อชนกัน ไม่มีรอยแยก */
     }
     .pcard .btn{
       flex:1;
       font-size:.75em!important;
       padding:8px 6px!important;
-      border-radius:10px!important;
+      border-radius:8px!important;
       font-weight:700!important;
       text-align:center;
+      background:rgba(255,255,255,.08)!important;
+      color:rgba(255,255,255,.85)!important;
+      border:1px solid rgba(255,255,255,.1)!important;
+      transition:background .2s,border-color .2s!important;
     }
-    .pcard .btn-info{
-      background:var(--surface)!important;
-      color:var(--ink)!important;
-      border:1.5px solid var(--border)!important;
+    .pcard .btn:hover{
+      background:rgba(255,255,255,.14)!important;
+      border-color:rgba(255,255,255,.2)!important;
     }
-    .pcard .btn-info:hover{border-color:var(--pink)!important;color:var(--pink)!important}
     .pcard .btn-loc{
       flex:0 0 auto;
-      background:var(--surface)!important;
-      color:var(--pink)!important;
-      border:1.5px solid rgba(255,59,107,.25)!important;
-      padding:8px 10px!important;
+      color:#ff9abe!important;
+      border-color:rgba(255,154,190,.2)!important;
+      padding:8px 12px!important;
     }
-    .pcard .btn-loc:hover{background:rgba(255,59,107,.08)!important;border-color:var(--pink)!important}
+    .pcard .btn-loc:hover{
+      background:rgba(255,59,107,.2)!important;
+      border-color:rgba(255,59,107,.4)!important;
+      color:#fff!important;
+    }
     .pcard .btn.copied{
-      background:#dcfce7!important;color:#15803d!important;
-      border-color:#86efac!important;
-    }
-    body.dark .pcard .btn-info{
-      background:var(--surface)!important;color:var(--ink2)!important;
-      border-color:var(--border)!important;
+      background:rgba(39,174,96,.25)!important;
+      color:#4ade80!important;
+      border-color:rgba(74,222,128,.3)!important;
     }
 
     /* ── GENERAL LIST ── */
@@ -877,11 +869,21 @@
     @media(min-width:600px){.skeleton-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}}
     @media(min-width:960px){.skeleton-grid{grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:20px;padding:0 32px 8px}}
     .skel-card{
-      border-radius:16px;aspect-ratio:1/1;
-      background:linear-gradient(135deg,var(--pale),var(--border));
+      border-radius:16px;
+      background:linear-gradient(180deg,#1a1826,#0e0c18);
+      border:1px solid rgba(255,255,255,.06);
       position:relative;overflow:hidden;
+      display:flex;flex-direction:column;
     }
-    body.dark .skel-card{background:linear-gradient(135deg,#1e1c30,#252340)}
+    .skel-card::before{
+      content:'';aspect-ratio:1/1;display:block;
+      background:rgba(255,255,255,.04);
+    }
+    .skel-card::after{
+      content:'';position:absolute;inset:0;
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,.04),transparent);
+      transform:translateX(-100%);animation:skelshine 1.4s ease infinite;
+    }
     .skel-card::after{
       content:'';position:absolute;inset:0;
       background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent);
