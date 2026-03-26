@@ -301,6 +301,10 @@
     .btn-tiktok{background:#f0f0f0;color:#010101;border:1px solid #ddd}
     .btn-tiktok:hover{background:#010101;color:#fff;border-color:#010101}
     .btn-loc{background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0}
+    .btn-laz{background:#fff7ed;color:#c2410c;border:1px solid #fed7aa}
+    .btn-laz:hover{background:#f97316;color:#fff;border-color:#f97316}
+    .btn-p365{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
+    .btn-p365:hover{background:#2563eb;color:#fff;border-color:#2563eb}
     .btn.copied{background:#dcfce7!important;color:#15803d!important;border-color:#86efac!important}
 
     /* ── DETAIL VIEW ── */
@@ -581,6 +585,7 @@ function renderProductGrid(rows){
             <button class="btn btn-info" onclick="event.stopPropagation();copyProductInfo(${item.i},this)">Copy</button>
             ${productRows[item.i]?.[7]?`<button class="btn btn-shopee" onclick="event.stopPropagation();openLink(productRows[${item.i}][7])">🛒</button>`:''}
             ${productRows[item.i]?.[8]?`<button class="btn btn-tiktok" onclick="event.stopPropagation();openLink(productRows[${item.i}][8])">♪</button>`:''}
+            ${productRows[item.i]?.[10]?`<button class="btn btn-laz" onclick="event.stopPropagation();openLink(productRows[${item.i}][10])">🟠</button>`:''}
           </div>
         </div>
       </div>`;
@@ -605,7 +610,7 @@ function showProductDetail(idx,push=true){
   document.getElementById('top-nav').style.display='flex';
 
   const copyTxt=`ชื่อสินค้า: ${row[0]}\nประเภท: ${row[1]}\nราคา: ${row[2]}\nรายละเอียด: ${row[3]}`;
-  const shopee=row[7]||'', tiktok=row[8]||'', loc=row[9]||'';
+  const shopee=row[7]||'', tiktok=row[8]||'', loc=row[9]||'', lazada=row[10]||'', page365=row[11]||'';
 
   let heroHtml='';
   if(row[4]){
@@ -626,6 +631,8 @@ function showProductDetail(idx,push=true){
           <button class="btn btn-pink" onclick='copyText(${JSON.stringify(copyTxt)},this)'>📋 Copy ข้อความ</button>
           ${shopee?`<button class="btn btn-shopee" onclick="openLink('${shopee}')">🛒 Shopee</button>`:''}
           ${tiktok?`<button class="btn btn-tiktok" onclick="openLink('${tiktok}')">♪ TikTok</button>`:''}
+          ${lazada?`<button class="btn btn-laz" onclick="openLink('${lazada}')">🟠 Lazada</button>`:''}
+          ${page365?`<button class="btn btn-p365" onclick="openLink('${page365}')">📄 Page365</button>`:''}
           ${loc?`<button class="btn btn-loc" onclick="openLink('${loc}')">📍 พิกัด</button>`:''}
         </div>
         <div class="detail-desc">${esc(String(row[3]||''))}</div>
