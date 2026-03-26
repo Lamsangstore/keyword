@@ -147,9 +147,9 @@
       -webkit-backdrop-filter:blur(16px);
       border-bottom:1px solid var(--border);
       overflow-x:auto;
-      display:flex;
+      display:none; /* JS controls display */
       gap:8px;
-      padding:10px 16px 10px;
+      padding:10px 16px;
       scrollbar-width:none;
       -ms-overflow-style:none;
       scroll-behavior:smooth;
@@ -332,12 +332,11 @@
       z-index:3;
       background:linear-gradient(
         to top,
-        rgba(10,8,20,.95) 0%,
-        rgba(10,8,20,.8)  35%,
-        rgba(10,8,20,.3)  65%,
-        transparent       100%
+        rgba(10,8,20,.9) 0%,
+        rgba(10,8,20,.55) 38%,
+        transparent       68%
       );
-      padding:36px 12px 12px;
+      padding:30px 12px 11px;
     }
 
     /* type badge */
@@ -363,57 +362,55 @@
       letter-spacing:.02em;
     }
 
-    /* action bar อยู่บนสุดของ overlay */
+    /* action bar — บนสุด เงาเบาๆ */
     .pcard-actions{
       position:absolute;top:0;left:0;right:0;z-index:4;
-      display:flex;justify-content:flex-end;gap:6px;
-      padding:10px 10px 0;
-      /* gradient ด้านบนให้ปุ่มชัดขึ้น */
-      background:linear-gradient(to bottom,rgba(0,0,0,.55) 0%,transparent 100%);
-      padding-bottom:24px;
+      display:flex;justify-content:flex-end;gap:5px;
+      padding:8px 8px 16px;
+      background:linear-gradient(to bottom,rgba(0,0,0,.38) 0%,transparent 100%);
     }
 
-    /* ปุ่มบนการ์ด — glass style */
+    /* ปุ่มบนการ์ด */
     .pcard .btn{
-      backdrop-filter:blur(12px);
-      -webkit-backdrop-filter:blur(12px);
-      font-size:.72em!important;
-      padding:7px 14px!important;
+      backdrop-filter:blur(10px);
+      -webkit-backdrop-filter:blur(10px);
+      font-size:.7em!important;
+      padding:5px 11px!important;
       border-radius:20px!important;
-      min-height:34px;
+      min-height:30px;
     }
     .pcard .btn-info{
-      background:rgba(255,255,255,.25)!important;
+      background:rgba(0,0,0,.5)!important;
       color:#fff!important;
-      border:1px solid rgba(255,255,255,.4)!important;
+      border:1px solid rgba(255,255,255,.28)!important;
       font-weight:700!important;
     }
-    .pcard .btn-info:hover{background:rgba(255,255,255,.38)!important}
+    .pcard .btn-info:hover{background:rgba(0,0,0,.65)!important}
     .pcard .btn-loc{
-      background:rgba(255,59,107,.4)!important;
-      color:#fff!important;
-      border:1px solid rgba(255,59,107,.6)!important;
-      padding:7px 10px!important;
+      background:rgba(0,0,0,.5)!important;
+      color:#ffb3cc!important;
+      border:1px solid rgba(255,154,190,.35)!important;
+      padding:5px 9px!important;
     }
-    .pcard .btn-loc:hover{background:rgba(255,59,107,.6)!important}
+    .pcard .btn-loc:hover{background:rgba(255,59,107,.55)!important;color:#fff!important}
     .pcard .btn.copied{
       background:rgba(39,174,96,.5)!important;
       color:#fff!important;
-      border-color:rgba(39,174,96,.7)!important;
+      border-color:rgba(39,174,96,.6)!important;
     }
 
-    /* fav btn — ชัดขึ้น */
+    /* fav btn */
     .fav-btn{
-      position:absolute;top:10px;left:10px;z-index:5;
-      width:32px;height:32px;border-radius:50%;
-      background:rgba(0,0,0,.5);backdrop-filter:blur(8px);
-      border:1.5px solid rgba(255,255,255,.3);
+      position:absolute;top:8px;left:8px;z-index:5;
+      width:28px;height:28px;border-radius:50%;
+      background:rgba(0,0,0,.45);backdrop-filter:blur(8px);
+      border:1px solid rgba(255,255,255,.22);
       display:flex;align-items:center;justify-content:center;
-      font-size:.9em;cursor:pointer;
+      font-size:.8em;cursor:pointer;
       transition:background .2s,transform .2s var(--ease);
     }
-    .fav-btn:hover{background:rgba(255,59,107,.5);transform:scale(1.15)}
-    .fav-btn.faved{background:rgba(255,59,107,.65);border-color:rgba(255,59,107,.8)}
+    .fav-btn:hover{background:rgba(255,59,107,.5);transform:scale(1.1)}
+    .fav-btn.faved{background:rgba(255,59,107,.6);border-color:rgba(255,59,107,.7)}
 
     /* ── GENERAL LIST ── */
     .general-list{
@@ -727,9 +724,8 @@
       .sidebar-cat-btn.active .sidebar-cat-count{background:rgba(255,59,107,.15);color:var(--pink)}
       .sidebar-divider{height:1px;background:var(--border);margin:8px 10px}
 
-      /* hide horizontal pill bar on desktop (replaced by sidebar) */
-      /* ไม่ใช้ !important เพื่อให้ JS control ได้ */
-      .cat-pill-bar{ display:none; }
+      /* pill bar - ซ่อนบน desktop ด้วย class แทน display:none ตรงๆ */
+      .cat-pill-bar.desktop-hidden{ display:none; }
 
       /* main content area */
       .main-content{
@@ -1469,10 +1465,6 @@ function showProductGrid(push=true){
   document.getElementById('product-details-view').style.display='none';
   document.getElementById('main-tabs').style.display='flex';
   document.getElementById('product-header').style.display='block';
-  // pill bar: แสดงบน mobile เท่านั้น (desktop ใช้ sidebar)
-  const isDesktop = window.innerWidth >= 960;
-  const pillBar = document.getElementById('cat-pill-bar');
-  if(pillBar) pillBar.style.display = isDesktop ? 'none' : 'flex';
   document.getElementById('page-inner').style.display='';
   const sidebar=document.getElementById('desktop-sidebar');
   if(sidebar) sidebar.style.display='';
@@ -1481,6 +1473,7 @@ function showProductGrid(push=true){
   document.getElementById('fab-wrap').style.display='none';
   document.getElementById('fab-main').classList.remove('open');
   document.getElementById('fab-menu').classList.remove('open');
+  updatePillBarVisibility();
   if(push) history.pushState({view:'grid',tab:'product'},'');
 }
 function showGeneralGrid(push=true){
@@ -1514,7 +1507,19 @@ document.addEventListener('DOMContentLoaded',()=>{
   initScrollTop();
   renderRecentRow();
   updateFavPill();
+  updatePillBarVisibility();
 });
+
+// อัพเดท pill bar visibility ตาม screen size
+function updatePillBarVisibility(){
+  const bar = document.getElementById('cat-pill-bar');
+  if(!bar) return;
+  const isProduct = currentTab === 'product';
+  const isGrid = document.getElementById('product-grid-view')?.style.display !== 'none';
+  const isDesktop = window.innerWidth >= 960;
+  bar.style.display = (isProduct && isGrid && !isDesktop) ? 'flex' : 'none';
+}
+window.addEventListener('resize', updatePillBarVisibility, {passive:true});
 </script>
 
 <script>
