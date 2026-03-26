@@ -1,7 +1,7 @@
 // ✏️ แก้ไขค่านี้ให้ตรงกับ Firebase Project ของคุณ
 // วิธีหา: Firebase Console → Project Settings → Your Apps → Config
 
-const firebaseConfig = {
+window.FIREBASE_CONFIG = {
   apiKey: "AIzaSyDfYW6HJ0zEKpdxWzAjNl28STy3l5yr2Rc",
   authDomain: "lamsang-keyword.firebaseapp.com",
   projectId: "lamsang-keyword",
