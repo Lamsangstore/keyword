@@ -122,6 +122,50 @@
     }
     .tab-btn.active{color:var(--pink);border-bottom-color:var(--pink)}
 
+    /* ── CATEGORY PILL BAR (sub-tabs) ── */
+    .cat-pill-bar{
+      position:sticky;top:106px;z-index:90;
+      background:rgba(245,244,250,.95);
+      backdrop-filter:blur(16px);
+      -webkit-backdrop-filter:blur(16px);
+      border-bottom:1px solid var(--border);
+      overflow-x:auto;
+      display:flex;
+      gap:8px;
+      padding:10px 16px 10px;
+      scrollbar-width:none;
+      -ms-overflow-style:none;
+      scroll-behavior:smooth;
+    }
+    .cat-pill-bar::-webkit-scrollbar{display:none}
+    .cat-pill{
+      flex-shrink:0;
+      padding:7px 16px;
+      border-radius:30px;
+      border:1.5px solid var(--border);
+      background:var(--surface);
+      font-family:'Prompt',sans-serif;
+      font-size:.8em;font-weight:700;
+      color:var(--ink2);
+      cursor:pointer;
+      white-space:nowrap;
+      transition:all .2s var(--ease);
+      display:flex;align-items:center;gap:5px;
+    }
+    .cat-pill:hover{border-color:var(--pink);color:var(--pink);background:#fff0f3}
+    .cat-pill.active{
+      background:linear-gradient(135deg,var(--pink2),var(--pink));
+      color:#fff;border-color:transparent;
+      box-shadow:0 4px 12px rgba(255,59,107,.3);
+      transform:translateY(-1px);
+    }
+    .cat-pill .pill-count{
+      font-size:.7em;font-weight:800;
+      background:rgba(255,255,255,.25);
+      padding:1px 6px;border-radius:10px;
+    }
+    .cat-pill.active .pill-count{background:rgba(255,255,255,.3)}
+
     /* ── TOP NAV (detail back bar) ── */
     #top-nav{
       display:none;
@@ -516,7 +560,7 @@
         คีย์ลัดสินค้า
         <span class="live-pill">Live</span>
       </div>
-      <div style="margin-top:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <span style="font-size:.78em;font-weight:600;color:var(--muted)">เรียง</span>
         <select id="sortProduct" onchange="handleSortChange(this.value)" style="padding:7px 14px;border-radius:30px;border:1.5px solid var(--border);font-family:'Prompt',sans-serif;font-size:.8em;font-weight:700;color:var(--ink);background:var(--surface);cursor:pointer;outline:none">
           <option value="name_asc">ชื่อ (ก→ฮ)</option>
@@ -524,6 +568,13 @@
           <option value="price_desc">ราคา มาก→น้อย</option>
         </select>
       </div>
+    </div>
+    <!-- CATEGORY PILL BAR -->
+    <div class="cat-pill-bar" id="cat-pill-bar">
+      <div class="cat-pill active" id="pill-all" onclick="selectCatPill('ทั้งหมด',this)">
+        ✦ ทั้งหมด
+      </div>
+      <!-- pills จะถูก inject โดย JS -->
     </div>
     <div id="product-grid-view">
       <div class="loading-state"><div class="loader-ring"></div>กำลังโหลดสินค้า...</div>
@@ -548,6 +599,7 @@
 let productRows=[], generalRows=[];
 let currentSort='name_asc', currentTab='product';
 let searchQuery='';
+let selectedCat='ทั้งหมด'; // active category pill
 const CAT_ICONS = {
   'เสื้อ':'👕','เสื้อยืด':'👕','เสื้อเชิ้ต':'👔','กางเกง':'👖',
   'กระโปรง':'👗','เข็มขัด':'🪡','รองเท้า':'👟','กระเป๋า':'👜',
@@ -565,12 +617,44 @@ function handleSearch(q) {
   else renderGeneralGrid(generalRows);
 }
 
+// ── CATEGORY PILLS ────────────────────────────────────────────
+function buildCatPills(rows) {
+  const bar = document.getElementById('cat-pill-bar');
+  if (!bar) return;
+
+  // นับจำนวนตามประเภท
+  const counts = {};
+  rows.forEach(r => {
+    const t = r[1]||'ไม่ระบุ';
+    counts[t] = (counts[t]||0) + 1;
+  });
+  const types = Object.keys(counts).sort((a,b)=>a.localeCompare(b,'th'));
+
+  bar.innerHTML = `<div class="cat-pill ${selectedCat==='ทั้งหมด'?'active':''}" id="pill-all" onclick="selectCatPill('ทั้งหมด',this)">
+    ✦ ทั้งหมด <span class="pill-count">${rows.length}</span>
+  </div>` + types.map(t => `
+    <div class="cat-pill ${selectedCat===t?'active':''}" onclick="selectCatPill('${t.replace(/'/g,"\\'")}',this)">
+      ${catIcon(t)} ${t} <span class="pill-count">${counts[t]}</span>
+    </div>`).join('');
+}
+
+function selectCatPill(cat, el) {
+  selectedCat = cat;
+  // อัพเดท active class
+  document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
+  if (el) el.classList.add('active');
+  // scroll pill ให้อยู่กึ่งกลาง
+  if (el) el.scrollIntoView({behavior:'smooth', block:'nearest', inline:'center'});
+  renderProductGrid(productRows);
+}
+
 // ── FIREBASE ────────────────────────────────────────────────
 function initFirebase(){
   firebase.initializeApp(window.FIREBASE_CONFIG);
   const db = firebase.database();
   db.ref('products').on('value', snap => {
     productRows = snap.val() ? Object.values(snap.val()) : [];
+    buildCatPills(productRows);
     if (currentTab==='product') renderProductGrid(productRows);
   });
   db.ref('general').on('value', snap => {
@@ -606,14 +690,23 @@ function renderProductGrid(rows){
   const el = document.getElementById('product-grid-view');
   if (!rows?.length){ el.innerHTML='<div class="loading-state"><div class="loader-ring"></div>กำลังโหลดสินค้า...</div>'; return }
 
+  // 1) filter by selected category
+  const byCat = selectedCat==='ทั้งหมด' ? rows : rows.filter(r=>(r[1]||'ไม่ระบุ')===selectedCat);
+
+  // 2) filter by search
   const filtered = searchQuery
-    ? rows.filter(r =>
+    ? byCat.filter(r=>
         (r[0]||'').toLowerCase().includes(searchQuery)
      || (r[1]||'').toLowerCase().includes(searchQuery)
      || (r[6]||'').toLowerCase().includes(searchQuery))
-    : rows;
+    : byCat;
 
-  if (!filtered.length){ el.innerHTML=`<div class="loading-state">🔍 ไม่พบ "${searchQuery}"</div>`; return }
+  if (!filtered.length){
+    el.innerHTML=`<div class="loading-state" style="padding:60px 20px">🔍 ไม่พบ "${searchQuery||selectedCat}"</div>`; return
+  }
+
+  // ถ้ากรองเฉพาะ 1 ประเภท → ไม่ต้องแสดง cat-head ซ้ำ
+  const showCatHead = selectedCat==='ทั้งหมด';
 
   const map = {};
   filtered.forEach(r => {
@@ -631,7 +724,9 @@ function renderProductGrid(rows){
   let html='';
   let delay=0;
   Object.keys(map).sort((a,b)=>a.localeCompare(b,'th')).forEach(type=>{
-    html+=`<div class="cat-head">${catIcon(type)} ${esc(type)} <span class="cat-badge">${map[type].length}</span></div>`;
+    if(showCatHead){
+      html+=`<div class="cat-head">${catIcon(type)} ${esc(type)} <span class="cat-badge">${map[type].length}</span></div>`;
+    }
     html+=`<div class="product-grid">`;
     map[type].forEach(item=>{
       const img=item.img||'';
@@ -671,6 +766,7 @@ function showProductDetail(idx,push=true){
   document.getElementById('product-grid-view').style.display='none';
   document.getElementById('main-tabs').style.display='none';
   document.getElementById('product-header').style.display='none';
+  document.getElementById('cat-pill-bar').style.display='none';
   document.getElementById('main-topbar').style.display='none';
   document.getElementById('top-nav').style.display='flex';
 
@@ -784,8 +880,7 @@ function switchTab(tab,push=true){
   document.getElementById('tab-general-content').style.display=tab==='general'?'block':'none';
   if(tab==='product'){
     showProductGrid(push);
-    // render เสมอ ไม่ว่าข้อมูลจะโหลดมาตอนไหน
-    if(productRows.length) renderProductGrid(productRows);
+    if(productRows.length){ buildCatPills(productRows); renderProductGrid(productRows); }
   } else {
     showGeneralGrid(push);
     if(generalRows.length) renderGeneralGrid(generalRows);
@@ -796,6 +891,7 @@ function showProductGrid(push=true){
   document.getElementById('product-details-view').style.display='none';
   document.getElementById('main-tabs').style.display='flex';
   document.getElementById('product-header').style.display='block';
+  document.getElementById('cat-pill-bar').style.display='flex';
   document.getElementById('main-topbar').style.display='flex';
   document.getElementById('top-nav').style.display='none';
   if(push) history.pushState({view:'grid',tab:'product'},'');
