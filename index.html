@@ -1166,12 +1166,15 @@ function buildCatPills(rows) {
   rows.forEach(r => { const t=r[1]||'ไม่ระบุ'; counts[t]=(counts[t]||0)+1; });
   const types = Object.keys(counts).sort((a,b)=>a.localeCompare(b,'th'));
 
+  // escape สำหรับใช้ใน onclick attribute (single-quoted JS string)
+  function escCat(s){ return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+
   // ── Mobile pill bar ──
   if (bar) {
     bar.innerHTML = `<div class="cat-pill ${selectedCat==='ทั้งหมด'?'active':''}" onclick="selectCatPill('ทั้งหมด',this)">
       ✦ ทั้งหมด <span class="pill-count">${rows.length}</span>
     </div>` + types.map(t=>`
-      <div class="cat-pill ${selectedCat===t?'active':''}" onclick="selectCatPill(${JSON.stringify(t)},this)">
+      <div class="cat-pill ${selectedCat===t?'active':''}" onclick="selectCatPill('${escCat(t)}',this)">
         ${catIcon(t)} ${t} <span class="pill-count">${counts[t]}</span>
       </div>`).join('');
   }
@@ -1186,7 +1189,7 @@ function buildCatPills(rows) {
       </button>
       <div class="sidebar-divider"></div>
     ` + types.map(t=>`
-      <button class="sidebar-cat-btn ${selectedCat===t?'active':''}" onclick="selectCatPill(${JSON.stringify(t)},this)">
+      <button class="sidebar-cat-btn ${selectedCat===t?'active':''}" onclick="selectCatPill('${escCat(t)}',this)">
         <span class="sidebar-cat-icon">${catIcon(t)}</span>
         ${t}
         <span class="sidebar-cat-count">${counts[t]}</span>
