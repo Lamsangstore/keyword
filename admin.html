@@ -218,7 +218,7 @@
           </div>
           <div class="table-wrap">
             <table id="product-table">
-              <thead><tr><th>รูป</th><th>ชื่อสินค้า</th><th>ประเภท</th><th>ราคา</th><th>มีรูปไซส์</th><th>จัดการ</th></tr></thead>
+              <thead><tr><th>รูป</th><th>ชื่อสินค้า</th><th>ประเภท</th><th>ราคา</th><th>SKU</th><th>Shopee</th><th>TikTok</th><th>จัดการ</th></tr></thead>
               <tbody id="product-tbody"></tbody>
             </table>
           </div>
@@ -286,11 +286,18 @@
     <div class="modal-title" id="product-modal-title">➕ เพิ่มสินค้า</div>
     <div class="form-row">
       <div><label>ชื่อสินค้า *</label><input type="text" id="p-name" placeholder="ชื่อสินค้า"></div>
-      <div><label>ประเภท *</label><input type="text" id="p-type" placeholder="เช่น เสื้อ, กางเกง"></div>
+      <div><label>ประเภท *</label><input type="text" id="p-type" placeholder="เช่น กางเกง กระบอก, เสื้อยืด"></div>
     </div>
     <div class="form-row">
-      <div><label>ราคา</label><input type="text" id="p-price" placeholder="เช่น 299 บาท"></div>
-      <div><label>Link สินค้า</label><input type="text" id="p-link" placeholder="https://..."></div>
+      <div><label>ราคา</label><input type="text" id="p-price" placeholder="เช่น 490"></div>
+      <div><label>Parent SKU</label><input type="text" id="p-sku" placeholder="เช่น B17295911..."></div>
+    </div>
+    <div class="form-row">
+      <div><label>🛒 Link Shopee</label><input type="text" id="p-shopee" placeholder="https://shopee.co.th/..."></div>
+      <div><label>🎵 Link TikTok</label><input type="text" id="p-tiktok" placeholder="https://vt.tiktok.com/..."></div>
+    </div>
+    <div class="form-row full">
+      <div><label>📍 พิกัด Link (optional)</label><input type="text" id="p-link" placeholder="https://..."></div>
     </div>
     <div class="form-row full">
       <div><label>รายละเอียด</label><textarea id="p-detail" placeholder="รายละเอียดสินค้า..."></textarea></div>
@@ -470,7 +477,9 @@ function renderProductTable() {
       <td class="td-name" title="${esc(row[0])}">${esc(row[0])}</td>
       <td><span style="background:var(--pink-pale);color:var(--pink);padding:3px 8px;border-radius:8px;font-size:.8em;font-weight:600">${esc(row[1]||'—')}</span></td>
       <td class="td-price">${esc(row[2]||'—')}</td>
-      <td style="text-align:center">${row[5]?'✅':'—'}</td>
+      <td style="font-size:.75em;color:var(--purple-mid)">${esc(row[6]||'—')}</td>
+      <td style="text-align:center">${row[7]?`<a href="${row[7]}" target="_blank" style="font-size:.8em;color:#EE4D2D">🛒</a>`:'—'}</td>
+      <td style="text-align:center">${row[8]?`<a href="${row[8]}" target="_blank" style="font-size:.8em;color:#010101">🎵</a>`:'—'}</td>
       <td><div class="td-actions">
         <button class="btn btn-blue" style="padding:6px 12px;font-size:.78em" onclick="openProductModal('${key}')">✏️ แก้ไข</button>
         <button class="btn btn-danger" style="padding:6px 12px;font-size:.78em" onclick="deleteItem('products','${key}','${esc(row[0])}')">🗑️</button>
@@ -515,36 +524,48 @@ function deleteItem(collection, key, name) {
 function openProductModal(key = null) {
   editProductKey = key;
   document.getElementById('product-modal-title').textContent = key ? '✏️ แก้ไขสินค้า' : '➕ เพิ่มสินค้า';
-  const fields = ['p-name','p-type','p-price','p-link','p-img1','p-img2','p-detail'];
+  const fields = ['p-name','p-type','p-price','p-sku','p-shopee','p-tiktok','p-link','p-img1','p-img2','p-detail'];
   fields.forEach(id => document.getElementById(id).value = '');
   [1,2].forEach(n => { document.getElementById(`upload-preview-${n}`).style.display='none'; document.getElementById(`upload-status-${n}`).textContent=''; });
 
   if (key && allProducts[key]) {
     const r = allProducts[key];
+    // r[0]=ชื่อ r[1]=ประเภท r[2]=ราคา r[3]=รายละเอียด
+    // r[4]=รูปหลัก r[5]=รูปไซส์ r[6]=SKU
+    // r[7]=Shopee r[8]=Tiktok r[9]=พิกัด
     document.getElementById('p-name').value   = r[0] || '';
     document.getElementById('p-type').value   = r[1] || '';
     document.getElementById('p-price').value  = r[2] || '';
     document.getElementById('p-detail').value = r[3] || '';
     document.getElementById('p-img1').value   = r[4] || '';
     document.getElementById('p-img2').value   = r[5] || '';
-    document.getElementById('p-link').value   = r[7] || '';
-    if (r[4]) { const p=document.getElementById('upload-preview-1'); p.style.display='block'; document.getElementById('preview-img-1').src=r[4]; }
-    if (r[5]) { const p=document.getElementById('upload-preview-2'); p.style.display='block'; document.getElementById('preview-img-2').src=r[5]; }
+    document.getElementById('p-sku').value    = r[6] || '';
+    document.getElementById('p-shopee').value = r[7] || '';
+    document.getElementById('p-tiktok').value = r[8] || '';
+    document.getElementById('p-link').value   = r[9] || '';
+    if (r[4]) { document.getElementById('upload-preview-1').style.display='block'; document.getElementById('preview-img-1').src=r[4]; }
+    if (r[5]) { document.getElementById('upload-preview-2').style.display='block'; document.getElementById('preview-img-2').src=r[5]; }
   }
   openModal('product-modal');
 }
 
 async function saveProduct() {
-  const name  = document.getElementById('p-name').value.trim();
-  const type  = document.getElementById('p-type').value.trim();
-  const price = document.getElementById('p-price').value.trim();
-  const detail= document.getElementById('p-detail').value.trim();
-  const img1  = document.getElementById('p-img1').value.trim();
-  const img2  = document.getElementById('p-img2').value.trim();
-  const link  = document.getElementById('p-link').value.trim();
+  const name   = document.getElementById('p-name').value.trim();
+  const type   = document.getElementById('p-type').value.trim();
+  const price  = document.getElementById('p-price').value.trim();
+  const detail = document.getElementById('p-detail').value.trim();
+  const img1   = document.getElementById('p-img1').value.trim();
+  const img2   = document.getElementById('p-img2').value.trim();
+  const sku    = document.getElementById('p-sku').value.trim();
+  const shopee = document.getElementById('p-shopee').value.trim();
+  const tiktok = document.getElementById('p-tiktok').value.trim();
+  const loc    = document.getElementById('p-link').value.trim();
   if (!name || !type) { toast('กรุณากรอกชื่อสินค้าและประเภท','warn'); return; }
 
-  const row = [name, type, price, detail, img1, img2, '', link];
+  // ตรง index map: [0]ชื่อ [1]ประเภท [2]ราคา [3]รายละเอียด
+  //               [4]รูปหลัก [5]รูปไซส์ [6]SKU
+  //               [7]Shopee [8]Tiktok [9]พิกัด
+  const row = [name, type, price, detail, img1, img2, sku, shopee, tiktok, loc];
   const btn = document.getElementById('save-product-btn');
   btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
 
