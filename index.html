@@ -531,14 +531,160 @@
       margin-left:6px;vertical-align:middle;
     }
 
+    /* ══════════════════════════════════════
+       RESPONSIVE — Mobile / Tablet / Desktop
+       ══════════════════════════════════════ */
+
+    /* ── TABLET 600px+ ── */
     @media(min-width:600px){
-      .product-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+      .product-grid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:18px}
+      .as-brand{font-size:1.25em}
     }
-    @media(min-width:900px){
-      .product-grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));padding:0 24px 8px}
-      .general-list{padding:0 24px 8px}
-      .cat-head{padding:24px 24px 10px}
+
+    /* ── DESKTOP 960px+ ── */
+    @media(min-width:960px){
+      /* topbar taller, bigger search */
+      .as-topbar{padding:14px 32px;gap:20px}
+      .as-logo{width:42px;height:42px}
+      .as-brand{font-size:1.35em}
+      .as-search{padding:10px 18px;border-radius:14px}
+      .as-search input{font-size:.92em}
+      .as-settings{width:40px;height:40px;border-radius:12px;font-size:1.1em}
+
+      /* tab bar bigger */
+      .tab-bar{top:70px;padding:0 32px}
+      .tab-btn{padding:16px 0 14px;font-size:1em}
+
+      /* pill bar */
+      .cat-pill-bar{top:120px;padding:12px 32px}
+
+      /* DESKTOP LAYOUT: sidebar + main content */
+      .page-inner{
+        display:grid;
+        grid-template-columns:260px 1fr;
+        gap:0;
+        max-width:1440px;
+        margin:0 auto;
+      }
+
+      /* sidebar */
+      .desktop-sidebar{
+        display:flex;
+        flex-direction:column;
+        gap:6px;
+        padding:28px 20px;
+        position:sticky;
+        top:120px;
+        height:calc(100vh - 120px);
+        overflow-y:auto;
+        border-right:1px solid var(--border);
+        scrollbar-width:thin;
+        scrollbar-color:var(--border) transparent;
+        background:rgba(245,244,250,.6);
+      }
+      .desktop-sidebar::-webkit-scrollbar{width:4px}
+      .desktop-sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+      .sidebar-title{
+        font-size:.7em;font-weight:800;
+        color:var(--muted);
+        text-transform:uppercase;
+        letter-spacing:.1em;
+        padding:0 10px;
+        margin-bottom:4px;
+      }
+      .sidebar-cat-btn{
+        display:flex;align-items:center;gap:10px;
+        padding:10px 12px;
+        border-radius:12px;
+        border:none;background:none;
+        font-family:'Prompt',sans-serif;
+        font-size:.88em;font-weight:600;
+        color:var(--ink2);
+        cursor:pointer;
+        text-align:left;
+        transition:background .15s, color .15s;
+        width:100%;
+      }
+      .sidebar-cat-btn:hover{background:rgba(255,59,107,.07);color:var(--pink)}
+      .sidebar-cat-btn.active{
+        background:linear-gradient(135deg,rgba(255,107,157,.15),rgba(255,59,107,.12));
+        color:var(--pink);font-weight:800;
+      }
+      .sidebar-cat-icon{font-size:1.1em;flex-shrink:0;width:24px;text-align:center}
+      .sidebar-cat-count{
+        margin-left:auto;
+        font-size:.7em;font-weight:800;
+        background:rgba(0,0,0,.07);
+        padding:2px 7px;border-radius:10px;
+        color:var(--muted);
+      }
+      .sidebar-cat-btn.active .sidebar-cat-count{background:rgba(255,59,107,.15);color:var(--pink)}
+      .sidebar-divider{height:1px;background:var(--border);margin:8px 10px}
+
+      /* hide horizontal pill bar on desktop (replaced by sidebar) */
+      .cat-pill-bar{display:none!important}
+
+      /* main content area */
+      .main-content{
+        padding:0;
+        min-width:0;
+      }
+
+      /* product grid wider */
+      .product-grid{
+        grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
+        gap:20px;
+        padding:0 32px 8px;
+      }
+      #product-grid-view, #general-grid-view{padding-bottom:60px}
+
+      .cat-head{padding:28px 32px 10px;font-size:1.15em}
+      .general-list{padding:0 32px 8px;gap:10px}
+      .section-head{padding:28px 32px 16px}
+
+      /* detail view: 2-col hero + info */
+      .detail-hero-desktop{
+        display:grid;
+        grid-template-columns:420px 1fr;
+        gap:0;
+        min-height:400px;
+      }
+      .detail-img-wrap{
+        height:420px;
+        border-radius:0;
+      }
+      .detail-body{
+        padding:32px 36px;
+      }
+      .detail-name{font-size:2em}
+      .detail-price{font-size:1.6em}
+      .detail-desc{font-size:.95em}
+
+      /* general detail wider */
+      .gdetail-body{padding:36px 40px;max-width:800px;margin:0 auto}
     }
+
+    /* ── LARGE DESKTOP 1280px+ ── */
+    @media(min-width:1280px){
+      .page-inner{grid-template-columns:300px 1fr}
+      .product-grid{grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+    }
+
+    /* ── MOBILE: tighten spacing ── */
+    @media(max-width:400px){
+      html{font-size:14px}
+      .product-grid{grid-template-columns:repeat(2,1fr);gap:10px;padding:0 12px 8px}
+      .pcard-body{padding:10px}
+      .as-brand{display:none}
+      .cat-head{padding:20px 14px 8px}
+      .general-list{padding:0 12px 8px}
+      .section-head{padding:20px 14px 12px}
+    }
+
+    /* ── hide desktop sidebar on mobile/tablet ── */
+    .desktop-sidebar{display:none}
+    .page-inner{display:block}
   </style>
 </head>
 <body>
@@ -570,46 +716,59 @@
     <button class="tab-btn" id="tabGeneral" onclick="switchTab('general')">คีย์ลัดทั่วไป</button>
   </div>
 
-  <!-- ── TAB: สินค้า ── -->
-  <div id="tab-product-content">
-    <div id="product-header" class="section-head">
-      <div class="section-title">
-        คีย์ลัดสินค้า
-        <span class="live-pill">Live</span>
-      </div>
-      <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <span style="font-size:.78em;font-weight:600;color:var(--muted)">เรียง</span>
-        <select id="sortProduct" onchange="handleSortChange(this.value)" style="padding:7px 14px;border-radius:30px;border:1.5px solid var(--border);font-family:'Prompt',sans-serif;font-size:.8em;font-weight:700;color:var(--ink);background:var(--surface);cursor:pointer;outline:none">
-          <option value="name_asc">ชื่อ (ก→ฮ)</option>
-          <option value="price_asc">ราคา น้อย→มาก</option>
-          <option value="price_desc">ราคา มาก→น้อย</option>
-        </select>
-      </div>
-    </div>
-    <!-- CATEGORY PILL BAR -->
-    <div class="cat-pill-bar" id="cat-pill-bar">
-      <div class="cat-pill active" id="pill-all" onclick="selectCatPill('ทั้งหมด',this)">
-        ✦ ทั้งหมด
-      </div>
-      <!-- pills จะถูก inject โดย JS -->
-    </div>
-    <div id="product-grid-view">
-      <div class="loading-state"><div class="loader-ring"></div>กำลังโหลดสินค้า...</div>
-    </div>
-    <div id="product-details-view" style="display:none"></div>
+  <!-- CATEGORY PILL BAR (mobile/tablet) -->
+  <div class="cat-pill-bar" id="cat-pill-bar">
+    <div class="cat-pill active" id="pill-all" onclick="selectCatPill('ทั้งหมด',this)">✦ ทั้งหมด</div>
   </div>
 
-  <!-- ── TAB: ทั่วไป ── -->
-  <div id="tab-general-content" style="display:none">
-    <div id="general-header" class="section-head">
-      <div class="section-title">คีย์ลัดทั่วไป <span class="live-pill">Live</span></div>
-    </div>
-    <div id="general-grid-view">
-      <div class="loading-state"><div class="loader-ring"></div>กำลังโหลด...</div>
-    </div>
-    <div id="general-details-view" style="display:none"></div>
-  </div>
-</div>
+  <!-- PAGE INNER: desktop = sidebar + content, mobile = block -->
+  <div class="page-inner" id="page-inner">
+
+    <!-- DESKTOP SIDEBAR -->
+    <aside class="desktop-sidebar" id="desktop-sidebar">
+      <div class="sidebar-title" id="sidebar-tab-label">ประเภทสินค้า</div>
+      <div id="sidebar-cats"></div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+
+      <!-- ── TAB: สินค้า ── -->
+      <div id="tab-product-content">
+        <div id="product-header" class="section-head">
+          <div class="section-title">
+            คีย์ลัดสินค้า
+            <span class="live-pill">Live</span>
+          </div>
+          <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-size:.78em;font-weight:600;color:var(--muted)">เรียง</span>
+            <select id="sortProduct" onchange="handleSortChange(this.value)" style="padding:7px 14px;border-radius:30px;border:1.5px solid var(--border);font-family:'Prompt',sans-serif;font-size:.8em;font-weight:700;color:var(--ink);background:var(--surface);cursor:pointer;outline:none">
+              <option value="name_asc">ชื่อ (ก→ฮ)</option>
+              <option value="price_asc">ราคา น้อย→มาก</option>
+              <option value="price_desc">ราคา มาก→น้อย</option>
+            </select>
+          </div>
+        </div>
+        <div id="product-grid-view">
+          <div class="loading-state"><div class="loader-ring"></div>กำลังโหลดสินค้า...</div>
+        </div>
+        <div id="product-details-view" style="display:none"></div>
+      </div>
+
+      <!-- ── TAB: ทั่วไป ── -->
+      <div id="tab-general-content" style="display:none">
+        <div id="general-header" class="section-head">
+          <div class="section-title">คีย์ลัดทั่วไป <span class="live-pill">Live</span></div>
+        </div>
+        <div id="general-grid-view">
+          <div class="loading-state"><div class="loader-ring"></div>กำลังโหลด...</div>
+        </div>
+        <div id="general-details-view" style="display:none"></div>
+      </div>
+
+    </div><!-- /main-content -->
+  </div><!-- /page-inner -->
+</div><!-- /page -->
 
 <script>
 // ── STATE ────────────────────────────────────────────────────
@@ -634,34 +793,55 @@ function handleSearch(q) {
   else renderGeneralGrid(generalRows);
 }
 
-// ── CATEGORY PILLS ────────────────────────────────────────────
+// ── CATEGORY PILLS + SIDEBAR ─────────────────────────────────
 function buildCatPills(rows) {
-  const bar = document.getElementById('cat-pill-bar');
-  if (!bar) return;
+  const bar     = document.getElementById('cat-pill-bar');
+  const sidebar = document.getElementById('sidebar-cats');
+  if (!bar && !sidebar) return;
 
-  // นับจำนวนตามประเภท
   const counts = {};
-  rows.forEach(r => {
-    const t = r[1]||'ไม่ระบุ';
-    counts[t] = (counts[t]||0) + 1;
-  });
+  rows.forEach(r => { const t=r[1]||'ไม่ระบุ'; counts[t]=(counts[t]||0)+1; });
   const types = Object.keys(counts).sort((a,b)=>a.localeCompare(b,'th'));
 
-  bar.innerHTML = `<div class="cat-pill ${selectedCat==='ทั้งหมด'?'active':''}" id="pill-all" onclick="selectCatPill('ทั้งหมด',this)">
-    ✦ ทั้งหมด <span class="pill-count">${rows.length}</span>
-  </div>` + types.map(t => `
-    <div class="cat-pill ${selectedCat===t?'active':''}" onclick="selectCatPill('${t.replace(/'/g,"\\'")}',this)">
-      ${catIcon(t)} ${t} <span class="pill-count">${counts[t]}</span>
-    </div>`).join('');
+  // ── Mobile pill bar ──
+  if (bar) {
+    bar.innerHTML = `<div class="cat-pill ${selectedCat==='ทั้งหมด'?'active':''}" onclick="selectCatPill('ทั้งหมด',this)">
+      ✦ ทั้งหมด <span class="pill-count">${rows.length}</span>
+    </div>` + types.map(t=>`
+      <div class="cat-pill ${selectedCat===t?'active':''}" onclick="selectCatPill(${JSON.stringify(t)},this)">
+        ${catIcon(t)} ${t} <span class="pill-count">${counts[t]}</span>
+      </div>`).join('');
+  }
+
+  // ── Desktop sidebar ──
+  if (sidebar) {
+    sidebar.innerHTML = `
+      <button class="sidebar-cat-btn ${selectedCat==='ทั้งหมด'?'active':''}" onclick="selectCatPill('ทั้งหมด',this)">
+        <span class="sidebar-cat-icon">✦</span>
+        ทั้งหมด
+        <span class="sidebar-cat-count">${rows.length}</span>
+      </button>
+      <div class="sidebar-divider"></div>
+    ` + types.map(t=>`
+      <button class="sidebar-cat-btn ${selectedCat===t?'active':''}" onclick="selectCatPill(${JSON.stringify(t)},this)">
+        <span class="sidebar-cat-icon">${catIcon(t)}</span>
+        ${t}
+        <span class="sidebar-cat-count">${counts[t]}</span>
+      </button>`).join('');
+  }
 }
 
 function selectCatPill(cat, el) {
   selectedCat = cat;
-  // อัพเดท active class
-  document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
-  if (el) el.classList.add('active');
-  // scroll pill ให้อยู่กึ่งกลาง
-  if (el) el.scrollIntoView({behavior:'smooth', block:'nearest', inline:'center'});
+  // sync pill bar
+  document.querySelectorAll('.cat-pill').forEach(p=>p.classList.remove('active'));
+  // sync sidebar
+  document.querySelectorAll('.sidebar-cat-btn').forEach(p=>p.classList.remove('active'));
+  // activate clicked element
+  if (el) {
+    el.classList.add('active');
+    el.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+  }
   renderProductGrid(productRows);
 }
 
@@ -784,6 +964,9 @@ function showProductDetail(idx,push=true){
   document.getElementById('main-tabs').style.display='none';
   document.getElementById('product-header').style.display='none';
   document.getElementById('cat-pill-bar').style.display='none';
+  document.getElementById('page-inner').style.display='block'; // full width detail
+  const sidebar=document.getElementById('desktop-sidebar');
+  if(sidebar) sidebar.style.display='none';
   document.getElementById('main-topbar').style.display='none';
   document.getElementById('top-nav').style.display='flex';
 
@@ -870,6 +1053,9 @@ function showGeneralDetail(idx,push=true){
   document.getElementById('general-grid-view').style.display='none';
   document.getElementById('main-tabs').style.display='none';
   document.getElementById('general-header').style.display='none';
+  document.getElementById('page-inner').style.display='block';
+  const sidebar=document.getElementById('desktop-sidebar');
+  if(sidebar) sidebar.style.display='none';
   document.getElementById('main-topbar').style.display='none';
   document.getElementById('top-nav').style.display='flex';
 
@@ -909,6 +1095,9 @@ function showProductGrid(push=true){
   document.getElementById('main-tabs').style.display='flex';
   document.getElementById('product-header').style.display='block';
   document.getElementById('cat-pill-bar').style.display='flex';
+  document.getElementById('page-inner').style.display=''; // restore CSS grid
+  const sidebar=document.getElementById('desktop-sidebar');
+  if(sidebar) sidebar.style.display='';
   document.getElementById('main-topbar').style.display='flex';
   document.getElementById('top-nav').style.display='none';
   if(push) history.pushState({view:'grid',tab:'product'},'');
@@ -918,6 +1107,10 @@ function showGeneralGrid(push=true){
   document.getElementById('general-details-view').style.display='none';
   document.getElementById('main-tabs').style.display='flex';
   document.getElementById('general-header').style.display='block';
+  document.getElementById('cat-pill-bar').style.display='none'; // general has no pills
+  document.getElementById('page-inner').style.display='';
+  const sidebar=document.getElementById('desktop-sidebar');
+  if(sidebar) sidebar.style.display='none'; // no sidebar for general tab
   document.getElementById('main-topbar').style.display='flex';
   document.getElementById('top-nav').style.display='none';
   if(push) history.pushState({view:'grid',tab:'general'},'');
