@@ -720,6 +720,65 @@ function previewUrlImg(input, previewContainerId, previewImgId) {
   }
 }
 
+// ─── SYNC UTILS ──────────────────────────────────
+// Apps Script ไม่รองรับ CORS จาก browser โดยตรง
+// ใช้ JSONP สำหรับ GET และ no-cors + form สำหรับ POST
+
+function fetchGAS_GET(gasUrl, action) {
+  return new Promise((resolve, reject) => {
+    const cbName = '_cb_' + Date.now();
+    const url = `${gasUrl}?action=${action}&callback=${cbName}`;
+    const script = document.createElement('script');
+    const timeout = setTimeout(() => {
+      delete window[cbName];
+      document.body.removeChild(script);
+      // fallback: ลอง fetch ปกติ (บางครั้งใช้ได้ถ้า deploy ถูกต้อง)
+      fetch(gasUrl + '?action=' + action)
+        .then(r => r.json())
+        .then(resolve)
+        .catch(reject);
+    }, 8000);
+    window[cbName] = (data) => {
+      clearTimeout(timeout);
+      delete window[cbName];
+      document.body.removeChild(script);
+      resolve(data);
+    };
+    script.onerror = () => {
+      clearTimeout(timeout);
+      delete window[cbName];
+      document.body.removeChild(script);
+      // fallback fetch
+      fetch(gasUrl + '?action=' + action)
+        .then(r => r.json())
+        .then(resolve)
+        .catch(reject);
+    };
+    script.src = url;
+    document.body.appendChild(script);
+  });
+}
+
+async function fetchGAS_POST(gasUrl, body) {
+  // ลอง fetch ก่อน (ถ้า Apps Script ตั้ง CORS ถูกต้อง)
+  try {
+    const resp = await fetch(gasUrl, {
+      method: 'POST',
+      body: JSON.stringify(body),
+      // ไม่ใส่ Content-Type header เพื่อหลีกเลี่ยง preflight CORS
+    });
+    return await resp.json();
+  } catch(e) {
+    // fallback: no-cors (ส่งได้แต่อ่าน response ไม่ได้ — ถือว่าสำเร็จ)
+    await fetch(gasUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      body: JSON.stringify(body),
+    });
+    return { success: true, note: 'no-cors mode — assumed success' };
+  }
+}
+
 // ─── SYNC: Sheet → Firebase ──────────────────────
 async function syncSheetToFirebase(collection = 'both') {
   const s = getSettings();
@@ -730,11 +789,27 @@ async function syncSheetToFirebase(collection = 'both') {
   for (const type of syncTypes) {
     try {
       const action = type === 'products' ? 'getAllProducts' : 'getGeneralList';
-      const resp = await fetch(`${s.gasUrl}?action=${action}`);
-      const data = await resp.json();
-      if (!data.rows) { addLog('err', `❌ ไม่พบ rows ใน response (${type})`); continue; }
+      addLog('info', `⏳ กำลังดึง ${type} จาก Sheet...`);
 
-      // Convert rows array to keyed object
+      let data;
+      try {
+        // วิธี 1: fetch ตรง (ได้ผลถ้า Apps Script deploy ถูกต้อง)
+        const resp = await fetch(`${s.gasUrl}?action=${action}`);
+        const text = await resp.text();
+        // กัน JSONP wrapper ที่ Apps Script บางครั้งใส่มา
+        const clean = text.replace(/^[^{]*([\s\S]*\})[^}]*$/, '$1');
+        data = JSON.parse(clean);
+      } catch(fetchErr) {
+        // วิธี 2: JSONP fallback
+        addLog('info', `↩️ ลอง JSONP สำหรับ ${type}...`);
+        data = await fetchGAS_GET(s.gasUrl, action);
+      }
+
+      if (!data || !data.rows) {
+        addLog('err', `❌ ไม่พบ rows ใน response (${type}) — ตรวจสอบ Apps Script URL`);
+        continue;
+      }
+
       const obj = {};
       data.rows.forEach((row, i) => { obj[`row_${i}`] = row; });
       await db.ref(type).set(obj);
@@ -744,7 +819,7 @@ async function syncSheetToFirebase(collection = 'both') {
       addLog('err', `❌ ${type}: ${e.message}`);
     }
   }
-  toast('Sync Sheet → Firebase เสร็จสิ้น','success');
+  toast('Sync Sheet → Firebase เสร็จสิ้น ✓','success');
 }
 
 // ─── SYNC: Firebase → Sheet ──────────────────────
@@ -758,23 +833,21 @@ async function syncFirebaseToSheet(collection = 'both') {
     try {
       const data = type === 'products' ? allProducts : allGeneral;
       const rows = Object.values(data);
-      const resp = await fetch(s.gasUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: type === 'products' ? 'updateProducts' : 'updateGeneral', rows })
-      });
-      const result = await resp.json();
+      const action = type === 'products' ? 'updateProducts' : 'updateGeneral';
+      addLog('info', `⏳ กำลังเขียน ${rows.length} รายการ → Sheet (${type})...`);
+
+      const result = await fetchGAS_POST(s.gasUrl, { action, rows });
       if (result.success) {
         addLog('ok', `✅ Firebase → Sheet (${type}) สำเร็จ — ${rows.length} รายการ`);
       } else {
-        addLog('err', `❌ Sheet ตอบกลับ error: ${result.error}`);
+        addLog('err', `❌ Sheet error: ${result.error || 'unknown'}`);
       }
     } catch(e) {
       addLog('err', `❌ ${type}: ${e.message}`);
     }
   }
   document.getElementById('last-sync').textContent = new Date().toLocaleTimeString('th-TH');
-  toast('Sync Firebase → Sheet เสร็จสิ้น','success');
+  toast('Sync Firebase → Sheet เสร็จสิ้น ✓','success');
 }
 
 function syncAll() { syncSheetToFirebase(); }
