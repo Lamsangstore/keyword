@@ -500,117 +500,95 @@
 
     /* ── DETAIL VIEW ── */
     .detail-page{
-      animation:slideInRight .35s var(--ease) both;
+      animation:slideInRight .3s var(--ease) both;
+      background:var(--surface);
+      min-height:100vh;
     }
     @keyframes slideInRight{
-      from{opacity:0;transform:translateX(24px)}
+      from{opacity:0;transform:translateX(16px)}
       to{opacity:1;transform:translateX(0)}
     }
 
-    /* Mobile: info first, image below */
+    /* ── MOBILE layout: รูปบน, ข้อมูลล่าง ── */
     .detail-layout{
       display:flex;
       flex-direction:column;
-      background:var(--surface);
     }
 
-    /* รูปสินค้า — จำกัดความสูง */
     .detail-img-wrap{
       width:100%;
-      max-height:300px;
-      background:linear-gradient(135deg,#f8f7ff,#f0eef8);
-      overflow:hidden;position:relative;
+      aspect-ratio:1/1;
+      background:#f5f4fa;
+      overflow:hidden;
+      position:relative;
       flex-shrink:0;
     }
     .detail-img-wrap img{
       width:100%;height:100%;object-fit:contain;
       opacity:0;transition:opacity .5s var(--ease);
+      cursor:zoom-in;
     }
     .detail-img-wrap img.loaded{opacity:1}
     .detail-img-none{
       display:flex;align-items:center;justify-content:center;
-      font-size:4em;opacity:.15;
-      height:200px;
+      font-size:4em;opacity:.15;height:100%;
     }
 
-    /* ข้อมูลสินค้า */
     .detail-body{
-      padding:18px 20px 4px;
-      flex:1;
+      padding:20px 20px 8px;
     }
     .detail-name{
-      font-size:1.35em;font-weight:800;
-      color:var(--ink);
-      letter-spacing:-0.02em;
-      line-height:1.25;
-      margin-bottom:4px;
+      font-size:1.4em;font-weight:800;
+      color:var(--ink);letter-spacing:-0.02em;
+      line-height:1.2;margin-bottom:4px;
     }
-    .detail-sku{font-size:.68em;color:var(--muted);margin-bottom:5px}
+    .detail-sku{font-size:.68em;color:var(--muted);margin-bottom:6px}
     .detail-type{
       display:inline-flex;align-items:center;
-      background:rgba(255,59,107,.08);
-      color:var(--pink);
+      background:rgba(255,59,107,.08);color:var(--pink);
       font-size:.72em;font-weight:700;
-      padding:3px 10px;border-radius:20px;
-      margin-bottom:8px;
+      padding:3px 10px;border-radius:20px;margin-bottom:10px;
     }
     .detail-price{
-      font-size:1.5em;font-weight:800;
-      color:var(--pink);
-      margin-bottom:12px;
+      font-size:1.6em;font-weight:800;
+      color:var(--pink);margin-bottom:14px;
     }
     .detail-action-row{
-      display:flex;gap:6px;flex-wrap:wrap;
-      margin-bottom:14px;
+      display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;
     }
     .detail-desc{
-      font-size:.85em;line-height:1.75;
-      color:#444;
-      background:#f8f8fc;
-      border-radius:12px;
-      padding:14px;
-      margin:0 20px 16px;
-      white-space:pre-wrap;
-      word-break:break-word;
+      font-size:.87em;line-height:1.8;color:#444;
+      background:#f8f8fc;border-radius:12px;
+      padding:16px;margin:0 20px 20px;
+      white-space:pre-wrap;word-break:break-word;
     }
-    .detail-links{
-      display:flex;gap:8px;flex-wrap:wrap;
-      padding:0 20px 20px;
-    }
+    .detail-links{display:flex;gap:8px;flex-wrap:wrap;padding:0 20px 20px}
 
     /* ── SIZE TABLE ── */
-    .size-section{margin:0 20px 20px}
+    .size-section{margin:0 20px 24px}
     .size-section-title{
-      font-size:.78em;font-weight:700;
-      color:var(--muted);
-      text-transform:uppercase;letter-spacing:.08em;
-      margin-bottom:8px;
+      font-size:.78em;font-weight:700;color:var(--muted);
+      text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;
     }
     .size-img{
-      width:100%;border-radius:14px;
-      border:1px solid var(--border);
-      object-fit:contain;
-      opacity:0;transition:opacity .4s var(--ease);
+      width:100%;border-radius:14px;border:1px solid var(--border);
+      object-fit:contain;opacity:0;transition:opacity .4s var(--ease);cursor:zoom-in;
     }
     .size-img.loaded{opacity:1}
 
-    /* Tablet 600px: side-by-side layout */
+    /* ── TABLET 600px: side-by-side ── */
     @media(min-width:600px){
       .detail-layout{
         flex-direction:row;
         align-items:flex-start;
-        min-height:360px;
       }
       .detail-img-wrap{
-        width:44%;
-        max-height:none;
-        aspect-ratio:3/4;
-        flex-shrink:0;
-        border-radius:0 0 0 0;
+        width:42%;max-height:460px;
+        aspect-ratio:auto;flex-shrink:0;
       }
-      .detail-body{padding:24px 24px 4px}
-      .detail-desc{margin:0 24px 16px}
-      .size-section{margin:0 24px 20px}
+      .detail-body{padding:24px 24px 8px}
+      .detail-desc{margin:0 24px 20px}
+      .size-section{margin:0 24px 24px}
     }
 
     /* ── GENERAL DETAIL ── */
@@ -761,30 +739,67 @@
       .general-list{grid-template-columns:repeat(3,1fr);padding:0 32px 8px;gap:12px}
       .section-head{padding:28px 32px 16px}
 
-      /* detail view: side-by-side hero + info */
-      .detail-layout{
-        flex-direction:row;
-        align-items:flex-start;
+      /* ── detail page: 2-col sticky image ── */
+      .detail-page{
         max-width:1100px;
         margin:0 auto;
+        padding:32px 32px 60px;
+        display:grid;
+        grid-template-columns:420px 1fr;
+        grid-template-rows:auto 1fr;
+        gap:0 40px;
+        align-items:start;
+        background:transparent;
+        min-height:auto;
+      }
+      .detail-layout{
+        /* รูป sticky ซ้าย */
+        grid-column:1;
+        grid-row:1 / 3;
+        position:sticky;top:80px;
+        flex-direction:column;
+        border-radius:20px;
+        overflow:hidden;
+        box-shadow:0 8px 32px rgba(0,0,0,.1);
+        background:var(--surface);
       }
       .detail-img-wrap{
-        width:420px;
-        aspect-ratio:3/4;
+        width:100%;
+        aspect-ratio:1/1;
         max-height:none;
         flex-shrink:0;
-        border-radius:0;
       }
       .detail-body{
-        padding:36px 36px 4px;
-        flex:1;
+        /* ข้อมูลขวา */
+        grid-column:2;
+        grid-row:1;
+        padding:0;
+        background:var(--surface);
+        border-radius:20px;
+        padding:28px 28px 8px;
+        box-shadow:0 4px 20px rgba(0,0,0,.06);
       }
-      .detail-name{font-size:1.8em}
-      .detail-price{font-size:1.7em}
-      .detail-desc{font-size:.95em;margin:0 36px 20px}
-      .size-section{margin:0 36px 24px}
+      .detail-name{font-size:1.85em;margin-bottom:6px}
+      .detail-price{font-size:1.7em;margin-bottom:16px}
+      .detail-desc{
+        /* อยู่ใต้ detail-body ขวา */
+        grid-column:2;
+        grid-row:2;
+        margin:0;
+        background:var(--surface);
+        border-radius:20px;
+        padding:20px 24px;
+        box-shadow:0 4px 20px rgba(0,0,0,.06);
+        font-size:.9em;
+        align-self:start;
+      }
+      .size-section{
+        grid-column:1;
+        grid-row:3;
+        margin:16px 0 0;
+        position:sticky;top:520px;
+      }
 
-      /* general detail wider */
       .gdetail-body{padding:36px 40px;max-width:800px;margin:0 auto}
     }
 
@@ -1380,25 +1395,25 @@ function showProductDetail(idx,push=true){
     <div class="detail-page">
       <div class="detail-layout">
         ${imgHtml}
-        <div class="detail-body">
-          <div class="detail-name">${esc(row[0])}</div>
-          ${row[6]?`<div class="detail-sku">SKU: ${esc(row[6])}</div>`:''}
-          <div class="detail-type">${esc(row[1])}</div>
-          <div class="detail-price">${esc(row[2])}</div>
-          <div class="detail-action-row">
-            <button class="btn btn-pink" onclick='copyInfoToast(${JSON.stringify(copyTxt)},"ข้อความสินค้า")'>📋 Copy</button>
-            ${shopee?`<button class="btn btn-shopee" onclick="openLink('${shopee}')">🛒 Shopee</button>`:''}
-            ${tiktok?`<button class="btn btn-tiktok" onclick="openLink('${tiktok}')">♪ TikTok</button>`:''}
-            ${lazada?`<button class="btn btn-laz" onclick="openLink('${lazada}')">🟠 Lazada</button>`:''}
-            ${page365?`<button class="btn btn-p365" onclick="openLink('${page365}')">📄 Page365</button>`:''}
-            ${loc?`<button class="btn btn-loc" onclick="openLink('${loc}')">📍 พิกัด</button>`:''}
-            <button class="btn btn-share" onclick="shareProduct(${idx})">↗ แชร์</button>
-            <button id="fav-detail-btn" class="btn" style="${favStyle}" onclick="toggleFavDetail(${idx},this)">${isFav(idx)?'⭐ โปรด':'☆ บันทึก'}</button>
-          </div>
+        ${row[5]?`<div class="size-section"><div class="size-section-title">📏 ตารางไซส์</div><img class="size-img" src="${row[5]}" onload="onImgLoad(this)" loading="lazy" onclick="openLightbox('${row[5]}','ตารางไซส์: ${esc(row[0])}')"></div>`:''}
+      </div>
+      <div class="detail-body">
+        <div class="detail-name">${esc(row[0])}</div>
+        ${row[6]?`<div class="detail-sku">SKU: ${esc(row[6])}</div>`:''}
+        <div class="detail-type">${esc(row[1])}</div>
+        <div class="detail-price">${esc(row[2])}</div>
+        <div class="detail-action-row">
+          <button class="btn btn-pink" onclick='copyInfoToast(${JSON.stringify(copyTxt)},"ข้อความสินค้า")'>📋 Copy</button>
+          ${shopee?`<button class="btn btn-shopee" onclick="openLink('${shopee}')">🛒 Shopee</button>`:''}
+          ${tiktok?`<button class="btn btn-tiktok" onclick="openLink('${tiktok}')">♪ TikTok</button>`:''}
+          ${lazada?`<button class="btn btn-laz" onclick="openLink('${lazada}')">🟠 Lazada</button>`:''}
+          ${page365?`<button class="btn btn-p365" onclick="openLink('${page365}')">📄 Page365</button>`:''}
+          ${loc?`<button class="btn btn-loc" onclick="openLink('${loc}')">📍 พิกัด</button>`:''}
+          <button class="btn btn-share" onclick="shareProduct(${idx})">↗ แชร์</button>
+          <button id="fav-detail-btn" class="btn" style="${favStyle}" onclick="toggleFavDetail(${idx},this)">${isFav(idx)?'⭐ โปรด':'☆ บันทึก'}</button>
         </div>
       </div>
       <div class="detail-desc">${esc(String(row[3]||''))}</div>
-      ${row[5]?`<div class="size-section"><div class="size-section-title">📏 ตารางไซส์</div><img class="size-img" src="${row[5]}" onload="onImgLoad(this)" loading="lazy" onclick="openLightbox('${row[5]}','ตารางไซส์: ${esc(row[0])}')"></div>`:''}
     </div>`;
   document.getElementById('product-details-view').style.display='block';
   currentDetailIdx=idx; currentDetailRow=row;
