@@ -417,87 +417,112 @@
       from{opacity:0;transform:translateX(24px)}
       to{opacity:1;transform:translateX(0)}
     }
-    .detail-hero{
-      position:relative;
+
+    /* Mobile: info first, image below */
+    .detail-layout{
+      display:flex;
+      flex-direction:column;
       background:var(--surface);
-      overflow:hidden;
     }
+
+    /* รูปสินค้า — จำกัดความสูง */
     .detail-img-wrap{
-      width:100%;aspect-ratio:4/3;
+      width:100%;
+      max-height:300px;
       background:linear-gradient(135deg,#f8f7ff,#f0eef8);
       overflow:hidden;position:relative;
+      flex-shrink:0;
     }
     .detail-img-wrap img{
-      width:100%;height:100%;object-fit:cover;
+      width:100%;height:100%;object-fit:contain;
       opacity:0;transition:opacity .5s var(--ease);
     }
     .detail-img-wrap img.loaded{opacity:1}
     .detail-img-none{
       display:flex;align-items:center;justify-content:center;
-      font-size:4em;opacity:.15;height:100%;
+      font-size:4em;opacity:.15;
+      height:200px;
     }
 
+    /* ข้อมูลสินค้า */
     .detail-body{
-      padding:20px 20px 0;
+      padding:18px 20px 4px;
+      flex:1;
     }
     .detail-name{
-      font-size:1.6em;font-weight:800;
+      font-size:1.35em;font-weight:800;
       color:var(--ink);
       letter-spacing:-0.02em;
-      line-height:1.2;
-      margin-bottom:6px;
+      line-height:1.25;
+      margin-bottom:4px;
     }
-    .detail-sku{font-size:.7em;color:var(--muted);margin-bottom:4px}
+    .detail-sku{font-size:.68em;color:var(--muted);margin-bottom:5px}
     .detail-type{
       display:inline-flex;align-items:center;
       background:rgba(255,59,107,.08);
       color:var(--pink);
-      font-size:.75em;font-weight:700;
+      font-size:.72em;font-weight:700;
       padding:3px 10px;border-radius:20px;
-      margin-bottom:12px;
+      margin-bottom:8px;
     }
     .detail-price{
-      font-size:1.4em;font-weight:800;
+      font-size:1.5em;font-weight:800;
       color:var(--pink);
-      margin-bottom:16px;
-    }
-    .detail-desc{
-      font-size:.9em;line-height:1.75;
-      color:#444;
-      background:#f8f8fc;
-      border-radius:14px;
-      padding:16px;
-      margin-bottom:18px;
-      white-space:pre-wrap;
-      word-break:break-word;
+      margin-bottom:12px;
     }
     .detail-action-row{
-      display:flex;gap:8px;flex-wrap:wrap;
-      margin-bottom:16px;
+      display:flex;gap:6px;flex-wrap:wrap;
+      margin-bottom:14px;
+    }
+    .detail-desc{
+      font-size:.85em;line-height:1.75;
+      color:#444;
+      background:#f8f8fc;
+      border-radius:12px;
+      padding:14px;
+      margin:0 20px 16px;
+      white-space:pre-wrap;
+      word-break:break-word;
     }
     .detail-links{
       display:flex;gap:8px;flex-wrap:wrap;
       padding:0 20px 20px;
     }
 
-    /* ── SIZE TABLE SECTION ── */
-    .size-section{
-      margin:0 20px 20px;
-    }
+    /* ── SIZE TABLE ── */
+    .size-section{margin:0 20px 20px}
     .size-section-title{
-      font-size:.8em;font-weight:700;
+      font-size:.78em;font-weight:700;
       color:var(--muted);
-      text-transform:uppercase;
-      letter-spacing:.08em;
-      margin-bottom:10px;
+      text-transform:uppercase;letter-spacing:.08em;
+      margin-bottom:8px;
     }
     .size-img{
-      width:100%;border-radius:16px;
+      width:100%;border-radius:14px;
       border:1px solid var(--border);
       object-fit:contain;
       opacity:0;transition:opacity .4s var(--ease);
     }
     .size-img.loaded{opacity:1}
+
+    /* Tablet 600px: side-by-side layout */
+    @media(min-width:600px){
+      .detail-layout{
+        flex-direction:row;
+        align-items:flex-start;
+        min-height:360px;
+      }
+      .detail-img-wrap{
+        width:44%;
+        max-height:none;
+        aspect-ratio:3/4;
+        flex-shrink:0;
+        border-radius:0 0 0 0;
+      }
+      .detail-body{padding:24px 24px 4px}
+      .detail-desc{margin:0 24px 16px}
+      .size-section{margin:0 24px 20px}
+    }
 
     /* ── GENERAL DETAIL ── */
     .gdetail-body{padding:20px}
@@ -643,23 +668,28 @@
       .general-list{padding:0 32px 8px;gap:10px}
       .section-head{padding:28px 32px 16px}
 
-      /* detail view: 2-col hero + info */
-      .detail-hero-desktop{
-        display:grid;
-        grid-template-columns:420px 1fr;
-        gap:0;
-        min-height:400px;
+      /* detail view: side-by-side hero + info */
+      .detail-layout{
+        flex-direction:row;
+        align-items:flex-start;
+        max-width:1100px;
+        margin:0 auto;
       }
       .detail-img-wrap{
-        height:420px;
+        width:420px;
+        aspect-ratio:3/4;
+        max-height:none;
+        flex-shrink:0;
         border-radius:0;
       }
       .detail-body{
-        padding:32px 36px;
+        padding:36px 36px 4px;
+        flex:1;
       }
-      .detail-name{font-size:2em}
-      .detail-price{font-size:1.6em}
-      .detail-desc{font-size:.95em}
+      .detail-name{font-size:1.8em}
+      .detail-price{font-size:1.7em}
+      .detail-desc{font-size:.95em;margin:0 36px 20px}
+      .size-section{margin:0 36px 24px}
 
       /* general detail wider */
       .gdetail-body{padding:36px 40px;max-width:800px;margin:0 auto}
@@ -973,31 +1003,30 @@ function showProductDetail(idx,push=true){
   const copyTxt=`ชื่อสินค้า: ${row[0]}\nประเภท: ${row[1]}\nราคา: ${row[2]}\nรายละเอียด: ${row[3]}`;
   const shopee=row[7]||'', tiktok=row[8]||'', loc=row[9]||'', lazada=row[10]||'', page365=row[11]||'';
 
-  let heroHtml='';
-  if(row[4]){
-    heroHtml=`<div class="detail-img-wrap"><img src="${row[4]}" onload="onImgLoad(this)" loading="lazy"></div>`;
-  } else {
-    heroHtml=`<div class="detail-img-wrap"><div class="detail-img-none">📦</div></div>`;
-  }
+  const imgHtml = row[4]
+    ? `<div class="detail-img-wrap"><img src="${row[4]}" onload="onImgLoad(this)" loading="lazy"></div>`
+    : `<div class="detail-img-wrap"><div class="detail-img-none">📦</div></div>`;
 
   document.getElementById('product-details-view').innerHTML=`
     <div class="detail-page">
-      <div class="detail-hero">${heroHtml}</div>
-      <div class="detail-body">
-        <div class="detail-name">${esc(row[0])}</div>
-        ${row[6]?`<div class="detail-sku">SKU: ${esc(row[6])}</div>`:''}
-        <div class="detail-type">${esc(row[1])}</div>
-        <div class="detail-price">${esc(row[2])}</div>
-        <div class="detail-action-row">
-          <button class="btn btn-pink" onclick='copyText(${JSON.stringify(copyTxt)},this)'>📋 Copy ข้อความ</button>
-          ${shopee?`<button class="btn btn-shopee" onclick="openLink('${shopee}')">🛒 Shopee</button>`:''}
-          ${tiktok?`<button class="btn btn-tiktok" onclick="openLink('${tiktok}')">♪ TikTok</button>`:''}
-          ${lazada?`<button class="btn btn-laz" onclick="openLink('${lazada}')">🟠 Lazada</button>`:''}
-          ${page365?`<button class="btn btn-p365" onclick="openLink('${page365}')">📄 Page365</button>`:''}
-          ${loc?`<button class="btn btn-loc" onclick="openLink('${loc}')">📍 พิกัด</button>`:''}
+      <div class="detail-layout">
+        ${imgHtml}
+        <div class="detail-body">
+          <div class="detail-name">${esc(row[0])}</div>
+          ${row[6]?`<div class="detail-sku">SKU: ${esc(row[6])}</div>`:''}
+          <div class="detail-type">${esc(row[1])}</div>
+          <div class="detail-price">${esc(row[2])}</div>
+          <div class="detail-action-row">
+            <button class="btn btn-pink" onclick='copyText(${JSON.stringify(copyTxt)},this)'>📋 Copy</button>
+            ${shopee?`<button class="btn btn-shopee" onclick="openLink('${shopee}')">🛒 Shopee</button>`:''}
+            ${tiktok?`<button class="btn btn-tiktok" onclick="openLink('${tiktok}')">♪ TikTok</button>`:''}
+            ${lazada?`<button class="btn btn-laz" onclick="openLink('${lazada}')">🟠 Lazada</button>`:''}
+            ${page365?`<button class="btn btn-p365" onclick="openLink('${page365}')">📄 Page365</button>`:''}
+            ${loc?`<button class="btn btn-loc" onclick="openLink('${loc}')">📍 พิกัด</button>`:''}
+          </div>
         </div>
-        <div class="detail-desc">${esc(String(row[3]||''))}</div>
       </div>
+      <div class="detail-desc">${esc(String(row[3]||''))}</div>
       ${row[5]?`<div class="size-section"><div class="size-section-title">📏 ตารางไซส์</div><img class="size-img" src="${row[5]}" onload="onImgLoad(this)" loading="lazy"></div>`:''}
     </div>`;
   document.getElementById('product-details-view').style.display='block';
