@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Panel — คีย์ลัดสินค้า</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <style>
+    :root{
+      --pink:#E87A90;--pink-light:#FFD1DC;--pink-pale:#FFF0F3;
+      --purple:#5C5470;--purple-mid:#B9B4C7;--purple-pale:#EADDFB;
+      --bg:#FFFBF5;--white:#FFFFFF;--text:#352F44;
+      --green:#27ae60;--red:#e74c3c;--orange:#f39c12;
+      --radius:14px;--shadow:0 4px 20px rgba(92,84,112,.12);
+    }
+    html{font-size:16px}*{box-sizing:border-box;margin:0;padding:0}
+    body{background:#f0eef8;font-family:'Prompt',sans-serif;color:var(--text)}
+
+    /* ── LOGIN OVERLAY ── */
+    #login-screen{position:fixed;inset:0;background:linear-gradient(135deg,#EADDFB,#FFD1DC);display:flex;align-items:center;justify-content:center;z-index:9999}
+    .login-box{background:var(--white);border-radius:24px;padding:48px 40px;box-shadow:0 20px 60px rgba(92,84,112,.2);text-align:center;max-width:380px;width:90%}
+    .login-box h1{font-size:1.8em;color:var(--pink);margin-bottom:8px}
+    .login-box p{color:var(--purple-mid);font-size:.9em;margin-bottom:28px}
+    .login-input{width:100%;padding:14px 18px;border:2px solid var(--purple-pale);border-radius:12px;font-family:'Prompt',sans-serif;font-size:1em;color:var(--text);margin-bottom:14px;transition:border-color .2s}
+    .login-input:focus{outline:none;border-color:var(--pink)}
+    .login-btn{width:100%;padding:14px;background:linear-gradient(90deg,var(--pink-light),var(--pink));border:none;border-radius:12px;color:var(--white);font-family:'Prompt',sans-serif;font-size:1.05em;font-weight:700;cursor:pointer;transition:filter .2s}
+    .login-btn:hover{filter:brightness(1.06)}
+    .login-error{color:var(--red);font-size:.85em;margin-top:8px;display:none}
+
+    /* ── LAYOUT ── */
+    #app{display:none;min-height:100vh}
+    .topbar{background:var(--white);padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 10px rgba(0,0,0,.08);position:sticky;top:0;z-index:100}
+    .topbar-title{font-size:1.2em;font-weight:700;color:var(--pink);display:flex;align-items:center;gap:10px}
+    .topbar-right{display:flex;align-items:center;gap:12px}
+    .live-dot{display:inline-flex;align-items:center;gap:5px;font-size:.75em;font-weight:600;color:var(--green);background:#eafaf1;border:1px solid #a9dfbf;padding:4px 10px;border-radius:20px}
+    .live-dot::before{content:'';width:7px;height:7px;background:var(--green);border-radius:50%;animation:pulse 1.5s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+    .logout-btn{padding:8px 16px;background:var(--purple-pale);border:none;border-radius:10px;color:var(--purple);font-family:'Prompt',sans-serif;font-weight:600;cursor:pointer;font-size:.85em}
+
+    .main-layout{display:flex;min-height:calc(100vh - 64px)}
+    .sidebar{width:220px;background:var(--white);padding:20px 12px;box-shadow:2px 0 10px rgba(0,0,0,.05);flex-shrink:0}
+    .sidebar-item{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;cursor:pointer;font-weight:600;color:var(--purple);transition:background .2s,color .2s;margin-bottom:4px;font-size:.9em}
+    .sidebar-item:hover{background:var(--pink-pale);color:var(--pink)}
+    .sidebar-item.active{background:var(--pink-pale);color:var(--pink)}
+    .sidebar-item .icon{font-size:1.2em}
+    .content{flex:1;padding:28px;max-width:1200px}
+
+    /* ── TABS in sidebar ── */
+    .section{display:none}
+    .section.active{display:block}
+
+    /* ── CARDS / PANELS ── */
+    .panel{background:var(--white);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow);margin-bottom:24px}
+    .panel-title{font-size:1.15em;font-weight:700;color:var(--text);margin-bottom:18px;display:flex;align-items:center;gap:8px}
+    .panel-title .badge{font-size:.7em;font-weight:600;background:var(--pink-pale);color:var(--pink);padding:2px 8px;border-radius:20px}
+
+    /* ── SYNC BAR ── */
+    .sync-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+    .btn{padding:10px 20px;border:none;border-radius:10px;cursor:pointer;font-family:'Prompt',sans-serif;font-weight:700;font-size:.9em;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+    .btn-pink{background:linear-gradient(90deg,var(--pink-light),var(--pink));color:var(--white)}
+    .btn-pink:hover{filter:brightness(1.06)}
+    .btn-green{background:#d5f5e3;color:#1a6e3f;border:1px solid #a9dfbf}
+    .btn-green:hover{background:#c3edd8}
+    .btn-blue{background:#d6eaf8;color:#1a5276;border:1px solid #a9cce3}
+    .btn-blue:hover{background:#c3dff5}
+    .btn-orange{background:#fdebd0;color:#784212;border:1px solid #f0b27a}
+    .btn-orange:hover{background:#fad7a0}
+    .btn-red{background:#fadbd8;color:#7b241c;border:1px solid #f1948a}
+    .btn-danger{background:var(--red);color:var(--white)}
+    .btn-danger:hover{filter:brightness(.9)}
+    .btn-ghost{background:transparent;border:2px solid var(--purple-pale);color:var(--purple)}
+    .btn-ghost:hover{background:var(--purple-pale)}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    .btn.loading{opacity:.7;pointer-events:none}
+
+    /* ── TABLE ── */
+    .table-wrap{overflow-x:auto;margin-top:16px}
+    table{width:100%;border-collapse:collapse;font-size:.88em}
+    thead th{background:var(--pink-pale);color:var(--pink);font-weight:700;padding:12px 14px;text-align:left;white-space:nowrap}
+    tbody tr{border-bottom:1px solid #f3eff8;transition:background .15s}
+    tbody tr:hover{background:#fdf8ff}
+    tbody td{padding:10px 14px;vertical-align:middle}
+    .td-img{width:54px;height:54px;object-fit:cover;border-radius:8px;border:2px solid var(--purple-pale)}
+    .td-name{font-weight:600;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .td-price{color:var(--pink);font-weight:700;white-space:nowrap}
+    .td-actions{display:flex;gap:6px;white-space:nowrap}
+
+    /* ── MODAL ── */
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(92,84,112,.5);z-index:500;align-items:center;justify-content:center;padding:16px}
+    .modal-overlay.open{display:flex}
+    .modal{background:var(--white);border-radius:20px;padding:28px;max-width:680px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+    .modal-title{font-size:1.3em;font-weight:700;color:var(--pink);margin-bottom:20px}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+    .form-row.full{grid-template-columns:1fr}
+    label{display:block;font-size:.8em;font-weight:700;color:var(--purple-mid);margin-bottom:5px}
+    input[type=text],input[type=number],textarea,select{width:100%;padding:11px 14px;border:2px solid var(--purple-pale);border-radius:10px;font-family:'Prompt',sans-serif;font-size:.9em;color:var(--text);transition:border-color .2s;resize:vertical}
+    input:focus,textarea:focus,select:focus{outline:none;border-color:var(--pink)}
+    textarea{min-height:80px}
+    .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;flex-wrap:wrap}
+
+    /* ── IMAGE UPLOAD ── */
+    .upload-zone{border:2px dashed var(--purple-pale);border-radius:12px;padding:20px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;position:relative}
+    .upload-zone:hover,.upload-zone.drag{border-color:var(--pink);background:var(--pink-pale)}
+    .upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+    .upload-zone .upload-icon{font-size:2em;margin-bottom:6px}
+    .upload-zone .upload-label{font-size:.82em;color:var(--purple-mid);font-weight:600}
+    .upload-preview{display:none;margin-top:12px;position:relative}
+    .upload-preview img{width:120px;height:120px;object-fit:cover;border-radius:10px;border:2px solid var(--pink-light)}
+    .upload-preview .remove-img{position:absolute;top:-6px;right:calc(50% - 66px);background:var(--red);color:var(--white);border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:.8em;display:flex;align-items:center;justify-content:center}
+    .upload-status{font-size:.8em;margin-top:8px;font-weight:600;min-height:20px}
+    .upload-status.uploading{color:var(--orange)}
+    .upload-status.done{color:var(--green)}
+    .upload-status.error{color:var(--red)}
+    .progress-bar{height:6px;background:#eee;border-radius:3px;margin-top:6px;overflow:hidden;display:none}
+    .progress-fill{height:100%;background:var(--pink);width:0%;transition:width .3s;border-radius:3px}
+
+    /* ── TOAST ── */
+    #toast{position:fixed;bottom:24px;right:24px;z-index:9000;display:flex;flex-direction:column;gap:8px}
+    .toast-item{background:var(--text);color:var(--white);padding:12px 20px;border-radius:12px;font-size:.88em;font-weight:600;box-shadow:var(--shadow);animation:slideIn .3s ease;display:flex;align-items:center;gap:8px}
+    .toast-item.success{background:var(--green)}
+    .toast-item.error{background:var(--red)}
+    .toast-item.warn{background:var(--orange)}
+    @keyframes slideIn{from{transform:translateX(60px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+    /* ── SEARCH ── */
+    .search-bar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+    .search-input{flex:1;min-width:200px;padding:10px 16px;border:2px solid var(--purple-pale);border-radius:10px;font-family:'Prompt',sans-serif;font-size:.9em;color:var(--text)}
+    .search-input:focus{outline:none;border-color:var(--pink)}
+
+    /* ── STATS ── */
+    .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-bottom:24px}
+    .stat-card{background:var(--white);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);text-align:center;border-top:4px solid var(--pink-light)}
+    .stat-num{font-size:2em;font-weight:700;color:var(--pink)}
+    .stat-label{font-size:.8em;color:var(--purple-mid);font-weight:600;margin-top:4px}
+
+    /* ── SYNC LOG ── */
+    .sync-log{background:#1e1e2e;border-radius:10px;padding:14px;font-family:monospace;font-size:.8em;max-height:180px;overflow-y:auto;color:#cdd6f4}
+    .log-ok{color:#a6e3a1}.log-err{color:#f38ba8}.log-info{color:#89b4fa}
+
+    @media(max-width:768px){
+      .main-layout{flex-direction:column}
+      .sidebar{width:100%;display:flex;flex-wrap:wrap;gap:4px;padding:12px}
+      .sidebar-item{flex:1;min-width:120px;justify-content:center;font-size:.82em}
+      .content{padding:16px}
+      .form-row{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── LOGIN ── -->
+<div id="login-screen">
+  <div class="login-box">
+    <div style="font-size:2.5em;margin-bottom:8px">🔐</div>
+    <h1>Admin Panel</h1>
+    <p>คีย์ลัดสินค้า — ระบบจัดการข้อมูล</p>
+    <input id="pw-input" class="login-input" type="password" placeholder="รหัสผ่าน Admin" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">เข้าสู่ระบบ</button>
+    <div class="login-error" id="login-error">รหัสผ่านไม่ถูกต้อง</div>
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-title">⚙️ Admin Panel <span class="live-dot">Firebase Live</span></div>
+    <div class="topbar-right">
+      <button class="btn btn-green btn-sm" onclick="syncAll()" id="sync-all-btn">🔄 Sync ทั้งหมด</button>
+      <a href="index.html" target="_blank"><button class="btn btn-ghost" style="font-size:.8em;padding:7px 14px">👁 ดูหน้าหลัก</button></a>
+      <button class="logout-btn" onclick="doLogout()">ออกจากระบบ</button>
+    </div>
+  </div>
+
+  <div class="main-layout">
+    <div class="sidebar">
+      <div class="sidebar-item active" onclick="showSection('dashboard')" id="nav-dashboard"><span class="icon">📊</span>ภาพรวม</div>
+      <div class="sidebar-item" onclick="showSection('products')" id="nav-products"><span class="icon">📦</span>สินค้า</div>
+      <div class="sidebar-item" onclick="showSection('general')" id="nav-general"><span class="icon">📝</span>คีย์ลัดทั่วไป</div>
+      <div class="sidebar-item" onclick="showSection('settings')" id="nav-settings"><span class="icon">⚙️</span>ตั้งค่า</div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="section active" id="section-dashboard">
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-card"><div class="stat-num" id="stat-products">—</div><div class="stat-label">สินค้าทั้งหมด</div></div>
+          <div class="stat-card"><div class="stat-num" id="stat-general">—</div><div class="stat-label">คีย์ลัดทั่วไป</div></div>
+          <div class="stat-card"><div class="stat-num" id="stat-types">—</div><div class="stat-label">ประเภทสินค้า</div></div>
+          <div class="stat-card"><div class="stat-num" id="stat-imgs">—</div><div class="stat-label">มีรูปภาพ</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">🔄 Sync ข้อมูล <span class="badge">Firebase ↔ Google Sheet</span></div>
+          <div class="sync-bar">
+            <button class="btn btn-green" onclick="syncSheetToFirebase()">📥 Sheet → Firebase</button>
+            <button class="btn btn-blue" onclick="syncFirebaseToSheet()">📤 Firebase → Sheet</button>
+            <button class="btn btn-orange" onclick="syncAll()">🔄 Sync ทั้งหมด</button>
+          </div>
+          <div style="font-size:.82em;color:var(--purple-mid);margin-bottom:10px">Sync ล่าสุด: <span id="last-sync">ยังไม่ได้ sync</span></div>
+          <div class="sync-log" id="sync-log"><span class="log-info">// พร้อมใช้งาน — เลือก sync เพื่อเริ่มต้น</span></div>
+        </div>
+      </div>
+
+      <!-- PRODUCTS -->
+      <div class="section" id="section-products">
+        <div class="panel">
+          <div class="panel-title">📦 จัดการสินค้า</div>
+          <div class="sync-bar">
+            <button class="btn btn-pink" onclick="openProductModal()">+ เพิ่มสินค้า</button>
+            <button class="btn btn-green" onclick="syncSheetToFirebase('products')">📥 ดึงจาก Sheet</button>
+            <button class="btn btn-blue" onclick="syncFirebaseToSheet('products')">📤 บันทึกไป Sheet</button>
+          </div>
+          <div class="search-bar">
+            <input class="search-input" id="product-search" placeholder="🔍 ค้นหาชื่อสินค้า / ประเภท..." oninput="filterProducts()">
+          </div>
+          <div class="table-wrap">
+            <table id="product-table">
+              <thead><tr><th>รูป</th><th>ชื่อสินค้า</th><th>ประเภท</th><th>ราคา</th><th>มีรูปไซส์</th><th>จัดการ</th></tr></thead>
+              <tbody id="product-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- GENERAL -->
+      <div class="section" id="section-general">
+        <div class="panel">
+          <div class="panel-title">📝 จัดการคีย์ลัดทั่วไป</div>
+          <div class="sync-bar">
+            <button class="btn btn-pink" onclick="openGeneralModal()">+ เพิ่มคีย์ลัด</button>
+            <button class="btn btn-green" onclick="syncSheetToFirebase('general')">📥 ดึงจาก Sheet</button>
+            <button class="btn btn-blue" onclick="syncFirebaseToSheet('general')">📤 บันทึกไป Sheet</button>
+          </div>
+          <div class="search-bar">
+            <input class="search-input" id="general-search" placeholder="🔍 ค้นหาชื่อ / หมวดหมู่..." oninput="filterGeneral()">
+          </div>
+          <div class="table-wrap">
+            <table id="general-table">
+              <thead><tr><th>หมวดหมู่</th><th>ชื่อรายการ</th><th>รายละเอียด (ตัวอย่าง)</th><th>รูป</th><th>จัดการ</th></tr></thead>
+              <tbody id="general-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="section" id="section-settings">
+        <div class="panel">
+          <div class="panel-title">⚙️ ตั้งค่า Cloudinary</div>
+          <div class="form-row">
+            <div><label>Cloud Name</label><input type="text" id="cf-cloud" placeholder="your-cloud-name" oninput="saveSettings()"></div>
+            <div><label>Upload Preset (Unsigned)</label><input type="text" id="cf-preset" placeholder="your-upload-preset" oninput="saveSettings()"></div>
+          </div>
+          <div class="form-row full">
+            <div><label>Folder ใน Cloudinary (optional)</label><input type="text" id="cf-folder" placeholder="shop/products" oninput="saveSettings()"></div>
+          </div>
+          <div style="font-size:.8em;color:var(--purple-mid)">💡 ต้องสร้าง <strong>Upload Preset แบบ Unsigned</strong> ใน Cloudinary Dashboard → Settings → Upload</div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">⚙️ ตั้งค่า Google Apps Script</div>
+          <div class="form-row full">
+            <div><label>Apps Script URL (Web App URL)</label><input type="text" id="gas-url" placeholder="https://script.google.com/macros/s/..." oninput="saveSettings()"></div>
+          </div>
+          <div style="font-size:.8em;color:var(--purple-mid)">💡 Deploy Code.gs เป็น Web App แบบ "Execute as me, Access: Anyone"</div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">🔒 เปลี่ยนรหัสผ่าน Admin</div>
+          <div class="form-row">
+            <div><label>รหัสผ่านใหม่</label><input type="password" id="new-pw" placeholder="รหัสผ่านใหม่"></div>
+            <div><label>ยืนยันรหัสผ่าน</label><input type="password" id="new-pw2" placeholder="ยืนยัน"></div>
+          </div>
+          <button class="btn btn-pink" onclick="changePw()">บันทึกรหัสผ่าน</button>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main-layout -->
+</div><!-- /app -->
+
+<!-- ── PRODUCT MODAL ── -->
+<div class="modal-overlay" id="product-modal">
+  <div class="modal">
+    <div class="modal-title" id="product-modal-title">➕ เพิ่มสินค้า</div>
+    <div class="form-row">
+      <div><label>ชื่อสินค้า *</label><input type="text" id="p-name" placeholder="ชื่อสินค้า"></div>
+      <div><label>ประเภท *</label><input type="text" id="p-type" placeholder="เช่น เสื้อ, กางเกง"></div>
+    </div>
+    <div class="form-row">
+      <div><label>ราคา</label><input type="text" id="p-price" placeholder="เช่น 299 บาท"></div>
+      <div><label>Link สินค้า</label><input type="text" id="p-link" placeholder="https://..."></div>
+    </div>
+    <div class="form-row full">
+      <div><label>รายละเอียด</label><textarea id="p-detail" placeholder="รายละเอียดสินค้า..."></textarea></div>
+    </div>
+    <!-- Image 1 -->
+    <div class="form-row">
+      <div>
+        <label>รูปสินค้า (อัพ Cloudinary)</label>
+        <div class="upload-zone" id="upload-zone-1" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event,'p-img1','upload-zone-1',1)">
+          <input type="file" accept="image/*" onchange="handleFileSelect(this,'p-img1','upload-zone-1',1)">
+          <div class="upload-icon">🖼️</div>
+          <div class="upload-label">คลิกหรือลาก Drop รูปภาพ</div>
+        </div>
+        <div class="upload-preview" id="upload-preview-1"><img id="preview-img-1"><button class="remove-img" onclick="clearUpload('p-img1','upload-zone-1','upload-preview-1',1)">✕</button></div>
+        <div class="upload-status" id="upload-status-1"></div>
+        <div class="progress-bar" id="progress-bar-1"><div class="progress-fill" id="progress-fill-1"></div></div>
+        <input type="text" id="p-img1" placeholder="หรือวาง URL รูปภาพโดยตรง" style="margin-top:8px" oninput="previewUrlImg(this,'upload-preview-1','preview-img-1')">
+      </div>
+      <div>
+        <label>รูปตารางไซส์ (อัพ Cloudinary)</label>
+        <div class="upload-zone" id="upload-zone-2" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event,'p-img2','upload-zone-2',2)">
+          <input type="file" accept="image/*" onchange="handleFileSelect(this,'p-img2','upload-zone-2',2)">
+          <div class="upload-icon">📏</div>
+          <div class="upload-label">คลิกหรือลาก Drop รูปตารางไซส์</div>
+        </div>
+        <div class="upload-preview" id="upload-preview-2"><img id="preview-img-2"><button class="remove-img" onclick="clearUpload('p-img2','upload-zone-2','upload-preview-2',2)">✕</button></div>
+        <div class="upload-status" id="upload-status-2"></div>
+        <div class="progress-bar" id="progress-bar-2"><div class="progress-fill" id="progress-fill-2"></div></div>
+        <input type="text" id="p-img2" placeholder="หรือวาง URL รูปตารางไซส์" style="margin-top:8px" oninput="previewUrlImg(this,'upload-preview-2','preview-img-2')">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('product-modal')">ยกเลิก</button>
+      <button class="btn btn-pink" onclick="saveProduct()" id="save-product-btn">💾 บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── GENERAL MODAL ── -->
+<div class="modal-overlay" id="general-modal">
+  <div class="modal">
+    <div class="modal-title" id="general-modal-title">➕ เพิ่มคีย์ลัดทั่วไป</div>
+    <div class="form-row">
+      <div><label>หมวดหมู่ *</label><input type="text" id="g-type" placeholder="เช่น ทักทาย, ขนส่ง"></div>
+      <div><label>ชื่อรายการ *</label><input type="text" id="g-name" placeholder="ชื่อรายการ"></div>
+    </div>
+    <div class="form-row full">
+      <div><label>รายละเอียด / ข้อความที่จะ Copy *</label><textarea id="g-detail" placeholder="ข้อความที่ต้องการ copy..."></textarea></div>
+    </div>
+    <div class="form-row full">
+      <div>
+        <label>รูปภาพ (optional)</label>
+        <div class="upload-zone" id="upload-zone-g" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event,'g-img','upload-zone-g','g')">
+          <input type="file" accept="image/*" onchange="handleFileSelect(this,'g-img','upload-zone-g','g')">
+          <div class="upload-icon">🖼️</div>
+          <div class="upload-label">คลิกหรือลาก Drop รูปภาพ</div>
+        </div>
+        <div class="upload-preview" id="upload-preview-g"><img id="preview-img-g"><button class="remove-img" onclick="clearUpload('g-img','upload-zone-g','upload-preview-g','g')">✕</button></div>
+        <div class="upload-status" id="upload-status-g"></div>
+        <input type="text" id="g-img" placeholder="หรือวาง URL รูปภาพ" style="margin-top:8px" oninput="previewUrlImg(this,'upload-preview-g','preview-img-g')">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('general-modal')">ยกเลิก</button>
+      <button class="btn btn-pink" onclick="saveGeneral()">💾 บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOAST ── -->
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  CONFIG (อ่านจาก firebase-config.js)
+// ═══════════════════════════════════════════════
+let db;
+let editProductKey = null; // Firebase key for editing
+let editGeneralKey = null;
+let allProducts = {};
+let allGeneral  = {};
+
+// ─── SETTINGS (localStorage) ───────────────────
+function loadSettings() {
+  const s = JSON.parse(localStorage.getItem('admin_settings') || '{}');
+  document.getElementById('cf-cloud').value   = s.cloudName || '';
+  document.getElementById('cf-preset').value  = s.uploadPreset || '';
+  document.getElementById('cf-folder').value  = s.folder || '';
+  document.getElementById('gas-url').value    = s.gasUrl || '';
+}
+function saveSettings() {
+  localStorage.setItem('admin_settings', JSON.stringify({
+    cloudName:    document.getElementById('cf-cloud').value.trim(),
+    uploadPreset: document.getElementById('cf-preset').value.trim(),
+    folder:       document.getElementById('cf-folder').value.trim(),
+    gasUrl:       document.getElementById('gas-url').value.trim(),
+  }));
+}
+function getSettings() { return JSON.parse(localStorage.getItem('admin_settings') || '{}'); }
+
+// ─── AUTH ────────────────────────────────────────
+function doLogin() {
+  const pw = document.getElementById('pw-input').value;
+  const stored = localStorage.getItem('admin_pw') || 'admin1234';
+  if (pw === stored) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('login-error').style.display = 'none';
+    initApp();
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+    document.getElementById('pw-input').value = '';
+  }
+}
+function doLogout() { location.reload(); }
+function changePw() {
+  const p1 = document.getElementById('new-pw').value;
+  const p2 = document.getElementById('new-pw2').value;
+  if (!p1) { toast('กรุณากรอกรหัสผ่าน','warn'); return; }
+  if (p1 !== p2) { toast('รหัสผ่านไม่ตรงกัน','error'); return; }
+  localStorage.setItem('admin_pw', p1);
+  toast('เปลี่ยนรหัสผ่านสำเร็จ','success');
+  document.getElementById('new-pw').value = '';
+  document.getElementById('new-pw2').value = '';
+}
+
+// ─── FIREBASE INIT ───────────────────────────────
+function initApp() {
+  loadSettings();
+  firebase.initializeApp(window.FIREBASE_CONFIG);
+  db = firebase.database();
+
+  // Real-time listeners
+  db.ref('products').on('value', snap => {
+    allProducts = snap.val() || {};
+    renderProductTable();
+    updateStats();
+  });
+  db.ref('general').on('value', snap => {
+    allGeneral = snap.val() || {};
+    renderGeneralTable();
+    updateStats();
+  });
+}
+
+// ─── STATS ──────────────────────────────────────
+function updateStats() {
+  const prods = Object.values(allProducts);
+  const gens  = Object.values(allGeneral);
+  const types = new Set(prods.map(r => r[1]).filter(Boolean));
+  const imgs  = prods.filter(r => r[4]).length;
+  document.getElementById('stat-products').textContent = prods.length;
+  document.getElementById('stat-general').textContent  = gens.length;
+  document.getElementById('stat-types').textContent    = types.size;
+  document.getElementById('stat-imgs').textContent     = imgs;
+}
+
+// ─── NAVIGATION ─────────────────────────────────
+function showSection(name) {
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.sidebar-item').forEach(s=>s.classList.remove('active'));
+  document.getElementById('section-'+name).classList.add('active');
+  document.getElementById('nav-'+name).classList.add('active');
+}
+
+// ─── PRODUCT TABLE ──────────────────────────────
+let productFilter = '';
+function renderProductTable() {
+  const rows = Object.entries(allProducts);
+  const q = productFilter.toLowerCase();
+  const tbody = document.getElementById('product-tbody');
+  const filtered = rows.filter(([,r])=> !q || (r[0]||'').toLowerCase().includes(q) || (r[1]||'').toLowerCase().includes(q));
+  if (!filtered.length) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--purple-mid)">ไม่พบข้อมูล</td></tr>`; return; }
+  tbody.innerHTML = filtered.map(([key,row]) => `
+    <tr>
+      <td>${row[4]?`<img class="td-img" src="${row[4]}" onerror="this.src='https://placehold.co/54x54/FFD1DC/E87A90?text=?'">`:'<div style="width:54px;height:54px;background:#f5f5f5;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.4em">📦</div>'}</td>
+      <td class="td-name" title="${esc(row[0])}">${esc(row[0])}</td>
+      <td><span style="background:var(--pink-pale);color:var(--pink);padding:3px 8px;border-radius:8px;font-size:.8em;font-weight:600">${esc(row[1]||'—')}</span></td>
+      <td class="td-price">${esc(row[2]||'—')}</td>
+      <td style="text-align:center">${row[5]?'✅':'—'}</td>
+      <td><div class="td-actions">
+        <button class="btn btn-blue" style="padding:6px 12px;font-size:.78em" onclick="openProductModal('${key}')">✏️ แก้ไข</button>
+        <button class="btn btn-danger" style="padding:6px 12px;font-size:.78em" onclick="deleteItem('products','${key}','${esc(row[0])}')">🗑️</button>
+      </div></td>
+    </tr>`).join('');
+}
+function filterProducts() { productFilter = document.getElementById('product-search').value; renderProductTable(); }
+
+// ─── GENERAL TABLE ──────────────────────────────
+let generalFilter = '';
+function renderGeneralTable() {
+  const rows = Object.entries(allGeneral);
+  const q = generalFilter.toLowerCase();
+  const tbody = document.getElementById('general-tbody');
+  const filtered = rows.filter(([,r])=> !q || (r[0]||'').toLowerCase().includes(q) || (r[1]||'').toLowerCase().includes(q));
+  if (!filtered.length) { tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--purple-mid)">ไม่พบข้อมูล</td></tr>`; return; }
+  tbody.innerHTML = filtered.map(([key,row]) => {
+    const preview = String(row[2]||'').substring(0,50) + (String(row[2]||'').length>50?'...':'');
+    return `<tr>
+      <td><span style="background:var(--purple-pale);color:var(--purple);padding:3px 8px;border-radius:8px;font-size:.8em;font-weight:600">${esc(row[0]||'—')}</span></td>
+      <td class="td-name">${esc(row[1]||'—')}</td>
+      <td style="font-size:.8em;color:var(--purple-mid);max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(preview)}</td>
+      <td style="text-align:center">${row[3]?'🖼️':'—'}</td>
+      <td><div class="td-actions">
+        <button class="btn btn-blue" style="padding:6px 12px;font-size:.78em" onclick="openGeneralModal('${key}')">✏️ แก้ไข</button>
+        <button class="btn btn-danger" style="padding:6px 12px;font-size:.78em" onclick="deleteItem('general','${key}','${esc(row[1])}')">🗑️</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+function filterGeneral() { generalFilter = document.getElementById('general-search').value; renderGeneralTable(); }
+
+// ─── DELETE ─────────────────────────────────────
+function deleteItem(collection, key, name) {
+  if (!confirm(`ลบ "${name}" ออกจากระบบ?\n\n⚠️ ข้อมูลจะถูกลบจาก Firebase ทันที`)) return;
+  db.ref(`${collection}/${key}`).remove()
+    .then(() => toast(`ลบ "${name}" สำเร็จ`, 'success'))
+    .catch(e => toast('เกิดข้อผิดพลาด: ' + e.message, 'error'));
+}
+
+// ─── PRODUCT MODAL ──────────────────────────────
+function openProductModal(key = null) {
+  editProductKey = key;
+  document.getElementById('product-modal-title').textContent = key ? '✏️ แก้ไขสินค้า' : '➕ เพิ่มสินค้า';
+  const fields = ['p-name','p-type','p-price','p-link','p-img1','p-img2','p-detail'];
+  fields.forEach(id => document.getElementById(id).value = '');
+  [1,2].forEach(n => { document.getElementById(`upload-preview-${n}`).style.display='none'; document.getElementById(`upload-status-${n}`).textContent=''; });
+
+  if (key && allProducts[key]) {
+    const r = allProducts[key];
+    document.getElementById('p-name').value   = r[0] || '';
+    document.getElementById('p-type').value   = r[1] || '';
+    document.getElementById('p-price').value  = r[2] || '';
+    document.getElementById('p-detail').value = r[3] || '';
+    document.getElementById('p-img1').value   = r[4] || '';
+    document.getElementById('p-img2').value   = r[5] || '';
+    document.getElementById('p-link').value   = r[7] || '';
+    if (r[4]) { const p=document.getElementById('upload-preview-1'); p.style.display='block'; document.getElementById('preview-img-1').src=r[4]; }
+    if (r[5]) { const p=document.getElementById('upload-preview-2'); p.style.display='block'; document.getElementById('preview-img-2').src=r[5]; }
+  }
+  openModal('product-modal');
+}
+
+async function saveProduct() {
+  const name  = document.getElementById('p-name').value.trim();
+  const type  = document.getElementById('p-type').value.trim();
+  const price = document.getElementById('p-price').value.trim();
+  const detail= document.getElementById('p-detail').value.trim();
+  const img1  = document.getElementById('p-img1').value.trim();
+  const img2  = document.getElementById('p-img2').value.trim();
+  const link  = document.getElementById('p-link').value.trim();
+  if (!name || !type) { toast('กรุณากรอกชื่อสินค้าและประเภท','warn'); return; }
+
+  const row = [name, type, price, detail, img1, img2, '', link];
+  const btn = document.getElementById('save-product-btn');
+  btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+
+  try {
+    if (editProductKey) {
+      await db.ref(`products/${editProductKey}`).set(row);
+    } else {
+      await db.ref('products').push(row);
+    }
+    toast(`บันทึก "${name}" สำเร็จ ✓`, 'success');
+    closeModal('product-modal');
+  } catch(e) {
+    toast('เกิดข้อผิดพลาด: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '💾 บันทึก';
+  }
+}
+
+// ─── GENERAL MODAL ──────────────────────────────
+function openGeneralModal(key = null) {
+  editGeneralKey = key;
+  document.getElementById('general-modal-title').textContent = key ? '✏️ แก้ไขคีย์ลัด' : '➕ เพิ่มคีย์ลัดทั่วไป';
+  ['g-type','g-name','g-detail','g-img'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('upload-preview-g').style.display='none';
+  document.getElementById('upload-status-g').textContent='';
+
+  if (key && allGeneral[key]) {
+    const r = allGeneral[key];
+    document.getElementById('g-type').value   = r[0] || '';
+    document.getElementById('g-name').value   = r[1] || '';
+    document.getElementById('g-detail').value = r[2] || '';
+    document.getElementById('g-img').value    = r[3] || '';
+    if (r[3]) { document.getElementById('upload-preview-g').style.display='block'; document.getElementById('preview-img-g').src=r[3]; }
+  }
+  openModal('general-modal');
+}
+
+async function saveGeneral() {
+  const type   = document.getElementById('g-type').value.trim();
+  const name   = document.getElementById('g-name').value.trim();
+  const detail = document.getElementById('g-detail').value.trim();
+  const img    = document.getElementById('g-img').value.trim();
+  if (!type || !name || !detail) { toast('กรุณากรอกข้อมูลให้ครบ','warn'); return; }
+
+  const row = [type, name, detail, img];
+  try {
+    if (editGeneralKey) {
+      await db.ref(`general/${editGeneralKey}`).set(row);
+    } else {
+      await db.ref('general').push(row);
+    }
+    toast(`บันทึก "${name}" สำเร็จ ✓`, 'success');
+    closeModal('general-modal');
+  } catch(e) {
+    toast('เกิดข้อผิดพลาด: ' + e.message, 'error');
+  }
+}
+
+// ─── CLOUDINARY UPLOAD ──────────────────────────
+async function uploadToCloudinary(file, statusId, progressBarId, progressFillId) {
+  const s = getSettings();
+  if (!s.cloudName || !s.uploadPreset) {
+    toast('กรุณาตั้งค่า Cloudinary ก่อน (Cloud Name + Upload Preset)', 'warn');
+    return null;
+  }
+  const statusEl  = document.getElementById(statusId);
+  const barEl     = progressBarId ? document.getElementById(progressBarId) : null;
+  const fillEl    = progressFillId ? document.getElementById(progressFillId) : null;
+
+  statusEl.className = 'upload-status uploading';
+  statusEl.textContent = '⏫ กำลังอัพโหลด...';
+  if (barEl) { barEl.style.display = 'block'; }
+
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('upload_preset', s.uploadPreset);
+  if (s.folder) fd.append('folder', s.folder);
+
+  return new Promise((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `https://api.cloudinary.com/v1_1/${s.cloudName}/image/upload`);
+    if (fillEl) {
+      xhr.upload.onprogress = e => {
+        if (e.lengthComputable) fillEl.style.width = Math.round(e.loaded/e.total*100) + '%';
+      };
+    }
+    xhr.onload = () => {
+      if (barEl) barEl.style.display = 'none';
+      if (xhr.status === 200) {
+        const url = JSON.parse(xhr.responseText).secure_url;
+        statusEl.className = 'upload-status done';
+        statusEl.textContent = '✅ อัพโหลดสำเร็จ';
+        resolve(url);
+      } else {
+        statusEl.className = 'upload-status error';
+        statusEl.textContent = '❌ อัพโหลดล้มเหลว';
+        resolve(null);
+      }
+    };
+    xhr.onerror = () => {
+      statusEl.className = 'upload-status error';
+      statusEl.textContent = '❌ เครือข่ายขัดข้อง';
+      if (barEl) barEl.style.display = 'none';
+      resolve(null);
+    };
+    xhr.send(fd);
+  });
+}
+
+async function handleFileSelect(input, urlInputId, zoneId, slot) {
+  const file = input.files[0]; if (!file) return;
+  document.getElementById(zoneId).classList.remove('drag');
+  const sId = `upload-status-${slot}`, pbId = `progress-bar-${slot}`, pfId = `progress-fill-${slot}`;
+  const previewContainerId = `upload-preview-${slot}`, previewImgId = `preview-img-${slot}`;
+
+  // local preview
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById(previewImgId).src = e.target.result;
+    document.getElementById(previewContainerId).style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+
+  const url = await uploadToCloudinary(file, sId, pbId, pfId);
+  if (url) {
+    document.getElementById(urlInputId).value = url;
+    document.getElementById(previewImgId).src = url;
+  }
+}
+
+async function handleDrop(event, urlInputId, zoneId, slot) {
+  event.preventDefault();
+  const file = event.dataTransfer.files[0]; if (!file || !file.type.startsWith('image/')) return;
+  document.getElementById(zoneId).classList.remove('drag');
+  const fakeInput = { files: [file] };
+  await handleFileSelect(fakeInput, urlInputId, zoneId, slot);
+}
+
+function clearUpload(urlInputId, zoneId, previewId, slot) {
+  document.getElementById(urlInputId).value = '';
+  document.getElementById(previewId).style.display = 'none';
+  document.getElementById(`upload-status-${slot}`).textContent = '';
+}
+
+function previewUrlImg(input, previewContainerId, previewImgId) {
+  const url = input.value.trim();
+  if (url) {
+    document.getElementById(previewImgId).src = url;
+    document.getElementById(previewContainerId).style.display = 'block';
+  } else {
+    document.getElementById(previewContainerId).style.display = 'none';
+  }
+}
+
+// ─── SYNC: Sheet → Firebase ──────────────────────
+async function syncSheetToFirebase(collection = 'both') {
+  const s = getSettings();
+  if (!s.gasUrl) { toast('กรุณาตั้งค่า Apps Script URL ก่อน','warn'); return; }
+  addLog('info', `📥 กำลัง sync Sheet → Firebase (${collection})...`);
+
+  const syncTypes = collection === 'both' ? ['products','general'] : [collection];
+  for (const type of syncTypes) {
+    try {
+      const action = type === 'products' ? 'getAllProducts' : 'getGeneralList';
+      const resp = await fetch(`${s.gasUrl}?action=${action}`);
+      const data = await resp.json();
+      if (!data.rows) { addLog('err', `❌ ไม่พบ rows ใน response (${type})`); continue; }
+
+      // Convert rows array to keyed object
+      const obj = {};
+      data.rows.forEach((row, i) => { obj[`row_${i}`] = row; });
+      await db.ref(type).set(obj);
+      addLog('ok', `✅ Sync ${type} สำเร็จ — ${data.rows.length} รายการ`);
+      document.getElementById('last-sync').textContent = new Date().toLocaleTimeString('th-TH');
+    } catch(e) {
+      addLog('err', `❌ ${type}: ${e.message}`);
+    }
+  }
+  toast('Sync Sheet → Firebase เสร็จสิ้น','success');
+}
+
+// ─── SYNC: Firebase → Sheet ──────────────────────
+async function syncFirebaseToSheet(collection = 'both') {
+  const s = getSettings();
+  if (!s.gasUrl) { toast('กรุณาตั้งค่า Apps Script URL ก่อน','warn'); return; }
+  addLog('info', `📤 กำลัง sync Firebase → Sheet (${collection})...`);
+
+  const syncTypes = collection === 'both' ? ['products','general'] : [collection];
+  for (const type of syncTypes) {
+    try {
+      const data = type === 'products' ? allProducts : allGeneral;
+      const rows = Object.values(data);
+      const resp = await fetch(s.gasUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: type === 'products' ? 'updateProducts' : 'updateGeneral', rows })
+      });
+      const result = await resp.json();
+      if (result.success) {
+        addLog('ok', `✅ Firebase → Sheet (${type}) สำเร็จ — ${rows.length} รายการ`);
+      } else {
+        addLog('err', `❌ Sheet ตอบกลับ error: ${result.error}`);
+      }
+    } catch(e) {
+      addLog('err', `❌ ${type}: ${e.message}`);
+    }
+  }
+  document.getElementById('last-sync').textContent = new Date().toLocaleTimeString('th-TH');
+  toast('Sync Firebase → Sheet เสร็จสิ้น','success');
+}
+
+function syncAll() { syncSheetToFirebase(); }
+
+// ─── HELPERS ─────────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(overlay =>
+  overlay.addEventListener('click', e => { if(e.target===overlay) overlay.classList.remove('open'); })
+);
+
+function esc(s){ return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])) }
+
+function toast(msg, type='success') {
+  const el = document.createElement('div');
+  el.className = `toast-item ${type}`;
+  el.textContent = (type==='success'?'✅ ':type==='error'?'❌ ':'⚠️ ') + msg;
+  document.getElementById('toast').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+function addLog(type, msg) {
+  const log = document.getElementById('sync-log');
+  const ts = new Date().toLocaleTimeString('th-TH');
+  log.innerHTML += `<div class="log-${type}">[${ts}] ${msg}</div>`;
+  log.scrollTop = log.scrollHeight;
+}
+
+document.addEventListener('keydown', e => { if(e.key==='Escape') { closeModal('product-modal'); closeModal('general-modal'); } });
+</script>
+</body>
+</html>
