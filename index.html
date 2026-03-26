@@ -9,36 +9,53 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <script src="firebase-config.js"></script>
   <style>
-    :root {
-      --pink:#E87A90; --pink-light:#FFD1DC; --pink-pale:#FFF0F3;
-      --purple:#5C5470; --purple-mid:#B9B4C7; --purple-pale:#EADDFB;
-      --bg:#FFFBF5; --white:#FFFFFF; --text:#352F44;
-      --radius:16px; --shadow:0 4px 20px rgba(92,84,112,.10);
+    :root{
+      --pink:#E87A90;--pink-light:#FFD1DC;--pink-pale:#FFF0F3;
+      --purple:#5C5470;--purple-mid:#B9B4C7;--purple-pale:#EADDFB;
+      --bg:#FFFBF5;--white:#FFFFFF;--text:#352F44;
+      --tiktok:#010101;--shopee:#EE4D2D;
+      --radius:16px;--shadow:0 4px 20px rgba(92,84,112,.10);
     }
-    html{font-size:20px} *{box-sizing:border-box;margin:0;padding:0}
+    html{font-size:20px}*{box-sizing:border-box;margin:0;padding:0}
     body{background:var(--bg);font-family:'Prompt',sans-serif;color:var(--text)}
+
+    /* LOGO */
     .logo-wrap{width:100%;aspect-ratio:4/1;background:var(--white);display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06)}
     .logo-wrap img{width:100%;height:100%;object-fit:cover}
+
+    /* TABS */
     .tabs{display:flex;border-bottom:2px solid var(--purple-pale);position:sticky;top:0;background:var(--bg);z-index:50}
     .tab-btn{flex:1;padding:18px 0;font-size:1.05em;font-weight:700;cursor:pointer;color:var(--purple-mid);background:none;border:none;border-bottom:3px solid transparent;transition:color .2s,border-color .2s;font-family:'Prompt',sans-serif}
     .tab-btn.active{color:var(--pink);border-bottom-color:var(--pink)}
+
+    /* TOP NAV */
     #top-nav{display:none;background:var(--bg);padding:12px 20px;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(0,0,0,.06);align-items:center;gap:12px}
     .back-btn{padding:10px 22px;border:none;border-radius:12px;background:var(--purple-mid);color:var(--white);font-size:.9em;font-weight:700;cursor:pointer;font-family:'Prompt',sans-serif;transition:background .2s}
     .back-btn:hover{background:var(--purple)}
-    .live-dot{display:inline-flex;align-items:center;gap:5px;font-size:.6em;font-weight:600;color:#27ae60;background:#eafaf1;border:1px solid #a9dfbf;padding:3px 9px;border-radius:20px}
+
+    /* LIVE DOT */
+    .live-dot{display:inline-flex;align-items:center;gap:5px;font-size:.6em;font-weight:600;color:#27ae60;background:#eafaf1;border:1px solid #a9dfbf;padding:3px 10px;border-radius:20px}
     .live-dot::before{content:'';width:7px;height:7px;background:#27ae60;border-radius:50%;animation:pulse 1.5s infinite}
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+    /* HEADER */
     .view-header{padding:24px 20px 12px;text-align:center}
-    h2{font-size:1.9em;color:var(--pink);font-weight:700;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:10px}
+    h2{font-size:1.9em;color:var(--pink);font-weight:700;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}
     .sort-row{display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap}
     .sort-label{font-size:.75em;font-weight:600;color:var(--purple-mid)}
-    .sort-select{padding:7px 14px;border-radius:10px;border:2px solid var(--purple-pale);font-family:'Prompt',sans-serif;color:var(--purple);background:var(--white);cursor:pointer}
+    .sort-select{padding:7px 14px;border-radius:10px;border:2px solid var(--purple-pale);font-family:'Prompt',sans-serif;color:var(--purple);background:var(--white);cursor:pointer;font-size:.8em}
+
+    /* LOADING */
     .loading-box{text-align:center;padding:60px 20px;color:var(--purple-mid);font-size:1em;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:14px}
     .spinner{width:36px;height:36px;border:4px solid var(--purple-pale);border-top-color:var(--pink);border-radius:50%;animation:spin 1s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* GRID */
     #product-grid-view,#general-grid-view{padding:0 20px 40px}
     .category-section h3{font-size:1.4em;color:var(--text);margin:32px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--purple-pale)}
-    .category-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px}
+    .category-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:18px}
+
+    /* PRODUCT CARD */
     .product-card{background:var(--white);border-radius:var(--radius);overflow:hidden;cursor:pointer;border:1px solid var(--purple-pale);transition:transform .2s,box-shadow .2s;box-shadow:var(--shadow)}
     .product-card:hover{transform:translateY(-4px);box-shadow:0 8px 28px rgba(232,122,144,.18);border-color:var(--pink-light)}
     .img-wrap{width:100%;aspect-ratio:1/1;background:#f5f5f5;overflow:hidden;position:relative}
@@ -47,32 +64,49 @@
     .img-wrap img{width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .4s;position:relative;z-index:1}
     .img-wrap img.loaded{opacity:1}
     .card-body{padding:14px;text-align:center}
-    .card-name{font-size:1em;font-weight:600;margin-bottom:4px}
+    .card-name{font-size:.95em;font-weight:600;margin-bottom:4px;line-height:1.3}
     .card-price{font-size:.9em;font-weight:700;color:var(--pink);margin-bottom:10px}
-    .card-btns{display:flex;gap:8px;justify-content:center}
+    .card-sku{font-size:.65em;color:var(--purple-mid);margin-bottom:8px}
+    .card-btns{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+
+    /* GENERAL LIST */
     .general-list{display:flex;flex-direction:column;gap:10px;margin-bottom:24px}
     .general-card{background:var(--white);border-radius:14px;border:1px solid var(--purple-pale);display:flex;align-items:center;padding:16px 20px;cursor:pointer;transition:transform .2s,border-color .2s;box-shadow:var(--shadow)}
     .general-card:hover{transform:translateY(-2px);border-color:var(--pink-light)}
-    .general-name{flex:1;font-weight:700;font-size:1em;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:12px}
-    .btn{padding:10px 22px;border:none;border-radius:12px;cursor:pointer;font-family:'Prompt',sans-serif;font-weight:700;font-size:.9em;transition:all .2s}
-    .btn-pink{background:linear-gradient(90deg,var(--pink-light),var(--pink));color:var(--white)}
-    .btn-pink:hover{filter:brightness(1.08)}
-    .btn-sm{padding:9px 12px!important;font-size:.78em!important;border-radius:10px!important;font-weight:600!important;border:1px solid transparent!important}
-    .btn-link{background:#E3F2FD!important;color:#1565C0!important;border-color:#BBDEFB!important}
-    .btn-info{background:#FCE4EC!important;color:#AD1457!important;border-color:#F8BBD0!important}
-    .btn-copy{background:#FCE4EC!important;color:#AD1457!important;border-color:#F8BBD0!important;min-width:80px}
+    .general-name{flex:1;font-weight:700;font-size:.95em;color:var(--text);padding-right:12px;line-height:1.4}
+    .general-type{font-size:.68em;color:var(--purple-mid);margin-top:2px}
+
+    /* BUTTONS */
+    .btn{padding:9px 16px;border:none;border-radius:10px;cursor:pointer;font-family:'Prompt',sans-serif;font-weight:700;font-size:.78em;transition:all .2s;border:1px solid transparent;white-space:nowrap}
+    .btn-pink{background:linear-gradient(90deg,var(--pink-light),var(--pink));color:var(--white);border:none}
+    .btn-pink:hover{filter:brightness(1.06)}
+    .btn-info{background:#FCE4EC;color:#AD1457;border-color:#F8BBD0}
+    .btn-copy{background:#FCE4EC;color:#AD1457;border-color:#F8BBD0;min-width:70px}
+    .btn-tiktok{background:#010101;color:#fff;border-color:#333}
+    .btn-shopee{background:#FFF0EC;color:#EE4D2D;border-color:#FFCFC7}
+    .btn-link{background:#E3F2FD;color:#1565C0;border-color:#BBDEFB}
     .btn.copied{background:#B3E5FC!important;color:#01579B!important;border-color:#81D4FA!important}
-    .detail-wrap{background:var(--white);border-radius:20px;margin:20px 16px 32px;padding:20px 20px 28px;box-shadow:var(--shadow);border-left:8px solid var(--pink-light)}
-    .detail-top{display:flex;justify-content:flex-end;margin-bottom:16px}
-    .detail-body{background:#F0F8FF;border-radius:14px;padding:18px;font-size:1.05em;word-break:break-word;margin-bottom:20px}
-    .detail-name{font-weight:700;font-size:1.6em;color:var(--pink);margin-bottom:10px}
+
+    /* DETAIL VIEW */
+    .detail-wrap{background:var(--white);border-radius:20px;margin:16px 16px 32px;padding:20px 20px 28px;box-shadow:var(--shadow);border-left:8px solid var(--pink-light)}
+    .detail-top{display:flex;justify-content:flex-end;margin-bottom:16px;gap:8px;flex-wrap:wrap}
+    .detail-body{background:#F0F8FF;border-radius:14px;padding:18px;font-size:1em;word-break:break-word;margin-bottom:20px}
+    .detail-name{font-weight:700;font-size:1.5em;color:var(--pink);margin-bottom:6px}
+    .detail-sku{font-size:.68em;color:var(--purple-mid);margin-bottom:6px}
     .detail-tag{font-size:.75em;color:var(--purple-mid);margin-bottom:6px}
-    .detail-price{font-weight:700;color:var(--pink);margin-bottom:10px}
+    .detail-price{font-weight:700;color:var(--pink);font-size:1.1em;margin-bottom:10px}
+    .detail-links{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
     .picgrid{display:flex;gap:20px;flex-wrap:wrap;justify-content:center}
-    .picbox{flex:1 1 340px;max-width:100%;border-radius:16px;overflow:hidden;background:#f5f5f5}
+    .picbox{flex:1 1 320px;max-width:100%;border-radius:16px;overflow:hidden;background:#f5f5f5}
     .piccap{font-size:.72em;color:var(--purple-mid);text-align:center;padding:8px 0 4px;font-weight:600}
     .picbox img{width:100%;border-radius:16px;object-fit:contain;border:2px solid var(--pink-light)}
-    @media(max-width:600px){html{font-size:17px}.category-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}}
+
+    @media(max-width:600px){
+      html{font-size:16px}
+      .category-grid{grid-template-columns:repeat(2,1fr);gap:10px}
+      .card-btns{gap:4px}
+      .btn{padding:8px 10px;font-size:.72em}
+    }
   </style>
 </head>
 <body>
@@ -86,12 +120,13 @@
   <span class="live-dot">Live</span>
 </div>
 
-<div class="container" style="padding-bottom:60px">
+<div style="padding-bottom:60px">
   <div class="tabs" id="main-tabs">
     <button class="tab-btn active" id="tabProduct" onclick="switchTab('product')">คีย์ลัดสินค้า</button>
     <button class="tab-btn" id="tabGeneral" onclick="switchTab('general')">คีย์ลัดทั่วไป</button>
   </div>
 
+  <!-- สินค้า -->
   <div id="tab-product-content">
     <div class="view-header" id="product-header">
       <h2>คีย์ลัดสินค้า <span class="live-dot">Live</span></h2>
@@ -104,10 +139,11 @@
         </select>
       </div>
     </div>
-    <div id="product-grid-view"><div class="loading-box"><div class="spinner"></div>กำลังโหลด...</div></div>
+    <div id="product-grid-view"><div class="loading-box"><div class="spinner"></div>กำลังโหลดสินค้า...</div></div>
     <div id="product-details-view" style="display:none"></div>
   </div>
 
+  <!-- ทั่วไป -->
   <div id="tab-general-content" style="display:none">
     <div class="view-header" id="general-header">
       <h2>คีย์ลัดทั่วไป <span class="live-dot">Live</span></h2>
@@ -118,7 +154,14 @@
 </div>
 
 <script>
-let productRows=[],generalRows=[],currentSort='name_asc',currentTab='product';
+// ─── INDEX MAP (ตรงกับ Code.gs getProducts / getGeneral) ────────
+// Products: [0]ชื่อ [1]ประเภท [2]ราคา [3]รายละเอียด
+//           [4]รูปหลัก [5]รูปไซส์ [6]SKU
+//           [7]LinkShopee [8]LinkTiktok [9]พิกัดLink
+// General:  [0]ประเภท [1]หัวข้อ/ชื่อ [2]รายละเอียด [3]รูป
+// ────────────────────────────────────────────────────────────────
+
+let productRows=[], generalRows=[], currentSort='name_asc', currentTab='product';
 const PASTEL=["#FFD1DC","#D6EEFC","#FFB6C1","#B3E5FC","#FFACC7","#DCEEFB","#FFF9C4","#E8F5E9"];
 
 function initFirebase(){
@@ -144,16 +187,26 @@ function copyInfo(text,btn){
   const t=String(text||'').trim();
   if(!t||t==='undefined'){const o=btn.innerText;btn.innerText='ไม่มีข้อมูล';setTimeout(()=>btn.innerText=o,1000);return}
   navigator.clipboard?.writeText(t).catch(()=>{const ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;left:-9999px';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta)});
-  const o=btn.innerText;btn.innerText='Copied! ✓';btn.classList.add('copied');
-  setTimeout(()=>{btn.innerText=o;btn.classList.remove('copied')},1200);
+  const o=btn.innerText;btn.innerText='✓ Copied!';btn.classList.add('copied');
+  setTimeout(()=>{btn.innerText=o;btn.classList.remove('copied')},1300);
 }
 
+function openLink(url){if(url&&url.trim())window.open(url.trim(),'_blank')}
+
+// ─── PRODUCT GRID ────────────────────────────────────────────
 function renderProductGrid(rows){
   const el=document.getElementById('product-grid-view');
   if(!rows?.length){el.innerHTML='<div class="loading-box">ไม่พบข้อมูลสินค้า</div>';return}
   const map={};
-  rows.forEach((row,i)=>{const t=row[1]||'ไม่ระบุประเภท';if(!map[t])map[t]=[];map[t].push({i,name:row[0],price:row[2],priceNum:parsePrice(row[2]),img:row[4]})});
-  Object.values(map).forEach(arr=>arr.sort((a,b)=>currentSort==='name_asc'?a.name.localeCompare(b.name,'th'):currentSort==='price_asc'?a.priceNum-b.priceNum:b.priceNum-a.priceNum));
+  rows.forEach((row,i)=>{
+    const t=row[1]||'ไม่ระบุประเภท';
+    if(!map[t])map[t]=[];
+    map[t].push({i,name:row[0],price:row[2],priceNum:parsePrice(row[2]),img:row[4],sku:row[6]});
+  });
+  Object.values(map).forEach(arr=>arr.sort((a,b)=>
+    currentSort==='name_asc'?a.name.localeCompare(b.name,'th'):
+    currentSort==='price_asc'?a.priceNum-b.priceNum:b.priceNum-a.priceNum
+  ));
   let html='';
   Object.keys(map).sort((a,b)=>a.localeCompare(b,'th')).forEach(type=>{
     html+=`<div class="category-section"><h3>${esc(type)}</h3><div class="category-grid">`;
@@ -164,9 +217,11 @@ function renderProductGrid(rows){
         <div class="card-body">
           <div class="card-name">${esc(item.name)}</div>
           <div class="card-price">${esc(item.price)}</div>
+          ${item.sku?`<div class="card-sku">SKU: ${esc(item.sku)}</div>`:''}
           <div class="card-btns">
-            <button class="btn btn-sm btn-link" onclick="event.stopPropagation();copyInfo(productRows[${item.i}]?.[7],this)">Copy Link</button>
-            <button class="btn btn-sm btn-info" onclick="event.stopPropagation();copyInfo('ชื่อสินค้า: '+(productRows[${item.i}]?.[0]||'')+'\\nราคา: '+(productRows[${item.i}]?.[2]||'')+'\\nรายละเอียด: '+(productRows[${item.i}]?.[3]||''),this)">Copy ข้อมูล</button>
+            <button class="btn btn-info" onclick="event.stopPropagation();copyProductInfo(${item.i},this)">Copy ข้อมูล</button>
+            <button class="btn btn-shopee" onclick="event.stopPropagation();openLink(productRows[${item.i}]?.[7])">Shopee</button>
+            <button class="btn btn-tiktok" onclick="event.stopPropagation();openLink(productRows[${item.i}]?.[8])">TikTok</button>
           </div>
         </div>
       </div>`;
@@ -174,6 +229,11 @@ function renderProductGrid(rows){
     html+='</div></div>';
   });
   el.innerHTML=html;
+}
+
+function copyProductInfo(idx,btn){
+  const r=productRows[idx];if(!r)return;
+  copyInfo(`ชื่อสินค้า: ${r[0]}\nประเภท: ${r[1]}\nราคา: ${r[2]}\nรายละเอียด: ${r[3]}`,btn);
 }
 
 function showProductDetail(idx,push=true){
@@ -184,20 +244,29 @@ function showProductDetail(idx,push=true){
   document.getElementById('product-header').style.display='none';
   document.getElementById('top-nav').style.display='flex';
   const color=PASTEL[idx%PASTEL.length];
+  // รูปภาพ
   let pics='';
-  if(row[4])pics+=`<div class="picbox"><div class="piccap">ภาพสินค้า</div><img src="${row[4]}" loading="lazy" onload="onImgLoad(this)"></div>`;
-  if(row[5])pics+=`<div class="picbox"><div class="piccap">ตารางไซส์</div><img src="${row[5]}" loading="lazy" onload="onImgLoad(this)"></div>`;
+  if(row[4])pics+=`<div class="picbox"><div class="piccap">📷 ภาพสินค้า</div><img src="${row[4]}" loading="lazy" onload="onImgLoad(this)"></div>`;
+  if(row[5])pics+=`<div class="picbox"><div class="piccap">📏 ตารางไซส์</div><img src="${row[5]}" loading="lazy" onload="onImgLoad(this)"></div>`;
+  // ปุ่ม link
+  const shopeeUrl=row[7]||'';
+  const tiktokUrl=row[8]||'';
+  const locUrl=row[9]||'';
   const copyText=`ชื่อสินค้า: ${row[0]}\nประเภท: ${row[1]}\nราคา: ${row[2]}\nรายละเอียด: ${row[3]}`;
   document.getElementById('product-details-view').innerHTML=`
     <div class="detail-wrap" style="border-left-color:${color}">
       <div class="detail-top">
         <button class="btn btn-pink" onclick='copyInfo(${JSON.stringify(copyText)},this)'>Copy ข้อความ</button>
+        ${shopeeUrl?`<button class="btn btn-shopee" onclick="openLink('${shopeeUrl}')">🛒 Shopee</button>`:''}
+        ${tiktokUrl?`<button class="btn btn-tiktok" onclick="openLink('${tiktokUrl}')">🎵 TikTok</button>`:''}
+        ${locUrl?`<button class="btn btn-link" onclick="openLink('${locUrl}')">📍 พิกัด</button>`:''}
       </div>
       <div class="detail-body">
         <div class="detail-name">${esc(row[0])}</div>
+        ${row[6]?`<div class="detail-sku">SKU: ${esc(row[6])}</div>`:''}
         <div class="detail-tag">ประเภท: ${esc(row[1])}</div>
         <div class="detail-price">ราคา: ${esc(row[2])}</div>
-        <div>${esc(String(row[3]||'')).replace(/\n/g,'<br>')}</div>
+        <div style="white-space:pre-wrap;line-height:1.6">${esc(String(row[3]||''))}</div>
       </div>
       ${pics?`<div class="picgrid">${pics}</div>`:''}
     </div>`;
@@ -205,6 +274,7 @@ function showProductDetail(idx,push=true){
   window.scrollTo(0,0);
 }
 
+// ─── GENERAL GRID ────────────────────────────────────────────
 function renderGeneralGrid(rows){
   const el=document.getElementById('general-grid-view');
   if(!rows?.length){el.innerHTML='<div class="loading-box">ไม่พบข้อมูล</div>';return}
@@ -213,7 +283,12 @@ function renderGeneralGrid(rows){
   let html='';
   Object.keys(map).sort((a,b)=>a.localeCompare(b,'th')).forEach(type=>{
     html+=`<div class="category-section"><h3>${esc(type)}</h3><div class="general-list">`;
-    map[type].forEach(item=>{html+=`<div class="general-card" onclick="showGeneralDetail(${item.i})"><div class="general-name">${esc(item.name)}</div><button class="btn btn-sm btn-copy" onclick="event.stopPropagation();copyInfo(generalRows[${item.i}]?.[2],this)">Copy</button></div>`});
+    map[type].forEach(item=>{
+      html+=`<div class="general-card" onclick="showGeneralDetail(${item.i})">
+        <div class="general-name">${esc(item.name)}</div>
+        <button class="btn btn-copy" onclick="event.stopPropagation();copyInfo(generalRows[${item.i}]?.[2],this)">Copy</button>
+      </div>`;
+    });
     html+='</div></div>';
   });
   el.innerHTML=html;
@@ -236,7 +311,7 @@ function showGeneralDetail(idx,push=true){
       <div class="detail-body">
         <div class="detail-name">${esc(row[1])}</div>
         <div class="detail-tag">หมวดหมู่: ${esc(row[0])}</div>
-        <div>${esc(String(row[2]||'')).replace(/\n/g,'<br>')}</div>
+        <div style="margin-top:10px;white-space:pre-wrap;line-height:1.7">${esc(String(row[2]||''))}</div>
       </div>
       ${img}
     </div>`;
@@ -244,6 +319,7 @@ function showGeneralDetail(idx,push=true){
   window.scrollTo(0,0);
 }
 
+// ─── TABS / NAV ───────────────────────────────────────────────
 function switchTab(tab,push=true){
   currentTab=tab;
   document.getElementById('tabProduct').classList.toggle('active',tab==='product');
@@ -276,7 +352,10 @@ window.onpopstate=e=>{
   if(s.view==='detail'){if(s.tab==='product')showProductDetail(s.idx,false);else showGeneralDetail(s.idx,false)}
   else switchTab(s.tab||'product',false);
 };
-document.addEventListener('DOMContentLoaded',()=>{history.replaceState({view:'grid',tab:'product'},'');initFirebase()});
+document.addEventListener('DOMContentLoaded',()=>{
+  history.replaceState({view:'grid',tab:'product'},'');
+  initFirebase();
+});
 </script>
 </body>
 </html>
