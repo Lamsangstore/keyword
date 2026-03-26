@@ -1152,7 +1152,7 @@ function catIcon(t) {
 
 function handleSearch(q) {
   searchQuery = q.toLowerCase().trim();
-  if (currentTab==='product') renderProductGrid(productRows);
+  if (currentTab==='product') window.renderProductGrid(productRows);
   else renderGeneralGrid(generalRows);
 }
 
@@ -1220,7 +1220,7 @@ function initFirebase(){
   db.ref('products').on('value', snap => {
     productRows = snap.val() ? Object.values(snap.val()) : [];
     buildCatPills(productRows);
-    if (currentTab==='product') renderProductGrid(productRows);
+    if (currentTab==='product') window.renderProductGrid(productRows);
   });
   db.ref('general').on('value', snap => {
     generalRows = snap.val() ? Object.values(snap.val()) : [];
@@ -1461,7 +1461,7 @@ function switchTab(tab,push=true){
   document.getElementById('tab-general-content').style.display=tab==='general'?'block':'none';
   if(tab==='product'){
     showProductGrid(push);
-    if(productRows.length){ buildCatPills(productRows); renderProductGrid(productRows); }
+    if(productRows.length){ buildCatPills(productRows); window.renderProductGrid(productRows); }
   } else {
     showGeneralGrid(push);
     if(generalRows.length) renderGeneralGrid(generalRows);
@@ -1500,7 +1500,7 @@ function showGeneralGrid(push=true){
   if(push) history.pushState({view:'grid',tab:'general'},'');
 }
 function handleBack(){ history.length>1?history.back():(currentTab==='product'?showProductGrid():showGeneralGrid()) }
-function handleSortChange(v){ currentSort=v; renderProductGrid(productRows) }
+function handleSortChange(v){ currentSort=v; window.renderProductGrid(productRows) }
 window.onpopstate=e=>{
   if(!e.state) return;
   const s=e.state;
