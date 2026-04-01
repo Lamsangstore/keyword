@@ -187,13 +187,16 @@
     /* ── TOP NAV (detail back bar) ── */
     #top-nav{
       display:none;
-      position:sticky;top:0;z-index:150;
+      position:fixed;
+      top:0;
+      left:0;right:0;
+      z-index:150;
       background:rgba(18,18,30,.92);
       backdrop-filter:blur(24px) saturate(200%);
       -webkit-backdrop-filter:blur(24px) saturate(200%);
       border-bottom:1px solid rgba(255,255,255,.07);
       padding:10px 16px;
-      padding-top:calc(10px + env(safe-area-inset-top));
+      padding-top:max(10px, calc(env(safe-area-inset-top) + 8px));
       align-items:center;gap:10px;
       box-shadow:0 2px 20px rgba(0,0,0,.2);
     }
@@ -505,6 +508,7 @@
       animation:slideInRight .3s var(--ease) both;
       background:var(--surface);
       min-height:100vh;
+      padding-top:calc(50px + env(safe-area-inset-top));
     }
     @keyframes slideInRight{
       from{opacity:0;transform:translateX(16px)}
