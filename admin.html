@@ -334,7 +334,7 @@
       </div>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('product-modal')">ยกเลิก</button>
+      <button class="btn btn-ghost" onclick="confirmCloseModal('product-modal')">ยกเลิก</button>
       <button class="btn btn-pink" onclick="saveProduct()" id="save-product-btn">💾 บันทึก</button>
     </div>
   </div>
@@ -365,7 +365,7 @@
       </div>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('general-modal')">ยกเลิก</button>
+      <button class="btn btn-ghost" onclick="confirmCloseModal('general-modal')">ยกเลิก</button>
       <button class="btn btn-pink" onclick="saveGeneral()">💾 บันทึก</button>
     </div>
   </div>
@@ -825,9 +825,60 @@ function syncAll() { syncSheetToFirebase('both'); }
 
 // ─── HELPERS ─────────────────────────────────────
 function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  const banner = document.getElementById(`confirm-banner-${id}`);
+  if (banner) banner.remove();
+}
+
+function hasProductFormData() {
+  const fields = ['p-name','p-type','p-price','p-sku','p-shopee','p-tiktok','p-lazada','p-page365','p-link','p-detail','p-img1','p-img2'];
+  return fields.some(id => { const el = document.getElementById(id); return el && el.value.trim() !== ''; });
+}
+function hasGeneralFormData() {
+  const fields = ['g-type','g-name','g-detail','g-img'];
+  return fields.some(id => { const el = document.getElementById(id); return el && el.value.trim() !== ''; });
+}
+
+function confirmCloseModal(id) {
+  const hasDirty = (id === 'product-modal') ? hasProductFormData() : hasGeneralFormData();
+  if (!hasDirty) { closeModal(id); return; }
+
+  // Show inline confirm banner
+  const bannerId = `confirm-banner-${id}`;
+  if (document.getElementById(bannerId)) return; // already showing
+
+  const modal = document.querySelector(`#${id} .modal`);
+  const banner = document.createElement('div');
+  banner.id = bannerId;
+  banner.style.cssText = `
+    position:sticky;bottom:0;left:0;right:0;
+    background:#fff3cd;border-top:2px solid #f39c12;
+    padding:14px 18px;display:flex;align-items:center;justify-content:space-between;
+    gap:10px;border-radius:0 0 16px 16px;margin:-28px -28px 0;flex-wrap:wrap;
+    box-shadow:0 -4px 12px rgba(0,0,0,.08);z-index:10;
+  `;
+  banner.innerHTML = `
+    <span style="font-size:.9em;font-weight:600;color:#784212">⚠️ ข้อมูลที่กรอกยังไม่ได้บันทึก — ออกแน่ใจไหม?</span>
+    <div style="display:flex;gap:8px">
+      <button onclick="document.getElementById('${bannerId}').remove()" 
+        style="padding:8px 16px;background:#d5f5e3;color:#1a6e3f;border:1px solid #a9dfbf;border-radius:8px;font-family:'Prompt',sans-serif;font-weight:700;cursor:pointer;font-size:.85em">
+        ✏️ กรอกต่อ
+      </button>
+      <button onclick="closeModal('${id}');document.getElementById('${bannerId}')?.remove()" 
+        style="padding:8px 16px;background:#fadbd8;color:#7b241c;border:1px solid #f1948a;border-radius:8px;font-family:'Prompt',sans-serif;font-weight:700;cursor:pointer;font-size:.85em">
+        🚪 ออกโดยไม่บันทึก
+      </button>
+    </div>
+  `;
+  modal.appendChild(banner);
+  banner.scrollIntoView({ behavior:'smooth', block:'end' });
+}
+
 document.querySelectorAll('.modal-overlay').forEach(overlay =>
-  overlay.addEventListener('click', e => { if(e.target===overlay) overlay.classList.remove('open'); })
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) confirmCloseModal(overlay.id);
+  })
 );
 
 function esc(s){ return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])) }
