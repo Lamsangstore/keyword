@@ -328,6 +328,144 @@
       display:flex;align-items:center;justify-content:center;
       font-size:3em;opacity:.2;
     }
+    /* SOLD OUT stamp overlays */
+    .sold-stamp{
+      position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-12deg);
+      background:rgba(217,38,38,.92);color:#fff;font-weight:900;letter-spacing:1.5px;
+      padding:6px 18px;border-radius:6px;border:2px solid #fff;
+      box-shadow:0 4px 14px rgba(217,38,38,.4);z-index:5;
+      font-size:1.1em;pointer-events:none;text-align:center;
+    }
+    .pcard.sold-out .pcard-img img{filter:grayscale(.6) brightness(.85)}
+    .low-stock-badge{
+      position:absolute;top:8px;left:8px;z-index:6;
+      background:linear-gradient(135deg,#f39c12,#d68910);color:#fff;
+      font-size:.68em;font-weight:800;padding:4px 9px;border-radius:10px;
+      letter-spacing:.3px;box-shadow:0 3px 10px rgba(214,137,16,.4);
+      animation:lowPulse 2s ease-in-out infinite;
+    }
+    @keyframes lowPulse{
+      0%,100%{transform:scale(1)}
+      50%{transform:scale(1.05)}
+    }
+    /* sync button on topbar */
+    .as-sync-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;
+      background:linear-gradient(135deg,#a8e6cf,#7fcdbb);color:#0d5e3f;border:none;
+      border-radius:10px;cursor:pointer;font-family:'Prompt',sans-serif;font-weight:600;
+      font-size:.82em;transition:all .2s;flex-shrink:0}
+    .as-sync-btn:hover{transform:translateY(-1px);box-shadow:0 4px 10px rgba(127,205,187,.4)}
+    .as-sync-btn .sync-icon{font-size:1.05em;display:inline-block}
+    .as-sync-btn.syncing .sync-icon{animation:syncspin 1.2s linear infinite}
+    @keyframes syncspin{to{transform:rotate(360deg)}}
+    .as-sync-btn:disabled{opacity:.85;cursor:wait}
+    .as-sync-btn.syncing{animation:syncGlow 1.6s ease-in-out infinite;background:linear-gradient(135deg,#7fcdbb,#5fb3a0);color:#fff}
+    @keyframes syncGlow{
+      0%,100%{box-shadow:0 0 0 0 rgba(127,205,187,.5)}
+      50%{box-shadow:0 0 0 8px rgba(127,205,187,0)}
+    }
+    body.dark .as-sync-btn{background:linear-gradient(135deg,#1a5e44,#0d5e3f);color:#a8e6cf}
+    @media (max-width: 768px){
+      .as-sync-btn .sync-label{display:none}
+      .as-sync-btn{padding:8px 10px}
+    }
+    /* variant size groups with color chips (pants etc.) */
+    .size-groups{margin:14px 0;display:flex;flex-direction:column;gap:14px}
+    .size-group{border:1px solid var(--border);border-radius:12px;padding:10px 12px;background:rgba(0,0,0,.015)}
+    .size-group-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px}
+    .size-group-title{font-weight:800;font-size:1em;color:var(--text);display:flex;align-items:center;gap:8px}
+    .size-group-title .size-badge{background:var(--pink);color:#fff;padding:2px 10px;border-radius:10px;font-size:.85em;font-weight:700}
+    .size-group-summary{font-size:.75em;color:var(--muted);font-weight:600}
+    .size-group-summary.all-sold{color:#d92626}
+    .size-group-chips{display:flex;flex-wrap:wrap;gap:8px}
+    .sg-chip{position:relative;display:flex;flex-direction:column;align-items:center;width:78px;padding:6px;border-radius:10px;background:rgba(255,255,255,.6);border:1px solid var(--border)}
+    .sg-chip.sold{opacity:.85;background:rgba(217,38,38,.06)}
+    .sg-chip-img{width:64px;height:64px;border-radius:8px;object-fit:cover;background:#f0eef8;display:block}
+    .sg-chip .img-wrap{position:relative}
+    .sg-chip .img-wrap .sold-stamp{font-size:.55em;padding:2px 6px;letter-spacing:.3px;border-width:1px}
+    .sg-chip-name{font-size:.78em;font-weight:700;margin-top:4px;text-align:center;color:var(--text);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .sg-chip.sold .sg-chip-name{text-decoration:line-through;color:var(--muted)}
+    .sg-chip-stock{font-size:.66em;color:var(--muted);margin-top:1px}
+    .sg-chip-stock.in{color:#1a6e3f;font-weight:700}
+    .sg-chip-stock.out{color:#b03030;font-weight:700}
+    body.dark .size-group{background:rgba(255,255,255,.03)}
+    body.dark .sg-chip{background:rgba(255,255,255,.04)}
+    .size-group-btn{padding:6px 12px;border:1px solid var(--pink);background:transparent;color:var(--pink);
+      border-radius:14px;cursor:pointer;font-family:'Prompt',sans-serif;font-weight:700;font-size:.74em;
+      transition:all .15s;white-space:nowrap}
+    .size-group-btn:hover{background:var(--pink);color:#fff;transform:translateY(-1px)}
+    body.dark .size-group-btn{border-color:#ff8aa6;color:#ff8aa6}
+    /* inline composite images */
+    .inline-comp-wrap{margin:18px 0;display:flex;flex-direction:column;gap:18px}
+    .inline-comp-loading{text-align:center;padding:40px 20px;background:var(--bg-soft,rgba(0,0,0,.03));border-radius:14px;color:var(--muted)}
+    .inline-comp-loading-icon{font-size:2em;margin-bottom:6px;animation:bounce 1.2s infinite}
+    @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+    .inline-comp-item{background:#fff;border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.04)}
+    .inline-comp-header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:linear-gradient(90deg,#fff8fa,#ffffff);border-bottom:1px solid var(--border)}
+    .inline-comp-title{font-weight:800;color:var(--text);display:flex;align-items:center;gap:8px;font-size:.95em}
+    .inline-comp-size-badge{background:var(--pink);color:#fff;padding:3px 12px;border-radius:12px;font-weight:700;font-size:.9em}
+    .inline-comp-img{display:block;width:100%;height:auto;background:#fafafa;cursor:zoom-in}
+    .inline-comp-actions{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--border);background:rgba(0,0,0,.015)}
+    .inline-comp-actions button{flex:1;padding:9px 12px;border:none;border-radius:10px;cursor:pointer;font-family:'Prompt',sans-serif;font-weight:700;font-size:.82em;transition:all .15s}
+    .inline-comp-btn-copy{background:var(--pink);color:#fff}
+    .inline-comp-btn-copy:hover{filter:brightness(1.05)}
+    .inline-comp-btn-dl{background:#3b82f6;color:#fff}
+    .inline-comp-btn-dl:hover{filter:brightness(1.05)}
+    .inline-comp-btn-zoom{background:rgba(0,0,0,.06);color:var(--text);max-width:80px}
+    body.dark .inline-comp-item{background:#1a1a2e;border-color:rgba(255,255,255,.06)}
+    body.dark .inline-comp-header{background:linear-gradient(90deg,#262640,#1a1a2e)}
+    body.dark .inline-comp-loading{background:rgba(255,255,255,.04)}
+    /* size tabs for pants */
+    .inline-comp-tabs{display:flex;flex-wrap:wrap;gap:6px;padding:12px 14px;border-bottom:1px solid var(--border);background:linear-gradient(90deg,#fff8fa,#ffffff)}
+    .inline-comp-tab{padding:7px 16px;border:1.5px solid var(--border);background:#fff;color:var(--text);
+      border-radius:18px;cursor:pointer;font-family:'Prompt',sans-serif;font-weight:700;font-size:.82em;transition:all .15s;display:flex;align-items:center;gap:5px}
+    .inline-comp-tab:hover{background:#ffd1dc40;border-color:var(--pink)}
+    .inline-comp-tab.active{background:var(--pink);color:#fff;border-color:var(--pink);box-shadow:0 2px 8px rgba(232,122,144,.35)}
+    .inline-comp-tab.pending{opacity:.65}
+    .inline-comp-tab.pending::after{content:' ⏳';font-size:.8em;margin-left:2px}
+    .inline-comp-tab.active.pending::after{content:''}
+    .inline-comp-tab-label{font-size:.7em;font-weight:600;opacity:.85}
+    body.dark .inline-comp-tabs{background:linear-gradient(90deg,#262640,#1a1a2e)}
+    body.dark .inline-comp-tab{background:#262640;color:#fff;border-color:rgba(255,255,255,.1)}
+    /* composite image modal */
+    .ci-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;
+      align-items:center;justify-content:center;padding:16px}
+    .ci-modal-overlay.open{display:flex}
+    .ci-modal{background:#fff;border-radius:20px;padding:20px;max-width:560px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);font-family:'Prompt',sans-serif}
+    .ci-modal-title{font-size:1.15em;font-weight:700;color:var(--pink);margin-bottom:14px;text-align:center}
+    #ci-canvas{max-width:100%;border-radius:12px;border:2px solid rgba(0,0,0,.05);background:#fff;display:block;margin:0 auto}
+    .ci-nav{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:12px}
+    .ci-tab{padding:6px 14px;border:1px solid rgba(0,0,0,.1);background:#fff;color:var(--text);
+      border-radius:18px;cursor:pointer;font-family:'Prompt',sans-serif;font-weight:600;font-size:.8em;transition:all .15s}
+    .ci-tab:hover{background:#ffd1dc40;border-color:var(--pink)}
+    .ci-tab.active{background:var(--pink);color:#fff;border-color:var(--pink)}
+    .ci-tab.dl-all{background:#27ae60;color:#fff;border-color:#27ae60;margin-left:6px}
+    .ci-info{font-size:.85em;color:var(--muted);margin:10px 0;text-align:center;min-height:22px}
+    .ci-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+    .ci-actions button{padding:9px 14px;border:none;border-radius:10px;cursor:pointer;font-family:'Prompt',sans-serif;font-weight:700;font-size:.85em}
+    .ci-btn-close{background:rgba(0,0,0,.06);color:var(--text)}
+    .ci-btn-dl{background:#3b82f6;color:#fff}
+    .ci-btn-copy{background:var(--pink);color:#fff}
+    body.dark .ci-modal{background:#1a1a2e;color:#fff}
+    body.dark .ci-tab{background:#262640;color:#fff;border-color:rgba(255,255,255,.1)}
+    /* mini variant strip on product card */
+    .pcard-variants{display:flex;flex-wrap:wrap;gap:4px;padding:6px 8px 2px;background:rgba(0,0,0,.02)}
+    .pcard-var{position:relative;width:36px;height:36px;border-radius:6px;overflow:hidden;background:#f0eef8;border:1px solid var(--border);flex-shrink:0}
+    .pcard-var img{width:100%;height:100%;object-fit:cover;display:block}
+    .pcard-var .v-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.85em;font-weight:600;color:var(--muted)}
+    .pcard-var.sold::after{content:'';position:absolute;inset:0;background:rgba(217,38,38,.55)}
+    .pcard-var.sold::before{content:'×';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.6em;font-weight:900;line-height:1;z-index:2;text-shadow:0 1px 2px rgba(0,0,0,.4)}
+    .pcard-var-tip{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:#352F44;color:#fff;font-size:.7em;padding:3px 7px;border-radius:5px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;margin-bottom:4px;z-index:10}
+    .pcard-var:hover .pcard-var-tip{opacity:1}
+    .pcard-var-more{display:flex;align-items:center;justify-content:center;font-size:.72em;font-weight:700;color:var(--muted)}
+    /* variant chips on detail page */
+    .variant-chips{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
+    .variant-chip{position:relative;display:flex;flex-direction:column;align-items:center;
+      width:90px;padding:8px;border-radius:12px;background:rgba(0,0,0,.04);border:1px solid var(--border)}
+    .variant-chip.sold{opacity:.85}
+    .variant-chip-img{width:74px;height:74px;border-radius:8px;object-fit:cover;background:#f0eef8}
+    .variant-chip-name{font-size:.82em;font-weight:600;margin-top:5px;text-align:center;color:var(--text)}
+    .variant-chip-stock{font-size:.7em;color:var(--muted);margin-top:2px}
+    .variant-chip .sold-stamp{font-size:.65em;padding:3px 8px;letter-spacing:.5px;border-width:1.5px}
 
     /* gradient overlay — ขาวไล่ขึ้นบน */
     .pcard-overlay{
@@ -1073,6 +1211,10 @@
     <span class="as-search-icon">🔍</span>
     <input id="search-input" type="text" placeholder="ค้นหาสินค้า..." oninput="handleSearch(this.value)">
   </div>
+  <button id="sync-btn" class="as-sync-btn" onclick="customerSyncFromPage365(false)" title="อัพเดต stock จาก Page365">
+    <span class="sync-icon">🔄</span>
+    <span class="sync-label" id="sync-label">Sync stock</span>
+  </button>
   <button id="dark-toggle" onclick="toggleDark()" title="Dark Mode">🌙</button>
   <a href="admin.html" class="as-settings" title="Admin">⚙️</a>
 </header>
@@ -1260,9 +1402,11 @@ function selectCatPill(cat, el) {
 }
 
 // ── FIREBASE ────────────────────────────────────────────────
+let _customerDb = null;
 function initFirebase(){
   firebase.initializeApp(window.FIREBASE_CONFIG);
   const db = firebase.database();
+  _customerDb = db;
   db.ref('products').on('value', snap => {
     productRows = snap.val() ? Object.values(snap.val()) : [];
     buildCatPills(productRows);
@@ -1272,6 +1416,163 @@ function initFirebase(){
     generalRows = snap.val() ? Object.values(snap.val()) : [];
     if (currentTab==='general') renderGeneralGrid(generalRows);
   });
+  // Reflect global lastSyncAt
+  db.ref('_meta/lastSyncAt').on('value', snap => {
+    customerLastSyncAt = snap.val() || 0;
+    updateSyncBtnLabel();
+  });
+  // Auto-sync on load if stale
+  setTimeout(() => customerSyncFromPage365(true), 2500);
+}
+
+// ── CUSTOMER-SIDE PAGE365 SYNC ─────────────────────────────
+const CUSTOMER_P365_PROXIES = [
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+];
+const CUSTOMER_SYNC_STALE_MS = 10 * 60 * 1000; // auto-sync if older than 10 min
+let customerLastSyncAt = 0;
+let customerSyncing = false;
+
+async function _customerFetch(url) {
+  let err;
+  for (const proxy of CUSTOMER_P365_PROXIES) {
+    try {
+      const res = await fetch(proxy(url));
+      if (!res.ok) throw new Error('HTTP '+res.status);
+      return await res.json();
+    } catch(e) { err = e; }
+  }
+  throw err || new Error('CORS proxy failed');
+}
+
+function _custNormName(s){ return String(s||'').trim().toLowerCase().replace(/[\s\-_\.]+/g,'').replace(/lamsang/g,''); }
+function _custNormVName(s){ return String(s||'').trim().toLowerCase().replace(/\s+/g,''); }
+
+function updateSyncBtnLabel() {
+  const lbl = document.getElementById('sync-label');
+  if (!lbl) return;
+  if (!customerLastSyncAt) { lbl.textContent = 'Sync stock'; return; }
+  const min = Math.floor((Date.now() - customerLastSyncAt)/60000);
+  if (min < 1) lbl.textContent = 'Sync ✓ <1m';
+  else if (min < 60) lbl.textContent = `Sync ✓ ${min}m`;
+  else if (min < 24*60) lbl.textContent = `Sync ${Math.floor(min/60)}h`;
+  else lbl.textContent = `Sync ${Math.floor(min/1440)}d`;
+}
+setInterval(updateSyncBtnLabel, 60000);
+
+async function customerSyncFromPage365(silent) {
+  if (customerSyncing) return;
+  if (silent) {
+    const age = Date.now() - (customerLastSyncAt || 0);
+    if (age < CUSTOMER_SYNC_STALE_MS) return; // fresh — skip
+  }
+  if (!_customerDb || !productRows.length) return;
+
+  customerSyncing = true;
+  const btn = document.getElementById('sync-btn');
+  const lbl = document.getElementById('sync-label');
+  if (btn) btn.classList.add('syncing');
+  if (btn) btn.disabled = true;
+  if (lbl) lbl.textContent = 'กำลังอัพเดต...';
+
+  const shop = 'lamsangstores';
+  try {
+    // 1) Load product list (deduped)
+    const seen = new Set(); const list = [];
+    for (let page=1; page<=20; page++) {
+      const d = await _customerFetch(`https://${shop}.page365.net/products.json?page=${page}`);
+      if (!d.items?.length) break;
+      let added = 0;
+      for (const it of d.items) if (!seen.has(it.id)) { seen.add(it.id); list.push(it); added++; }
+      if (added===0) break;
+      if (d.count && list.length>=d.count) break;
+    }
+    const byName = {};
+    list.forEach(p => byName[_custNormName(p.name)] = p);
+
+    // 2) Read current Firebase products as map (with keys)
+    const snap = await _customerDb.ref('products').once('value');
+    const dataMap = snap.val() || {};
+    const updates = {};
+    let matched=0, totalStockUpdates=0;
+
+    // 3) Sequential fetch with small concurrency
+    const entries = Object.entries(dataMap);
+    const concurrency = 4;
+    let cursor = 0;
+    async function worker() {
+      while (cursor < entries.length) {
+        const i = cursor++;
+        const [key, row] = entries[i];
+        const norm = _custNormName(row[0]||'');
+        if (!norm) continue;
+        const p365 = byName[norm] || list.find(p => _custNormName(p.name).includes(norm) || norm.includes(_custNormName(p.name)));
+        if (!p365) continue;
+        try {
+          const detail = await _customerFetch(`https://${shop}.page365.net/products/${p365.id}.json`);
+          const p365Vs = detail.variants || [];
+          let curVariants = Array.isArray(row[12]) ? [...row[12]] : [];
+          const mainImg = detail.photos?.[0]?.normal || '';
+
+          // Update existing variants' stock
+          let rowSU = 0;
+          curVariants = curVariants.map(v => {
+            const pv = p365Vs.find(p => _custNormVName(p.name) === _custNormVName(v.name));
+            if (pv) {
+              const newStock = pv.in_stock ? (Number(pv.available)||0) : 0;
+              if (newStock !== (Number(v.stock)||0)) rowSU++;
+              return {...v, stock: newStock, image: v.image || mainImg};
+            }
+            return v;
+          });
+          // Add missing variants
+          const existing = new Set(curVariants.map(v => _custNormVName(v.name)));
+          p365Vs.forEach(pv => {
+            if (existing.has(_custNormVName(pv.name))) return;
+            curVariants.push({sku:'', name: pv.name||'', stock: pv.in_stock?(Number(pv.available)||0):0, image: mainImg});
+          });
+          const newRow = [...row];
+          while (newRow.length < 13) newRow.push('');
+          newRow[12] = curVariants;
+          updates[`products/${key}`] = newRow;
+          totalStockUpdates += rowSU;
+          matched++;
+        } catch {}
+      }
+    }
+    await Promise.all(Array.from({length: concurrency}, worker));
+    if (Object.keys(updates).length) {
+      updates['_meta/lastSyncAt'] = Date.now();
+      await _customerDb.ref().update(updates);
+    } else {
+      await _customerDb.ref('_meta/lastSyncAt').set(Date.now());
+    }
+    if (!silent) {
+      showSyncToast(`✓ Sync สำเร็จ • ${matched} สินค้า`, 'success');
+    } else if (totalStockUpdates > 0) {
+      // Silent auto-sync that actually changed something → brief subtle toast
+      showSyncToast(`🔄 อัพเดต stock ล่าสุด • ${matched} สินค้า`, 'success');
+    }
+  } catch(e) {
+    if (!silent) showSyncToast('❌ Sync ล้มเหลว: ' + e.message, 'error');
+  } finally {
+    customerSyncing = false;
+    if (btn) btn.classList.remove('syncing');
+    if (btn) btn.disabled = false;
+    updateSyncBtnLabel();
+  }
+}
+
+function showSyncToast(msg, type) {
+  const el = document.createElement('div');
+  el.textContent = msg;
+  el.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+    background:${type==='error'?'#d92626':'#1a6e3f'};color:#fff;padding:12px 20px;
+    border-radius:12px;font-weight:600;font-size:.9em;z-index:9999;
+    box-shadow:0 6px 20px rgba(0,0,0,.25);font-family:'Prompt',sans-serif`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
 }
 
 // ── UTILS ───────────────────────────────────────────────────
@@ -1294,6 +1595,74 @@ function copyText(text, btn){
   });
   const o=btn.innerText; btn.innerText='✓ Copied!'; btn.classList.add('copied');
   setTimeout(()=>{ btn.innerText=o; btn.classList.remove('copied') },1400);
+}
+
+// ── STOCK / SOLD OUT helpers ────────────────────────────────
+function getVariants(row){ return Array.isArray(row?.[12]) ? row[12] : []; }
+function isSoldOut(row){
+  const vs = getVariants(row);
+  if (!vs.length) return false;
+  return vs.every(v => (Number(v?.stock)||0) <= 0);
+}
+function soldStampHTML(){ return '<div class="sold-stamp">SOLD OUT</div>'; }
+function hasLowStock(row){
+  const vs = getVariants(row);
+  if (!vs.length) return false;
+  // any variant with 0 < stock <= 3 AND not all sold out
+  if (isSoldOut(row)) return false;
+  return vs.some(v => { const s = Number(v?.stock)||0; return s > 0 && s <= 3; });
+}
+function lowStockBadgeHTML(){ return '<div class="low-stock-badge">⚠️ เหลือน้อย</div>'; }
+
+// Parse variant name like "ดำ, S" → {color:"ดำ", size:"S"}; otherwise → {color: name}
+function parseVariant(name) {
+  const s = String(name||'').trim();
+  const m = s.split(/\s*[,/]\s*/).filter(Boolean);
+  if (m.length >= 2) return {color: m[0], size: m.slice(1).join(' ')};
+  return {color: s, size: ''};
+}
+function groupVariantsBySize(variants) {
+  // Returns {colors:[...], sizes:[...], grid:{color:{size: variant}}}
+  const colors = [], sizes = [];
+  const grid = {};
+  variants.forEach(v => {
+    const {color, size} = parseVariant(v.name);
+    if (!grid[color]) { grid[color] = {}; colors.push(color); }
+    grid[color][size] = v;
+    if (!sizes.includes(size)) sizes.push(size);
+  });
+  // sort sizes by standard order if recognisable
+  const sizeOrder = ['XS','S','M','L','XL','XXL','XXXL','3XL','4XL','5XL','FREE'];
+  sizes.sort((a,b) => {
+    const ai = sizeOrder.indexOf(a.toUpperCase()), bi = sizeOrder.indexOf(b.toUpperCase());
+    if (ai>=0 && bi>=0) return ai-bi;
+    if (ai>=0) return -1;
+    if (bi>=0) return 1;
+    return String(a).localeCompare(String(b));
+  });
+  return {colors, sizes, grid};
+}
+function hasSizeDimension(variants) {
+  // Returns true if any variant has comma in name AND at least 2 sizes appear
+  const parsed = variants.map(v => parseVariant(v.name));
+  const sizes = new Set(parsed.map(p => p.size).filter(Boolean));
+  return sizes.size >= 2;
+}
+function variantStripHTML(row, max=6){
+  const vs = getVariants(row);
+  if (!vs.length) return '';
+  const show = vs.slice(0, max);
+  const rest = vs.length - show.length;
+  return `<div class="pcard-variants" onclick="event.stopPropagation()">${
+    show.map(v => {
+      const sold = (Number(v.stock)||0) <= 0;
+      const label = esc(v.name || v.sku || '');
+      const tip = sold ? `${label} • หมด` : `${label} • เหลือ ${Number(v.stock)||0}`;
+      return `<div class="pcard-var${sold?' sold':''}">${
+        v.image ? `<img src="${esc(v.image)}" loading="lazy" onerror="this.style.display='none'">` : `<div class="v-fallback">${label.slice(0,2)||'?'}</div>`
+      }<div class="pcard-var-tip">${tip}</div></div>`;
+    }).join('')
+  }${rest>0?`<div class="pcard-var pcard-var-more">+${rest}</div>`:''}</div>`;
 }
 
 // ── PRODUCT GRID ────────────────────────────────────────────
@@ -1344,11 +1713,15 @@ function renderProductGrid(rows){
       const d=(delay%8)*60;
       const hasPikad=!!productRows[item.i]?.[9];
       const faved=isFav(item.i);
-      html+=`<div class="pcard" style="animation-delay:${d}ms" onclick="showProductDetail(${item.i})">
+      const _r = productRows[item.i];
+      const sold=isSoldOut(_r);
+      const low=hasLowStock(_r);
+      html+=`<div class="pcard${sold?' sold-out':''}" style="animation-delay:${d}ms" onclick="showProductDetail(${item.i})">
         <div class="pcard-img-wrap">
           <div class="pcard-img">
             ${img?`<img src="${img}" loading="lazy" onload="onImgLoad(this)">`:'<div class="no-img">📦</div>'}
           </div>
+          ${sold?soldStampHTML():low?lowStockBadgeHTML():''}
           <button class="fav-btn ${faved?'faved':''}" onclick="event.stopPropagation();toggleFav(${item.i},this)">${faved?'⭐':'☆'}</button>
           <div class="pcard-overlay">
             <span class="pcard-type">${esc(item.type||'')}</span>
@@ -1389,9 +1762,80 @@ function showProductDetail(idx,push=true){
   const copyTxt=`ชื่อสินค้า: ${row[0]}\nประเภท: ${row[1]}\nราคา: ${row[2]}\nรายละเอียด: ${row[3]}`;
   const shopee=row[7]||'', tiktok=row[8]||'', loc=row[9]||'', lazada=row[10]||'', page365=row[11]||'';
 
+  const sold = isSoldOut(row);
+  const variants = getVariants(row);
   const imgHtml = row[4]
-    ? `<div class="detail-img-wrap"><img src="${row[4]}" onload="onImgLoad(this)" loading="lazy" onclick="openLightbox('${row[4]}','ภาพสินค้า: ${esc(row[0])}')"></div>`
-    : `<div class="detail-img-wrap"><div class="detail-img-none">📦</div></div>`;
+    ? `<div class="detail-img-wrap" style="position:relative">${sold?soldStampHTML():''}<img src="${row[4]}" onload="onImgLoad(this)" loading="lazy" onclick="openLightbox('${row[4]}','ภาพสินค้า: ${esc(row[0])}')" ${sold?'style="filter:grayscale(.6) brightness(.85)"':''}></div>`
+    : `<div class="detail-img-wrap" style="position:relative">${sold?soldStampHTML():''}<div class="detail-img-none">📦</div></div>`;
+
+  let variantsHtml = '';
+  if (variants.length) {
+    if (hasSizeDimension(variants)) {
+      // Group by size, each section shows colors as chips with images
+      const {colors, sizes, grid} = groupVariantsBySize(variants);
+      // build color→image map (fallback to main product image)
+      const colorImg = {};
+      colors.forEach(c => {
+        for (const s of sizes) {
+          const v = grid[c]?.[s];
+          if (v?.image) { colorImg[c] = v.image; break; }
+        }
+        if (!colorImg[c]) colorImg[c] = row[4] || '';
+      });
+
+      variantsHtml = `
+        <div class="size-groups">
+          ${sizes.map(size => {
+            const items = colors.map(color => ({color, v: grid[color]?.[size]})).filter(x => x.v);
+            if (!items.length) return '';
+            const totalStock = items.reduce((s,x) => s + (Math.max(0, Number(x.v.stock)||0)), 0);
+            const availCount = items.filter(x => (Number(x.v.stock)||0) > 0).length;
+            const allSold = availCount === 0;
+            return `
+              <div class="size-group">
+                <div class="size-group-head">
+                  <div class="size-group-title">📏 <span class="size-badge">${esc(size||'—')}</span></div>
+                  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                    <div class="size-group-summary ${allSold?'all-sold':''}">${allSold?'หมดทุกสี':`${availCount}/${items.length} สี • รวม ${totalStock} ชิ้น`}</div>
+                    <button class="size-group-btn" onclick="event.stopPropagation();openCompositeImage(${idx},'${esc(size||'').replace(/'/g,"\\'")}')">📷 รูปรวม ${esc(size||'')}</button>
+                  </div>
+                </div>
+                <div class="size-group-chips">
+                  ${items.map(({color, v}) => {
+                    const stock = Number(v.stock)||0;
+                    const sold = stock <= 0;
+                    const img = v.image || colorImg[color] || '';
+                    return `<div class="sg-chip${sold?' sold':''}" title="${esc(v.sku||'')}">
+                      <div class="img-wrap">
+                        ${img ? `<img class="sg-chip-img" src="${esc(img)}" loading="lazy" onerror="this.style.display='none'">` : '<div class="sg-chip-img" style="display:flex;align-items:center;justify-content:center">🎨</div>'}
+                        ${sold ? soldStampHTML() : ''}
+                      </div>
+                      <div class="sg-chip-name">${esc(color)}</div>
+                      <div class="sg-chip-stock ${sold?'out':'in'}">${sold?'หมด':'เหลือ '+stock}</div>
+                    </div>`;
+                  }).join('')}
+                </div>
+              </div>`;
+          }).join('')}
+        </div>`;
+    } else {
+      // Flat chips for single-dim variants (belts etc.)
+      variantsHtml = `
+        <div class="variant-chips">
+          ${variants.map(v => {
+            const vSold = (Number(v.stock)||0) <= 0;
+            return `<div class="variant-chip${vSold?' sold':''}" title="${esc(v.sku||'')}">
+              <div style="position:relative">
+                ${v.image?`<img class="variant-chip-img" src="${esc(v.image)}" onerror="this.style.display='none'">`:'<div class="variant-chip-img" style="display:flex;align-items:center;justify-content:center">🎨</div>'}
+                ${vSold?soldStampHTML():''}
+              </div>
+              <div class="variant-chip-name">${esc(v.name||v.sku||'—')}</div>
+              <div class="variant-chip-stock">${vSold?'หมด':'เหลือ '+(Number(v.stock)||0)}</div>
+            </div>`;
+          }).join('')}
+        </div>`;
+    }
+  }
 
   const favStyle = isFav(idx)
     ? 'background:rgba(255,59,107,.15);color:var(--pink);border:1px solid rgba(255,59,107,.3)'
@@ -1404,10 +1848,11 @@ function showProductDetail(idx,push=true){
         ${row[5]?`<div class="size-section"><div class="size-section-title">📏 ตารางไซส์</div><img class="size-img" src="${row[5]}" onload="onImgLoad(this)" loading="lazy" onclick="openLightbox('${row[5]}','ตารางไซส์: ${esc(row[0])}')"></div>`:''}
       </div>
       <div class="detail-body">
-        <div class="detail-name">${esc(row[0])}</div>
+        <div class="detail-name">${esc(row[0])}${sold?' <span style="color:#d92626;font-size:.6em;background:rgba(217,38,38,.1);padding:3px 10px;border-radius:10px;vertical-align:middle">SOLD OUT</span>':''}</div>
         ${row[6]?`<div class="detail-sku">SKU: ${esc(row[6])}</div>`:''}
         <div class="detail-type">${esc(row[1])}</div>
         <div class="detail-price">${esc(row[2])}</div>
+        ${variants.length ? `<div class="inline-comp-wrap" id="inline-comp-area"></div>` : ''}
         <div class="detail-action-row">
           <button class="btn btn-pink" onclick='copyInfoToast(${JSON.stringify(copyTxt)},"ข้อความสินค้า")'>📋 Copy</button>
           ${shopee?`<button class="btn btn-shopee" onclick="openLink('${shopee}')">🛒 Shopee</button>`:''}
@@ -1415,6 +1860,7 @@ function showProductDetail(idx,push=true){
           ${lazada?`<button class="btn btn-laz" onclick="openLink('${lazada}')">🟠 Lazada</button>`:''}
           ${page365?`<button class="btn btn-p365" onclick="openLink('${page365}')">📄 Page365</button>`:''}
           ${loc?`<button class="btn btn-loc" onclick="openLink('${loc}')">📍 พิกัด</button>`:''}
+          ${variants.length && !hasSizeDimension(variants)?`<button class="btn btn-info" onclick="openCompositeImage(${idx})">📷 รูปรวม</button>`:''}
           <button class="btn btn-share" onclick="shareProduct(${idx})">↗ แชร์</button>
           <button id="fav-detail-btn" class="btn" style="${favStyle}" onclick="toggleFavDetail(${idx},this)">${isFav(idx)?'⭐ โปรด':'☆ บันทึก'}</button>
         </div>
@@ -1426,6 +1872,9 @@ function showProductDetail(idx,push=true){
   document.getElementById('fab-wrap').style.display='flex';
   addRecent(idx);
   window.scrollTo(0,0);
+  // Build inline composite gallery (async)
+  const compArea = document.getElementById('inline-comp-area');
+  if (compArea) embedComposites(idx, compArea);
 }
 
 // ── GENERAL GRID ────────────────────────────────────────────
@@ -1740,9 +2189,12 @@ window.renderProductGrid = function(rows){
     let delay=0;
     favIdxs.forEach(i=>{
       const row=productRows[i], img=row[4]||'', d=(delay%8)*60, hasPikad=!!row[9];
-      html+=`<div class="pcard" style="animation-delay:${d}ms" onclick="showProductDetail(${i})">
+      const sold=isSoldOut(row);
+      const low=hasLowStock(row);
+      html+=`<div class="pcard${sold?' sold-out':''}" style="animation-delay:${d}ms" onclick="showProductDetail(${i})">
         <div class="pcard-img-wrap">
           <div class="pcard-img">${img?`<img src="${img}" loading="lazy" onload="onImgLoad(this)">`:'<div class="no-img">📦</div>'}</div>
+          ${sold?soldStampHTML():low?lowStockBadgeHTML():''}
           <button class="fav-btn faved" onclick="event.stopPropagation();toggleFav(${i},this)">⭐</button>
           <div class="pcard-overlay">
             <span class="pcard-type">${esc(row[1]||'')}</span>
@@ -1912,6 +2364,497 @@ window.addEventListener('appinstalled', () => {
   dismissInstall();
   console.log('App installed successfully');
 });
+
+// ═══════════════════════════════════════════════
+//  COMPOSITE IMAGE GENERATOR (Marketing Card)
+// ═══════════════════════════════════════════════
+let ciGroups = [];
+let ciIndex = 0;
+let ciCurrentBlob = null;
+let ciCurrentFilename = '';
+
+// Some image hosts (assets.page365.net) don't send CORS headers, so we route
+// through wsrv.nl which is designed for proxying images with proper CORS.
+const CI_NEEDS_PROXY = /(^https?:\/\/assets\.page365\.net\/)/i;
+function _ciWsrv(src) { return `https://wsrv.nl/?url=${encodeURIComponent(src)}&we&n=-1`; }
+function _ciAllOrigins(src) { return `https://api.allorigins.win/raw?url=${encodeURIComponent(src)}`; }
+function _ciLoadDirect(src) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+async function ciLoadImage(src) {
+  if (!src) return null;
+  // For Page365 assets, go straight to wsrv (image-specific proxy)
+  if (CI_NEEDS_PROXY.test(src)) {
+    let img = await _ciLoadDirect(_ciWsrv(src));
+    if (img) return img;
+    img = await _ciLoadDirect(_ciAllOrigins(src));
+    return img;
+  }
+  // Direct first (Cloudinary etc. supports CORS)
+  let img = await _ciLoadDirect(src);
+  if (img) return img;
+  // Fallback through wsrv then allorigins
+  img = await _ciLoadDirect(_ciWsrv(src));
+  if (img) return img;
+  img = await _ciLoadDirect(_ciAllOrigins(src));
+  return img;
+}
+function ciDrawSoldStamp(ctx, cx, cy, w) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(-Math.PI / 12);
+  const h = w * 0.32;
+  ctx.fillStyle = 'rgba(217, 38, 38, 0.92)';
+  ctx.beginPath();
+  ctx.rect(-w/2, -h/2, w, h);
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = Math.max(2, w * 0.012);
+  ctx.strokeRect(-w/2 + 6, -h/2 + 6, w - 12, h - 12);
+  ctx.fillStyle = '#fff';
+  ctx.font = `900 ${w * 0.20}px 'Prompt', Arial, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('SOLD OUT', 0, 0);
+  ctx.restore();
+}
+
+function openCompositeImage(idx, presetSize) {
+  const row = productRows[idx]; if (!row) return;
+  const variants = getVariants(row);
+  if (!variants.length) {
+    showSyncToast('สินค้านี้ไม่มีตัวเลือก — ไม่จำเป็นต้องใช้รูปรวม', 'error');
+    return;
+  }
+  ciGroups = [];
+  ciIndex = 0;
+  const baseSku = (row[6]||row[0]||'product').replace(/[^a-zA-Z0-9_-]/g,'_');
+
+  if (hasSizeDimension(variants)) {
+    const {colors, sizes, grid} = groupVariantsBySize(variants);
+    sizes.forEach(size => {
+      const groupVs = colors.map(c => grid[c]?.[size]).filter(Boolean).map(v => ({...v, _color: parseVariant(v.name).color, _size: size}));
+      if (!groupVs.length) return;
+      ciGroups.push({
+        title: row[0]||'',
+        sizeLabel: size,
+        variants: groupVs,
+        filename: `${baseSku}_${size}.png`,
+        blob: null,
+        _row: row,
+      });
+    });
+    // jump to preset size if requested
+    if (presetSize) {
+      const found = ciGroups.findIndex(g => g.sizeLabel === presetSize);
+      if (found >= 0) ciIndex = found;
+    }
+  } else {
+    ciGroups.push({
+      title: row[0]||'',
+      sizeLabel: '',
+      variants: variants.map(v => ({...v, _color: parseVariant(v.name).color})),
+      filename: `${baseSku}.png`,
+      blob: null,
+      _row: row,
+    });
+  }
+
+  document.getElementById('ci-modal-overlay').classList.add('open');
+  renderCiNav();
+  renderCiGroup(ciIndex);
+}
+function closeCompositeImage() {
+  document.getElementById('ci-modal-overlay').classList.remove('open');
+}
+function renderCiNav() {
+  const nav = document.getElementById('ci-nav');
+  if (ciGroups.length <= 1) { nav.innerHTML = ''; nav.style.display='none'; return; }
+  nav.style.display = 'flex';
+  nav.innerHTML = ciGroups.map((g, i) => `
+    <button type="button" class="ci-tab${i===ciIndex?' active':''}" onclick="switchCiGroup(${i})">${esc(g.sizeLabel||'รวม')}</button>
+  `).join('') + `<button type="button" class="ci-tab dl-all" onclick="downloadAllCi()">⬇️ ทั้งหมด</button>`;
+}
+async function switchCiGroup(idx) {
+  ciIndex = idx;
+  renderCiNav();
+  await renderCiGroup(idx);
+}
+
+async function renderCiGroup(idx) {
+  const g = ciGroups[idx];
+  const r = g._row;
+  const info = document.getElementById('ci-info');
+  info.textContent = `กำลังสร้างภาพ ${idx+1}/${ciGroups.length}...`;
+  await _ciDrawToCanvas(document.getElementById('ci-canvas'), g, r);
+  await new Promise(resolve => {
+    document.getElementById('ci-canvas').toBlob(blob => {
+      g.blob = blob;
+      ciCurrentBlob = blob;
+      ciCurrentFilename = g.filename;
+      info.innerHTML = blob
+        ? `✓ ${g.sizeLabel ? `ไซส์ ${g.sizeLabel}` : 'พร้อมใช้งาน'} (${(blob.size/1024).toFixed(1)} KB) — ${ciGroups.length>1?`รูปที่ ${idx+1}/${ciGroups.length}`:'พร้อม Copy/Download'}`
+        : '⚠️ สร้างภาพไม่สำเร็จ';
+      resolve();
+    }, 'image/png');
+  });
+}
+
+async function _ciDrawToCanvas(canvas, g, r) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height; // 1080x1080
+
+  // ── Shiny white background ──────────────────────────
+  // Base white
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, H);
+  // Soft vertical sheen (lighter band across the middle)
+  const sheen = ctx.createLinearGradient(0, 0, 0, H);
+  sheen.addColorStop(0,   '#f3f1f6');
+  sheen.addColorStop(0.45,'#ffffff');
+  sheen.addColorStop(0.55,'#ffffff');
+  sheen.addColorStop(1,   '#ececf2');
+  ctx.fillStyle = sheen;
+  ctx.fillRect(0, 0, W, H);
+  // Subtle radial spotlight from top-left for glossy highlight
+  const spot = ctx.createRadialGradient(W*0.25, H*0.2, 0, W*0.25, H*0.2, W*0.7);
+  spot.addColorStop(0, 'rgba(255,255,255,0.85)');
+  spot.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = spot;
+  ctx.fillRect(0, 0, W, H);
+
+  // top accent bar
+  ctx.fillStyle = '#E87A90';
+  ctx.fillRect(0, 0, W, 8);
+
+  // Brand
+  ctx.fillStyle = '#888';
+  ctx.font = "600 26px 'Prompt', Arial, sans-serif";
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillText('LAMSANGSTORE', W/2, 40);
+
+  // Title
+  ctx.fillStyle = '#352F44';
+  ctx.font = "800 60px 'Prompt', Arial, sans-serif";
+  ctx.fillText(String(g.title).slice(0, 32), W/2, 78);
+
+  // Size badge (or "ทุกสี" label)
+  let headerBottom = 160;
+  if (g.sizeLabel) {
+    const txt = `ไซส์  ${g.sizeLabel}`;
+    ctx.font = "800 44px 'Prompt', Arial, sans-serif";
+    const bw = ctx.measureText(txt).width + 70;
+    const bx = (W - bw) / 2, by = 165;
+    ctx.fillStyle = '#E87A90';
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(bx, by, bw, 66, 33); else ctx.rect(bx, by, bw, 66);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(txt, W/2, by + 33);
+    headerBottom = by + 66 + 30;
+  } else {
+    ctx.fillStyle = '#E87A90';
+    ctx.font = "700 34px 'Prompt', Arial, sans-serif";
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText('ทุกสี · เลือกได้ตามชอบ', W/2, 168);
+    headerBottom = 220;
+  }
+
+  // Variant chip grid
+  const variants = g.variants;
+  const count = variants.length;
+  const cols = count <= 2 ? 2 : count <= 4 ? 2 : 3;
+  const rows = Math.ceil(count / cols);
+  const gap = 22;
+  const sideMargin = 60;
+  const usableW = W - sideMargin*2;
+  const cellW = (usableW - gap*(cols-1)) / cols;
+  const footerHeight = 110;
+  const gridTop = headerBottom;
+  const gridBottom = H - footerHeight;
+  const cellH = (gridBottom - gridTop - gap*(rows-1)) / rows;
+  const labelArea = 88;
+  const imgSize = Math.max(80, Math.min(cellW - 10, cellH - labelArea));
+
+  const vImgs = await Promise.all(variants.map(v => ciLoadImage(v.image || r[4])));
+
+  for (let i = 0; i < count; i++) {
+    const v = variants[i];
+    const col = i % cols, rowIdx = Math.floor(i / cols);
+    const cx = sideMargin + col * (cellW + gap);
+    const cy = gridTop + rowIdx * (cellH + gap);
+
+    const ix = cx + (cellW - imgSize) / 2;
+    const iy = cy;
+    ctx.fillStyle = '#f3eef8';
+    if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(ix, iy, imgSize, imgSize, 18); ctx.fill(); }
+    else ctx.fillRect(ix, iy, imgSize, imgSize);
+
+    const vi = vImgs[i];
+    if (vi) {
+      ctx.save();
+      if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(ix, iy, imgSize, imgSize, 18); ctx.clip(); }
+      const ratio = Math.min(imgSize / vi.width, imgSize / vi.height);
+      const dw = vi.width * ratio, dh = vi.height * ratio;
+      ctx.drawImage(vi, ix + (imgSize-dw)/2, iy + (imgSize-dh)/2, dw, dh);
+      ctx.restore();
+    }
+
+    const sold = (Number(v.stock)||0) <= 0;
+    if (sold) ciDrawSoldStamp(ctx, ix + imgSize/2, iy + imgSize/2, imgSize * 0.88);
+
+    // Color name
+    const colorName = v._color || v.name || '';
+    ctx.fillStyle = sold ? '#999' : '#352F44';
+    const nameFont = Math.max(24, Math.min(38, cellW*0.12));
+    ctx.font = `800 ${nameFont}px 'Prompt', Arial, sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    const nameY = iy + imgSize + 12;
+    if (sold) {
+      const tw = ctx.measureText(colorName).width;
+      ctx.fillText(colorName, cx + cellW/2, nameY);
+      ctx.strokeStyle = '#999'; ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(cx + cellW/2 - tw/2, nameY + nameFont/2);
+      ctx.lineTo(cx + cellW/2 + tw/2, nameY + nameFont/2);
+      ctx.stroke();
+    } else {
+      ctx.fillText(colorName, cx + cellW/2, nameY);
+    }
+
+    // Stock status (NO count number) — 3 states: sold / low / available
+    const stockN = Number(v.stock)||0;
+    const isLow = !sold && stockN <= 3;
+    const statusFont = Math.max(20, Math.min(28, cellW*0.085));
+    ctx.font = `700 ${statusFont}px 'Prompt', Arial, sans-serif`;
+    if (sold) {
+      ctx.fillStyle = '#d92626';
+      ctx.fillText('● หมด', cx + cellW/2, nameY + nameFont + 4);
+    } else if (isLow) {
+      ctx.fillStyle = '#d68910';
+      ctx.fillText('⚠ เหลือน้อย', cx + cellW/2, nameY + nameFont + 4);
+    } else {
+      ctx.fillStyle = '#1a6e3f';
+      ctx.fillText('● พร้อมส่ง', cx + cellW/2, nameY + nameFont + 4);
+    }
+  }
+
+  // Footer: price + SKU
+  if (r[2]) {
+    ctx.fillStyle = '#E87A90';
+    ctx.font = "800 46px 'Prompt', Arial, sans-serif";
+    ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+    ctx.fillText(String(r[2]) + '.-', 60, H - 35);
+  }
+  if (r[6]) {
+    ctx.fillStyle = '#888';
+    ctx.font = "600 22px 'Prompt', Arial, sans-serif";
+    ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText('SKU: ' + String(r[6]).slice(-20), W - 60, H - 35);
+  }
+  // bottom accent bar
+  ctx.fillStyle = '#E87A90';
+  ctx.fillRect(0, H-8, W, 8);
+}
+
+async function copyCiImage() {
+  if (!ciCurrentBlob) return;
+  try {
+    await navigator.clipboard.write([new ClipboardItem({'image/png': ciCurrentBlob})]);
+    showSyncToast('Copy รูปสำเร็จ ✓ วางใน LINE/Messenger ได้เลย', 'success');
+  } catch(e) {
+    showSyncToast('Copy ไม่สำเร็จ — ลองดาวน์โหลดแทน', 'error');
+  }
+}
+function downloadCiImage() {
+  if (!ciCurrentBlob) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(ciCurrentBlob);
+  a.download = ciCurrentFilename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+}
+// ─── Build composite groups for any product ─────────────
+function _buildCompositeGroups(row) {
+  const variants = getVariants(row);
+  if (!variants.length) return [];
+  const baseSku = (row[6]||row[0]||'product').replace(/[^a-zA-Z0-9_-]/g,'_');
+  if (hasSizeDimension(variants)) {
+    const {colors, sizes, grid} = groupVariantsBySize(variants);
+    return sizes.map(size => {
+      const items = colors.map(c => grid[c]?.[size]).filter(Boolean).map(v => ({...v, _color: parseVariant(v.name).color, _size: size}));
+      if (!items.length) return null;
+      return {title: row[0]||'', sizeLabel: size, variants: items, filename: `${baseSku}_${size}.png`, _row: row};
+    }).filter(Boolean);
+  }
+  return [{title: row[0]||'', sizeLabel: '', variants: variants.map(v => ({...v, _color: parseVariant(v.name).color})), filename: `${baseSku}.png`, _row: row}];
+}
+
+// Embedded composite gallery in product detail page (LAZY)
+window._inlineGroups = [];     // [{group, blob, url, ready}]
+window._inlineActiveIdx = 0;
+let _inlineProductRow = null;
+let _inlineCanvas = null;
+
+function _getInlineCanvas() {
+  if (!_inlineCanvas) {
+    _inlineCanvas = document.createElement('canvas');
+    _inlineCanvas.width = 1080;
+    _inlineCanvas.height = 1080;
+  }
+  return _inlineCanvas;
+}
+
+async function embedComposites(idx, container) {
+  const row = productRows[idx]; if (!row) return;
+  _inlineProductRow = row;
+  const groups = _buildCompositeGroups(row);
+  if (!groups.length) return;
+
+  // Initialize items as not-ready
+  window._inlineGroups = groups.map(g => ({group: g, blob: null, url: null, ready: false}));
+  window._inlineActiveIdx = 0;
+
+  // Show skeleton with tabs immediately
+  renderInlineCompUI(container);
+
+  // Render the first one
+  await _renderInlineComp(0);
+  renderInlineCompUI(container);
+}
+
+async function _renderInlineComp(i) {
+  const item = window._inlineGroups[i];
+  if (!item || item.ready) return;
+  const canvas = _getInlineCanvas();
+  await _ciDrawToCanvas(canvas, item.group, _inlineProductRow);
+  const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+  if (!blob) return;
+  item.blob = blob;
+  item.url = URL.createObjectURL(blob);
+  item.ready = true;
+}
+
+function renderInlineCompUI(container) {
+  const items = window._inlineGroups;
+  if (!items?.length) return;
+  const activeIdx = Math.min(window._inlineActiveIdx, items.length-1);
+  const active = items[activeIdx];
+  const hasTabs = items.length > 1;
+  const row = _inlineProductRow;
+
+  const imgEl = active.ready
+    ? `<img class="inline-comp-img" src="${active.url}" onclick="openLightbox('${active.url}','${esc(row[0]||'')}${active.group.sizeLabel?` - ไซส์ ${esc(active.group.sizeLabel)}`:''}')">`
+    : `<div class="inline-comp-img" style="aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;flex-direction:column;color:var(--muted)">
+        <div class="inline-comp-loading-icon">🎨</div>
+        <div>กำลังสร้าง...</div>
+       </div>`;
+
+  container.innerHTML = `
+    <div class="inline-comp-item">
+      ${hasTabs ? `
+        <div class="inline-comp-tabs">
+          ${items.map((it, i) => `
+            <button class="inline-comp-tab${i===activeIdx?' active':''}${it.ready?'':' pending'}" onclick="switchInlineComp(${i})">
+              <span class="inline-comp-tab-label">ไซส์</span>
+              <span>${esc(it.group.sizeLabel||'รวม')}</span>
+            </button>
+          `).join('')}
+        </div>
+      ` : ''}
+      ${imgEl}
+      <div class="inline-comp-actions">
+        <button class="inline-comp-btn-copy" ${active.ready?'':'disabled style="opacity:.5"'} onclick="copyInlineComp(window._inlineActiveIdx)">📋 Copy</button>
+        <button class="inline-comp-btn-dl" ${active.ready?'':'disabled style="opacity:.5"'} onclick="downloadInlineComp(window._inlineActiveIdx)">⬇️ Download</button>
+        ${hasTabs ? `<button class="inline-comp-btn-dl" style="background:#27ae60" onclick="downloadAllInlineComp()">⬇️ ทั้งหมด</button>` : ''}
+      </div>
+    </div>`;
+}
+
+async function switchInlineComp(i) {
+  window._inlineActiveIdx = i;
+  const container = document.getElementById('inline-comp-area');
+  if (!container) return;
+  if (!window._inlineGroups[i].ready) {
+    renderInlineCompUI(container); // show loading state
+    await _renderInlineComp(i);
+  }
+  renderInlineCompUI(container);
+}
+
+async function downloadAllInlineComp() {
+  const items = window._inlineGroups;
+  showSyncToast(`กำลังสร้าง ${items.length} ภาพ...`, 'success');
+  for (let i = 0; i < items.length; i++) {
+    if (!items[i].ready) await _renderInlineComp(i);
+    if (!items[i].url) continue;
+    const a = document.createElement('a');
+    a.href = items[i].url;
+    a.download = items[i].group.filename;
+    a.click();
+    await new Promise(r => setTimeout(r, 400));
+  }
+  showSyncToast(`ดาวน์โหลด ${items.length} ไฟล์ ✓`, 'success');
+}
+
+async function copyInlineComp(idx) {
+  const it = window._inlineGroups?.[idx];
+  if (!it?.ready) return;
+  try {
+    await navigator.clipboard.write([new ClipboardItem({'image/png': it.blob})]);
+    showSyncToast('Copy รูปสำเร็จ ✓', 'success');
+  } catch(e) {
+    showSyncToast('Copy ไม่สำเร็จ — ลองดาวน์โหลดแทน', 'error');
+  }
+}
+function downloadInlineComp(idx) {
+  const it = window._inlineGroups?.[idx];
+  if (!it?.ready) return;
+  const a = document.createElement('a');
+  a.href = it.url;
+  a.download = it.group.filename;
+  a.click();
+}
+
+async function downloadAllCi() {
+  for (let i = 0; i < ciGroups.length; i++) {
+    if (!ciGroups[i].blob) {
+      ciIndex = i;
+      renderCiNav();
+      await renderCiGroup(i);
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(ciGroups[i].blob);
+    a.download = ciGroups[i].filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+    await new Promise(r => setTimeout(r, 400));
+  }
+  showSyncToast(`ดาวน์โหลด ${ciGroups.length} ไฟล์ ✓`, 'success');
+}
 </script>
+
+<!-- COMPOSITE IMAGE MODAL -->
+<div class="ci-modal-overlay" id="ci-modal-overlay" onclick="if(event.target===this)closeCompositeImage()">
+  <div class="ci-modal">
+    <div class="ci-modal-title">📷 รูปการตลาด (รวมทุกสี)</div>
+    <div class="ci-nav" id="ci-nav" style="display:none"></div>
+    <canvas id="ci-canvas" width="1080" height="1080"></canvas>
+    <div class="ci-info" id="ci-info">กำลังสร้างภาพ...</div>
+    <div class="ci-actions">
+      <button class="ci-btn-close" onclick="closeCompositeImage()">ปิด</button>
+      <button class="ci-btn-dl" onclick="downloadCiImage()">⬇️ Download</button>
+      <button class="ci-btn-copy" onclick="copyCiImage()">📋 Copy</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
