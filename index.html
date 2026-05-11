@@ -426,6 +426,28 @@
     .inline-comp-tab-label{font-size:.7em;font-weight:600;opacity:.85}
     body.dark .inline-comp-tabs{background:linear-gradient(90deg,#262640,#1a1a2e)}
     body.dark .inline-comp-tab{background:#262640;color:#fff;border-color:rgba(255,255,255,.1)}
+    /* unified image action buttons (hero, size chart, composite) */
+    .img-actions-row{display:flex;gap:8px;margin-top:10px;width:100%;box-sizing:border-box;padding:0 16px}
+    .img-action-btn,
+    .inline-comp-actions button{
+      flex:1 1 0%;min-width:0;
+      min-height:44px;height:44px;
+      padding:0 14px;border:none;border-radius:12px;cursor:pointer;
+      font-family:'Prompt',sans-serif;font-weight:700;font-size:.88em;transition:all .15s;
+      display:flex;align-items:center;justify-content:center;gap:6px;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+      box-shadow:0 2px 6px rgba(0,0,0,.06);
+    }
+    .inline-comp-actions{padding:12px 14px}
+    .inline-comp-actions button{padding:0 14px}
+    .img-action-btn.copy,
+    .inline-comp-btn-copy{background:var(--pink);color:#fff}
+    .img-action-btn.dl,
+    .inline-comp-btn-dl{background:#3b82f6;color:#fff}
+    .img-action-btn:hover,
+    .inline-comp-actions button:hover{filter:brightness(1.05);transform:translateY(-1px);box-shadow:0 4px 10px rgba(0,0,0,.12)}
+    .img-action-btn:disabled,
+    .inline-comp-actions button:disabled{opacity:.6;cursor:wait;transform:none;box-shadow:0 2px 6px rgba(0,0,0,.06)}
     /* composite image modal */
     .ci-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;
       align-items:center;justify-content:center;padding:16px}
@@ -1764,8 +1786,14 @@ function showProductDetail(idx,push=true){
 
   const sold = isSoldOut(row);
   const variants = getVariants(row);
+  const baseFn = String(row[6]||row[0]||'image').replace(/[^a-zA-Z0-9_-]/g,'_');
+  const heroActions = row[4] ? `
+    <div class="img-actions-row">
+      <button class="img-action-btn copy" onclick="copyImageFromUrl('${row[4]}',this)">📋 Copy</button>
+      <button class="img-action-btn dl" onclick="downloadImageFromUrl('${row[4]}','${baseFn}.png',this)">⬇️ Download</button>
+    </div>` : '';
   const imgHtml = row[4]
-    ? `<div class="detail-img-wrap" style="position:relative">${sold?soldStampHTML():''}<img src="${row[4]}" onload="onImgLoad(this)" loading="lazy" onclick="openLightbox('${row[4]}','ภาพสินค้า: ${esc(row[0])}')" ${sold?'style="filter:grayscale(.6) brightness(.85)"':''}></div>`
+    ? `<div class="detail-img-wrap" style="position:relative">${sold?soldStampHTML():''}<img src="${row[4]}" onload="onImgLoad(this)" loading="lazy" onclick="openLightbox('${row[4]}','ภาพสินค้า: ${esc(row[0])}')" ${sold?'style="filter:grayscale(.6) brightness(.85)"':''}></div>${heroActions}`
     : `<div class="detail-img-wrap" style="position:relative">${sold?soldStampHTML():''}<div class="detail-img-none">📦</div></div>`;
 
   let variantsHtml = '';
@@ -1845,7 +1873,14 @@ function showProductDetail(idx,push=true){
     <div class="detail-page">
       <div class="detail-layout">
         ${imgHtml}
-        ${row[5]?`<div class="size-section"><div class="size-section-title">📏 ตารางไซส์</div><img class="size-img" src="${row[5]}" onload="onImgLoad(this)" loading="lazy" onclick="openLightbox('${row[5]}','ตารางไซส์: ${esc(row[0])}')"></div>`:''}
+        ${row[5]?`<div class="size-section">
+          <div class="size-section-title">📏 ตารางไซส์</div>
+          <img class="size-img" src="${row[5]}" onload="onImgLoad(this)" loading="lazy" onclick="openLightbox('${row[5]}','ตารางไซส์: ${esc(row[0])}')">
+          <div class="img-actions-row">
+            <button class="img-action-btn copy" onclick="copyImageFromUrl('${row[5]}',this)">📋 Copy</button>
+            <button class="img-action-btn dl" onclick="downloadImageFromUrl('${row[5]}','${baseFn}_size.png',this)">⬇️ Download</button>
+          </div>
+        </div>`:''}
       </div>
       <div class="detail-body">
         <div class="detail-name">${esc(row[0])}${sold?' <span style="color:#d92626;font-size:.6em;background:rgba(217,38,38,.1);padding:3px 10px;border-radius:10px;vertical-align:middle">SOLD OUT</span>':''}</div>
@@ -2531,57 +2566,58 @@ async function _ciDrawToCanvas(canvas, g, r) {
 
   // top accent bar
   ctx.fillStyle = '#E87A90';
-  ctx.fillRect(0, 0, W, 8);
+  ctx.fillRect(0, 0, W, 6);
 
-  // Brand
-  ctx.fillStyle = '#888';
-  ctx.font = "600 26px 'Prompt', Arial, sans-serif";
+  // Brand (small)
+  ctx.fillStyle = '#999';
+  ctx.font = "600 16px 'Prompt', Arial, sans-serif";
   ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-  ctx.fillText('LAMSANGSTORE', W/2, 40);
+  ctx.fillText('LAMSANGSTORE', W/2, 18);
 
-  // Title
+  // Title (smaller)
   ctx.fillStyle = '#352F44';
-  ctx.font = "800 60px 'Prompt', Arial, sans-serif";
-  ctx.fillText(String(g.title).slice(0, 32), W/2, 78);
+  ctx.font = "800 38px 'Prompt', Arial, sans-serif";
+  ctx.fillText(String(g.title).slice(0, 40), W/2, 38);
 
-  // Size badge (or "ทุกสี" label)
-  let headerBottom = 160;
+  // Size badge (or "ทุกสี" label) — compact
+  let headerBottom = 95;
   if (g.sizeLabel) {
-    const txt = `ไซส์  ${g.sizeLabel}`;
-    ctx.font = "800 44px 'Prompt', Arial, sans-serif";
-    const bw = ctx.measureText(txt).width + 70;
-    const bx = (W - bw) / 2, by = 165;
+    const txt = `ไซส์ ${g.sizeLabel}`;
+    ctx.font = "700 24px 'Prompt', Arial, sans-serif";
+    const bw = ctx.measureText(txt).width + 36;
+    const by = 90;
+    const bx = (W - bw) / 2;
     ctx.fillStyle = '#E87A90';
     ctx.beginPath();
-    if (ctx.roundRect) ctx.roundRect(bx, by, bw, 66, 33); else ctx.rect(bx, by, bw, 66);
+    if (ctx.roundRect) ctx.roundRect(bx, by, bw, 36, 18); else ctx.rect(bx, by, bw, 36);
     ctx.fill();
     ctx.fillStyle = '#fff';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(txt, W/2, by + 33);
-    headerBottom = by + 66 + 30;
+    ctx.fillText(txt, W/2, by + 18);
+    headerBottom = by + 36 + 14;
   } else {
-    ctx.fillStyle = '#E87A90';
-    ctx.font = "700 34px 'Prompt', Arial, sans-serif";
-    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-    ctx.fillText('ทุกสี · เลือกได้ตามชอบ', W/2, 168);
-    headerBottom = 220;
+    headerBottom = 100;
   }
 
-  // Variant chip grid
+  // Variant chip grid — maximize image area
   const variants = g.variants;
   const count = variants.length;
   const cols = count <= 2 ? 2 : count <= 4 ? 2 : 3;
   const rows = Math.ceil(count / cols);
-  const gap = 22;
-  const sideMargin = 60;
+  const gap = 16;
+  const sideMargin = 30;
   const usableW = W - sideMargin*2;
   const cellW = (usableW - gap*(cols-1)) / cols;
-  const footerHeight = 110;
+  const footerHeight = 44;
   const gridTop = headerBottom;
   const gridBottom = H - footerHeight;
   const cellH = (gridBottom - gridTop - gap*(rows-1)) / rows;
-  const labelArea = 88;
-  const imgSize = Math.max(80, Math.min(cellW - 10, cellH - labelArea));
+  // Two-pass: compute tentative image size → font sizes that scale with image → labelArea → final image size
+  let imgSize = Math.max(80, Math.min(cellW - 4, cellH * 0.82));
+  const nameFont = Math.max(15, Math.min(36, Math.round(imgSize * 0.085)));
+  const statusFont = Math.max(11, Math.min(22, Math.round(imgSize * 0.055)));
+  const labelArea = nameFont + statusFont + 16;
+  imgSize = Math.max(80, Math.min(cellW - 4, cellH - labelArea));
 
   const vImgs = await Promise.all(variants.map(v => ciLoadImage(v.image || r[4])));
 
@@ -2610,17 +2646,16 @@ async function _ciDrawToCanvas(canvas, g, r) {
     const sold = (Number(v.stock)||0) <= 0;
     if (sold) ciDrawSoldStamp(ctx, ix + imgSize/2, iy + imgSize/2, imgSize * 0.88);
 
-    // Color name
+    // Color name — font scales with imgSize (computed outer)
     const colorName = v._color || v.name || '';
-    ctx.fillStyle = sold ? '#999' : '#352F44';
-    const nameFont = Math.max(24, Math.min(38, cellW*0.12));
+    ctx.fillStyle = sold ? '#aaa' : '#352F44';
     ctx.font = `800 ${nameFont}px 'Prompt', Arial, sans-serif`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-    const nameY = iy + imgSize + 12;
+    const nameY = iy + imgSize + 8;
     if (sold) {
       const tw = ctx.measureText(colorName).width;
       ctx.fillText(colorName, cx + cellW/2, nameY);
-      ctx.strokeStyle = '#999'; ctx.lineWidth = 3;
+      ctx.strokeStyle = '#aaa'; ctx.lineWidth = Math.max(1.5, nameFont*0.08);
       ctx.beginPath();
       ctx.moveTo(cx + cellW/2 - tw/2, nameY + nameFont/2);
       ctx.lineTo(cx + cellW/2 + tw/2, nameY + nameFont/2);
@@ -2629,39 +2664,39 @@ async function _ciDrawToCanvas(canvas, g, r) {
       ctx.fillText(colorName, cx + cellW/2, nameY);
     }
 
-    // Stock status (NO count number) — 3 states: sold / low / available
+    // Stock status (NO count number)
     const stockN = Number(v.stock)||0;
     const isLow = !sold && stockN <= 3;
-    const statusFont = Math.max(20, Math.min(28, cellW*0.085));
     ctx.font = `700 ${statusFont}px 'Prompt', Arial, sans-serif`;
+    const statusY = nameY + nameFont + 4;
     if (sold) {
       ctx.fillStyle = '#d92626';
-      ctx.fillText('● หมด', cx + cellW/2, nameY + nameFont + 4);
+      ctx.fillText('● หมด', cx + cellW/2, statusY);
     } else if (isLow) {
       ctx.fillStyle = '#d68910';
-      ctx.fillText('⚠ เหลือน้อย', cx + cellW/2, nameY + nameFont + 4);
+      ctx.fillText('⚠ เหลือน้อย', cx + cellW/2, statusY);
     } else {
       ctx.fillStyle = '#1a6e3f';
-      ctx.fillText('● พร้อมส่ง', cx + cellW/2, nameY + nameFont + 4);
+      ctx.fillText('● พร้อมส่ง', cx + cellW/2, statusY);
     }
   }
 
-  // Footer: price + SKU
+  // Footer: price + SKU (compact)
   if (r[2]) {
     ctx.fillStyle = '#E87A90';
-    ctx.font = "800 46px 'Prompt', Arial, sans-serif";
+    ctx.font = "800 24px 'Prompt', Arial, sans-serif";
     ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
-    ctx.fillText(String(r[2]) + '.-', 60, H - 35);
+    ctx.fillText(String(r[2]) + '.-', 30, H - 14);
   }
   if (r[6]) {
-    ctx.fillStyle = '#888';
-    ctx.font = "600 22px 'Prompt', Arial, sans-serif";
+    ctx.fillStyle = '#999';
+    ctx.font = "500 13px 'Prompt', Arial, sans-serif";
     ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
-    ctx.fillText('SKU: ' + String(r[6]).slice(-20), W - 60, H - 35);
+    ctx.fillText('SKU: ' + String(r[6]).slice(-20), W - 30, H - 14);
   }
   // bottom accent bar
   ctx.fillStyle = '#E87A90';
-  ctx.fillRect(0, H-8, W, 8);
+  ctx.fillRect(0, H-6, W, 6);
 }
 
 async function copyCiImage() {
@@ -2812,6 +2847,53 @@ async function copyInlineComp(idx) {
     showSyncToast('Copy รูปสำเร็จ ✓', 'success');
   } catch(e) {
     showSyncToast('Copy ไม่สำเร็จ — ลองดาวน์โหลดแทน', 'error');
+  }
+}
+
+// ─── Image URL → blob (handles CORS via wsrv.nl) ───────────
+async function _fetchImageAsPngBlob(url) {
+  const img = await ciLoadImage(url);
+  if (!img) return null;
+  const c = document.createElement('canvas');
+  c.width = img.naturalWidth || img.width;
+  c.height = img.naturalHeight || img.height;
+  c.getContext('2d').drawImage(img, 0, 0);
+  return new Promise(resolve => c.toBlob(resolve, 'image/png'));
+}
+
+async function copyImageFromUrl(url, btn) {
+  if (!url) return;
+  const orig = btn?.innerHTML;
+  if (btn) { btn.disabled = true; btn.innerHTML = '⏳ กำลังโหลด...'; }
+  try {
+    const blob = await _fetchImageAsPngBlob(url);
+    if (!blob) throw new Error('โหลดรูปไม่ได้');
+    await navigator.clipboard.write([new ClipboardItem({'image/png': blob})]);
+    showSyncToast('Copy รูปสำเร็จ ✓ วางใน LINE/Messenger ได้เลย', 'success');
+  } catch(e) {
+    showSyncToast('Copy ไม่สำเร็จ: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+  }
+}
+
+async function downloadImageFromUrl(url, filename, btn) {
+  if (!url) return;
+  const orig = btn?.innerHTML;
+  if (btn) { btn.disabled = true; btn.innerHTML = '⏳ กำลังโหลด...'; }
+  try {
+    const blob = await _fetchImageAsPngBlob(url);
+    if (!blob) throw new Error('โหลดรูปไม่ได้');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename || 'image.png';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+    showSyncToast('ดาวน์โหลด ✓', 'success');
+  } catch(e) {
+    showSyncToast('Download ไม่สำเร็จ: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = orig; }
   }
 }
 function downloadInlineComp(idx) {
