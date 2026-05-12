@@ -1,0 +1,19 @@
+# Claude Code internal worktrees
+.claude/worktrees/
+
+# Excel/spreadsheet files used for local imports
+*.xlsx
+*.xls
+*.csv
+
+# macOS
+.DS_Store
+
+# Editor / IDE
+.vscode/
+.idea/
+
+# OS / temp
+Thumbs.db
+*.swp
+*~
