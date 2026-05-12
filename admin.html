@@ -69,6 +69,8 @@
     .btn-blue:hover{background:#c3dff5}
     .btn-orange{background:#fdebd0;color:#784212;border:1px solid #f0b27a}
     .btn-orange:hover{background:#fad7a0}
+    .btn-purple{background:#e8daef;color:#5b2c6f;border:1px solid #d2b4de}
+    .btn-purple:hover{background:#d7bde2}
     .btn-red{background:#fadbd8;color:#7b241c;border:1px solid #f1948a}
     .btn-danger{background:var(--red);color:var(--white)}
     .btn-danger:hover{filter:brightness(.9)}
@@ -307,12 +309,30 @@
         <div class="panel">
           <div class="panel-title">🔄 Sync ข้อมูล <span class="badge">Firebase ↔ Google Sheet</span></div>
           <div class="sync-bar">
-            <button class="btn btn-green" onclick="syncSheetToFirebase()">📥 Sheet → Firebase</button>
-            <button class="btn btn-blue" onclick="syncFirebaseToSheet()">📤 Firebase → Sheet</button>
-            <button class="btn btn-orange" onclick="syncAll()">🔄 Sync ทั้งหมด</button>
+            <button class="btn btn-pink" onclick="syncMerge()" title="Merge-safe sync ผ่าน Apps Script — preserve รูป + variants + ไม่ลบ SKU ที่ไม่อยู่ใน Sheet">🔀 Sync Merge (Sheet ↔ Firebase)</button>
+            <button class="btn btn-purple" onclick="openMergeSheetModal()" title="ทางเลือก: รับไฟล์ CSV/XLSX โดยตรง ไม่ผ่าน Apps Script">📂 Merge จากไฟล์ (CSV/XLSX)</button>
+          </div>
+          <div style="font-size:.78em;color:var(--purple-mid);margin-bottom:10px;line-height:1.6">
+            ✓ <strong>Merge-safe</strong>: PATCH-merge ไม่ทับ • backup ก่อนเขียน • preserve รูป + variants • ไม่ลบ SKU ที่ไม่อยู่ใน Sheet<br>
+            🔁 Firebase → Sheet sync อัตโนมัติทุก 5 นาที (ผ่าน Apps Script trigger)
           </div>
           <div style="font-size:.82em;color:var(--purple-mid);margin-bottom:10px">Sync ล่าสุด: <span id="last-sync">ยังไม่ได้ sync</span></div>
           <div class="sync-log" id="sync-log"><span class="log-info">// พร้อมใช้งาน — เลือก sync เพื่อเริ่มต้น</span></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">💾 Backup & Restore <span class="badge">เก็บ 10 backup ล่าสุด</span></div>
+          <div class="sync-bar">
+            <button class="btn btn-pink" onclick="createManualBackup()">📸 Backup ตอนนี้</button>
+            <button class="btn btn-orange" onclick="openImportJsonModal()">🔧 Import JSON (กู้คืนฉุกเฉิน)</button>
+            <button class="btn btn-ghost" onclick="refreshBackupList()">🔄 รีเฟรช</button>
+          </div>
+          <div style="font-size:.82em;color:var(--purple-mid);margin-bottom:10px">
+            🛡️ ระบบ backup อัตโนมัติทุกครั้งที่ลูกค้ากด Sync จาก Page365 (เก็บ 10 ครั้งล่าสุด)
+          </div>
+          <div id="backup-list" style="display:grid;gap:8px;max-height:420px;overflow-y:auto">
+            <div style="color:var(--purple-mid);font-size:.85em;padding:14px;text-align:center">กำลังโหลด...</div>
+          </div>
         </div>
       </div>
 
@@ -354,12 +374,53 @@
 
           <div class="sync-bar">
             <button class="btn btn-pink" onclick="openProductModal()">+ เพิ่มสินค้า</button>
-            <button class="btn btn-green" onclick="syncSheetToFirebase('products')">📥 ดึงจาก Sheet</button>
-            <button class="btn btn-blue" onclick="syncFirebaseToSheet('products')">📤 บันทึกไป Sheet</button>
+            <button class="btn btn-purple" onclick="autoFillVariantImages()" title="เติมรูป variant ที่ยังว่าง จากรูปสีเดียวกัน หรือรูปหลัก">🪄 เติมรูป variant อัตโนมัติ</button>
           </div>
           <div class="search-bar">
             <input class="search-input" id="product-search" placeholder="🔍 ค้นหาชื่อสินค้า / ประเภท / SKU..." oninput="filterProducts()">
           </div>
+          <div class="filter-bar" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px">
+            <select id="filter-category" class="filter-select" onchange="filterProducts()">
+              <option value="">📂 ประเภททั้งหมด</option>
+            </select>
+            <select id="filter-stock" class="filter-select" onchange="filterProducts()">
+              <option value="">📦 Stock ทั้งหมด</option>
+              <option value="out">หมด</option>
+              <option value="low">เหลือน้อย (&lt; 5)</option>
+              <option value="in">มีของ</option>
+              <option value="none">ไม่มี variants</option>
+            </select>
+            <select id="filter-image" class="filter-select" onchange="filterProducts()">
+              <option value="">🖼️ รูปทั้งหมด</option>
+              <option value="has">มีรูปหลัก</option>
+              <option value="missing">ไม่มีรูปหลัก</option>
+              <option value="variant-missing">มี variant ไม่มีรูป</option>
+            </select>
+            <select id="filter-marketplace" class="filter-select" onchange="filterProducts()">
+              <option value="">🛍️ Marketplace ทั้งหมด</option>
+              <option value="shopee">มี Shopee</option>
+              <option value="tiktok">มี TikTok</option>
+              <option value="lazada">มี Lazada</option>
+              <option value="page365">มี Page365</option>
+              <option value="no-marketplace">ยังไม่มี marketplace</option>
+            </select>
+            <select id="filter-sort" class="filter-select" onchange="filterProducts()">
+              <option value="">↕️ เรียง: ค่าเริ่มต้น</option>
+              <option value="name_asc">ชื่อ A→Z</option>
+              <option value="name_desc">ชื่อ Z→A</option>
+              <option value="price_asc">ราคา ต่ำ→สูง</option>
+              <option value="price_desc">ราคา สูง→ต่ำ</option>
+              <option value="stock_desc">Stock มาก→น้อย</option>
+              <option value="stock_asc">Stock น้อย→มาก</option>
+            </select>
+            <button class="btn btn-ghost" style="padding:6px 12px;font-size:.78em" onclick="clearProductFilters()">✕ ล้างฟิลเตอร์</button>
+            <div id="filter-count" style="margin-left:auto;font-size:.82em;color:var(--purple-mid);font-weight:600"></div>
+          </div>
+          <style>
+            .filter-select{padding:7px 12px;border-radius:8px;border:1px solid var(--pink-light);background:#fff;font-size:.82em;font-weight:500;color:var(--text);font-family:'Prompt',sans-serif;cursor:pointer;min-width:150px}
+            .filter-select:focus{outline:none;border-color:var(--pink)}
+            body.dark .filter-select{background:#1e1c2e;border-color:#2a2640;color:#e4dfff}
+          </style>
           <div class="table-wrap">
             <table id="product-table">
               <thead><tr><th>รูป</th><th>ชื่อสินค้า</th><th>ประเภท</th><th>ราคา</th><th>SKU</th><th>Stock</th><th>Shopee</th><th>TikTok</th><th>จัดการ</th></tr></thead>
@@ -375,8 +436,6 @@
           <div class="panel-title">📝 จัดการคีย์ลัดทั่วไป</div>
           <div class="sync-bar">
             <button class="btn btn-pink" onclick="openGeneralModal()">+ เพิ่มคีย์ลัด</button>
-            <button class="btn btn-green" onclick="syncSheetToFirebase('general')">📥 ดึงจาก Sheet</button>
-            <button class="btn btn-blue" onclick="syncFirebaseToSheet('general')">📤 บันทึกไป Sheet</button>
           </div>
           <div class="search-bar">
             <input class="search-input" id="general-search" placeholder="🔍 ค้นหาชื่อ / หมวดหมู่..." oninput="filterGeneral()">
@@ -525,11 +584,11 @@
         </label>
         <label style="display:flex;align-items:center;gap:8px;font-size:.9em;cursor:pointer;margin-bottom:8px">
           <input type="checkbox" id="sync-update-mainimg">
-          <span>🖼️ อัพเดตรูปหลักสินค้า (ดึงรูปแรกจาก Page365)</span>
+          <span>🖼️ เติมรูปหลักสินค้า <strong style="color:#1a6e3f">เฉพาะที่ว่าง</strong> (ไม่ทับรูปที่มีอยู่)</span>
         </label>
         <label style="display:flex;align-items:center;gap:8px;font-size:.9em;cursor:pointer">
           <input type="checkbox" id="sync-fill-empty-variant-img" checked>
-          <span>🎨 เติมรูป variant ที่ยังว่าง (ใช้รูปแรกของ Page365 product)</span>
+          <span>🎨 เติมรูป variant <strong style="color:#1a6e3f">เฉพาะที่ว่าง</strong> (ไม่ทับรูปที่ตั้งไว้)</span>
         </label>
       </div>
       <div style="font-size:.78em;color:var(--purple-mid);background:#fff3cd;border-radius:8px;padding:10px">
@@ -546,6 +605,118 @@
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('sync-all-modal')" id="sync-cancel-btn">ยกเลิก</button>
       <button class="btn btn-pink" onclick="runSyncAll()" id="sync-start-btn">🚀 เริ่ม Sync</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MERGE FROM SHEET MODAL ── -->
+<div class="modal-overlay" id="merge-sheet-modal">
+  <div class="modal" style="max-width:900px">
+    <div class="modal-title">🔀 Merge จากไฟล์ Sheet (ปลอดภัย)</div>
+    <div style="font-size:.85em;color:var(--purple-mid);line-height:1.7;background:var(--pink-pale);padding:10px 14px;border-radius:10px;margin-bottom:12px">
+      <strong>วิธีใช้:</strong><br>
+      1. เปิด Google Sheet → <strong>File → Download → CSV หรือ XLSX</strong><br>
+      2. กดปุ่ม "📂 เลือกไฟล์" ด้านล่าง<br>
+      3. ระบบจะแมตช์ SKU (column G / row[6]) แล้ว Merge เฉพาะ field ที่ติ๊ก<br>
+      <strong style="color:#1a6e3f">• ไม่ลบ SKU ที่ไม่อยู่ใน Sheet • ไม่แตะรูปถ้าไม่ติ๊ก</strong>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap">
+      <label class="btn btn-purple" style="cursor:pointer;margin:0">
+        📂 เลือกไฟล์ CSV / XLSX
+        <input type="file" id="merge-sheet-file" accept=".csv,.xlsx,.xls" style="display:none" onchange="loadMergeSheetFile(event)">
+      </label>
+      <span id="merge-sheet-filename" style="font-size:.82em;color:var(--purple-mid)"></span>
+    </div>
+
+    <div style="background:#fff3cd;border-radius:10px;padding:10px 14px;margin:12px 0;font-size:.85em">
+      <strong>🎯 เลือก field ที่จะ Merge:</strong>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:6px;margin-top:8px">
+        <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="ms-text" checked onchange="renderMergeSheetPreview()"> 📝 Text fields (ชื่อ/ประเภท/ราคา/รายละเอียด)</label>
+        <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="ms-marketplaces" checked onchange="renderMergeSheetPreview()"> 🛒 Marketplace links (Shopee/TikTok/Lazada/Page365)</label>
+        <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="ms-location" checked onchange="renderMergeSheetPreview()"> 📍 พิกัด/Location</label>
+        <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="ms-mainimg" onchange="renderMergeSheetPreview()"> 🖼️ รูปหลัก (เฉพาะที่ Sheet มี)</label>
+        <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="ms-sizechart" onchange="renderMergeSheetPreview()"> 📏 ตารางไซส์</label>
+        <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="ms-variants" onchange="renderMergeSheetPreview()"> 🎨 Variants (stock + เพิ่มที่ขาด, รูป preserve)</label>
+        <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="ms-create-new" onchange="renderMergeSheetPreview()"> ➕ สร้าง SKU ใหม่ ถ้าไม่อยู่ใน Firebase</label>
+      </div>
+      <div style="font-size:.75em;color:var(--purple-mid);margin-top:8px">
+        💡 ฟิลด์ที่ไม่ติ๊กจะ <strong>คงเดิมใน Firebase</strong> ไม่ถูกเขียนทับ
+      </div>
+    </div>
+
+    <div id="merge-sheet-preview" style="background:#fafafa;border-radius:10px;padding:10px;font-size:.85em;max-height:40vh;overflow-y:auto;color:var(--purple-mid)">
+      — ยังไม่ได้โหลดไฟล์ —
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('merge-sheet-modal')">ยกเลิก</button>
+      <button class="btn btn-pink" id="merge-sheet-apply-btn" onclick="applyMergeSheet()" disabled>✓ Apply Merge</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── IMPORT JSON (EMERGENCY RECOVERY) MODAL ── -->
+<div class="modal-overlay" id="import-json-modal">
+  <div class="modal" style="max-width:760px">
+    <div class="modal-title">🔧 Import JSON (กู้คืนฉุกเฉิน)</div>
+    <div style="font-size:.85em;color:var(--purple-mid);line-height:1.7;background:var(--pink-pale);padding:10px 14px;border-radius:10px;margin-bottom:12px">
+      <strong>วิธีใช้ — เลือกอย่างใดอย่างหนึ่ง:</strong><br>
+      <strong>A) อัพโหลด JSON file</strong> (เช่น Firebase Console export) — กดปุ่ม "📂 เลือกไฟล์" ด้านล่าง<br>
+      <strong>B) Paste จาก console</strong> — ที่เครื่องอื่นที่ยังเปิด admin อยู่ → F12 Console → พิมพ์ <code style="background:#fff;padding:2px 6px;border-radius:4px">copy(JSON.stringify(allProducts))</code> → paste ลงช่อง<br>
+      <br>รองรับทั้ง <code>{"-key": [row]}</code> และ Firebase export <code>{"products": {...}, "general": {...}}</code>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap">
+      <label class="btn btn-purple" style="cursor:pointer;margin:0">
+        📂 เลือกไฟล์ JSON
+        <input type="file" id="import-json-file" accept=".json,application/json" style="display:none" onchange="loadImportJsonFile(event)">
+      </label>
+      <span id="import-json-filename" style="font-size:.82em;color:var(--purple-mid)"></span>
+    </div>
+    <textarea id="import-json-text" placeholder='หรือวาง JSON ที่ copy มา...' style="width:100%;min-height:120px;padding:10px;border-radius:8px;border:1px solid var(--pink-light);font-family:monospace;font-size:.78em;resize:vertical" oninput="document.getElementById(&quot;import-json-filename&quot;).textContent=&quot;&quot;"></textarea>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center">
+      <button class="btn btn-ghost" onclick="previewImportJson()">👁 Preview</button>
+      <div id="import-json-preview" style="flex:1;font-size:.85em;color:var(--purple-mid)"></div>
+    </div>
+    <div style="background:#fff3cd;border-radius:8px;padding:10px;margin-top:10px;font-size:.8em;color:#7d5413">
+      ⚠️ <strong>เลือกโหมด:</strong><br>
+      <label style="display:flex;align-items:center;gap:6px;margin-top:4px;cursor:pointer">
+        <input type="radio" name="import-json-mode" value="merge" checked>
+        <span><strong>🔀 Merge</strong> — เพิ่ม/อัพเดต SKU ใน JSON เท่านั้น ของเดิมที่ไม่มีใน JSON ไม่แตะ (ปลอดภัยกว่า)</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;margin-top:4px;cursor:pointer">
+        <input type="radio" name="import-json-mode" value="replace">
+        <span><strong>♻️ Replace All</strong> — เขียนทับ <code>/products</code> ทั้งหมด (ใช้เมื่อ JSON ครบจริง ๆ)</span>
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('import-json-modal')">ยกเลิก</button>
+      <button class="btn btn-pink" id="import-json-apply-btn" onclick="applyImportJson()" disabled>✓ Restore</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── AUTO-FILL PREVIEW MODAL ── -->
+<div class="modal-overlay" id="autofill-modal">
+  <div class="modal" style="max-width:920px">
+    <div class="modal-title">🪄 Preview เติมรูป variant (ตรวจสีก่อน Apply)</div>
+    <div id="autofill-summary" style="font-size:.88em;color:var(--purple-mid);margin-bottom:12px;line-height:1.7"></div>
+    <div style="background:var(--pink-pale);border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;gap:14px;flex-wrap:wrap;align-items:center">
+      <label style="display:flex;align-items:center;gap:6px;font-size:.85em;cursor:pointer;font-weight:600">
+        <input type="checkbox" id="af-use-main" checked onchange="rerenderAutofillPreview()">
+        🖼️ ใช้รูปหลักเป็น fallback (เมื่อไม่มีสีตรง)
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:.85em;cursor:pointer;font-weight:600">
+        <input type="checkbox" id="af-cross-product" checked onchange="rerenderAutofillPreview()">
+        🔄 ยืมจากสินค้าอื่นที่สีตรง
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:.85em;cursor:pointer;font-weight:600">
+        <input type="checkbox" id="af-only-same-color" onchange="rerenderAutofillPreview()">
+        🎯 เฉพาะสีตรง 100% (ข้าม fallback ทุกแบบ)
+      </label>
+    </div>
+    <div id="autofill-preview" style="max-height:60vh;overflow-y:auto;background:#fafafa;border-radius:10px;padding:10px"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('autofill-modal')">ยกเลิก</button>
+      <button class="btn btn-pink" id="af-apply-btn" onclick="applyAutofill()">✓ Apply ที่ติ๊กไว้</button>
     </div>
   </div>
 </div>
@@ -630,32 +801,106 @@ let editGeneralKey = null;
 let allProducts = {};
 let allGeneral  = {};
 
-// ─── SETTINGS (localStorage) ───────────────────
-function loadSettings() {
-  const s = JSON.parse(localStorage.getItem('admin_settings') || '{}');
-  document.getElementById('cf-cloud').value   = s.cloudName || '';
-  document.getElementById('cf-preset').value  = s.uploadPreset || '';
-  document.getElementById('cf-folder').value  = s.folder || '';
-  document.getElementById('gas-url').value    = s.gasUrl || '';
+// ─── SETTINGS (Firebase + localStorage cache) ───────────────────
+// Settings are stored at /_adminSettings in Firebase so every device shares them.
+// localStorage is used as offline cache so the UI populates instantly on load.
+let _settingsRemoteApplying = false; // guard to prevent echo when remote pushes update
+let _settingsSaveTimer = null;
+
+function _readLocalSettings() {
+  return JSON.parse(localStorage.getItem('admin_settings') || '{}');
+}
+function _writeLocalSettings(s) {
+  localStorage.setItem('admin_settings', JSON.stringify(s));
+}
+function _applySettingsToForm(s) {
+  const cf = document.getElementById('cf-cloud');
+  const cp = document.getElementById('cf-preset');
+  const cfo = document.getElementById('cf-folder');
+  const gu = document.getElementById('gas-url');
+  if (cf)  cf.value  = s.cloudName || '';
+  if (cp)  cp.value  = s.uploadPreset || '';
+  if (cfo) cfo.value = s.folder || '';
+  if (gu)  gu.value  = s.gasUrl || '';
   const aa = document.getElementById('auto-apply-toggle');
   if (aa) aa.checked = !!s.autoApplyImport;
+}
+
+function loadSettings() {
+  _applySettingsToForm(_readLocalSettings()); // instant from cache
   refreshLastUpdateDisplay();
 }
+
+// Called whenever a field changes — debounce + push to Firebase
 function saveSettings() {
-  const prev = JSON.parse(localStorage.getItem('admin_settings') || '{}');
-  localStorage.setItem('admin_settings', JSON.stringify({
+  if (_settingsRemoteApplying) return; // avoid echo
+  const prev = _readLocalSettings();
+  const next = {
     cloudName:    document.getElementById('cf-cloud').value.trim(),
     uploadPreset: document.getElementById('cf-preset').value.trim(),
     folder:       document.getElementById('cf-folder').value.trim(),
     gasUrl:       document.getElementById('gas-url').value.trim(),
     autoApplyImport: !!document.getElementById('auto-apply-toggle')?.checked,
     lastImportAt: prev.lastImportAt || null,
-  }));
+  };
+  _writeLocalSettings(next);
+  clearTimeout(_settingsSaveTimer);
+  _settingsSaveTimer = setTimeout(() => {
+    if (!db) return;
+    db.ref('_adminSettings').update({
+      cloudName: next.cloudName,
+      uploadPreset: next.uploadPreset,
+      folder: next.folder,
+      gasUrl: next.gasUrl,
+      autoApplyImport: next.autoApplyImport,
+      _updatedAt: Date.now()
+    }).catch(e => console.warn('Save settings failed:', e));
+  }, 600);
 }
+
+function subscribeRemoteSettings() {
+  if (!db) return;
+  db.ref('_adminSettings').on('value', snap => {
+    const remote = snap.val();
+    if (!remote) {
+      // No remote yet — seed from local on first connect
+      const local = _readLocalSettings();
+      if (local.cloudName || local.gasUrl) {
+        db.ref('_adminSettings').set({
+          cloudName: local.cloudName || '',
+          uploadPreset: local.uploadPreset || '',
+          folder: local.folder || '',
+          gasUrl: local.gasUrl || '',
+          autoApplyImport: !!local.autoApplyImport,
+          lastImportAt: local.lastImportAt || null,
+          _updatedAt: Date.now()
+        }).catch(()=>{});
+      }
+      return;
+    }
+    const prev = _readLocalSettings();
+    const merged = {
+      cloudName: remote.cloudName || '',
+      uploadPreset: remote.uploadPreset || '',
+      folder: remote.folder || '',
+      gasUrl: remote.gasUrl || '',
+      autoApplyImport: !!remote.autoApplyImport,
+      // lastImportAt prefers remote if present, fallback local
+      lastImportAt: remote.lastImportAt != null ? remote.lastImportAt : (prev.lastImportAt || null)
+    };
+    _writeLocalSettings(merged);
+    _settingsRemoteApplying = true;
+    _applySettingsToForm(merged);
+    _settingsRemoteApplying = false;
+    refreshLastUpdateDisplay();
+  });
+}
+
 function setLastImportAt(ts) {
-  const s = JSON.parse(localStorage.getItem('admin_settings') || '{}');
+  const s = _readLocalSettings();
   s.lastImportAt = ts;
-  localStorage.setItem('admin_settings', JSON.stringify(s));
+  _writeLocalSettings(s);
+  if (db) db.ref('_adminSettings/lastImportAt').set(ts).catch(()=>{});
   refreshLastUpdateDisplay();
 }
 function refreshLastUpdateDisplay() {
@@ -720,6 +965,35 @@ function changePw() {
   document.getElementById('new-pw2').value = '';
 }
 
+// ─── Firebase array-shape normalizer ─────────────
+// Firebase RTDB sometimes returns arrays as numeric-keyed objects.
+// Convert {"0":a, "1":b} → [a, b] recursively for product rows.
+function _toArr(v) {
+  if (Array.isArray(v)) return v;
+  if (v && typeof v === 'object') {
+    const keys = Object.keys(v);
+    // Treat as array only if all keys are numeric (preserves variant objects)
+    if (keys.length && keys.every(k => /^\d+$/.test(k))) {
+      return keys.sort((a,b) => Number(a) - Number(b)).map(k => v[k]);
+    }
+  }
+  return v;
+}
+function _normalizeProducts(raw) {
+  const out = {};
+  Object.keys(raw || {}).forEach(k => {
+    const row = _toArr(raw[k]);
+    if (Array.isArray(row)) {
+      // Normalize row[12] (variants) too
+      if (row[12] !== undefined) row[12] = _toArr(row[12]);
+      out[k] = row;
+    } else {
+      out[k] = raw[k];
+    }
+  });
+  return out;
+}
+
 // ─── FIREBASE INIT ───────────────────────────────
 function initApp() {
   loadSettings();
@@ -729,7 +1003,7 @@ function initApp() {
 
   // Real-time listeners
   db.ref('products').on('value', snap => {
-    allProducts = snap.val() || {};
+    allProducts = _normalizeProducts(snap.val() || {});
     renderProductTable();
     updateStats();
   });
@@ -738,6 +1012,518 @@ function initApp() {
     renderGeneralTable();
     updateStats();
   });
+  // Live-refresh backup list when /_backups changes
+  db.ref('_backups').on('value', snap => {
+    renderBackupList(snap.val() || {});
+  });
+  // Sync shared admin settings across devices
+  subscribeRemoteSettings();
+}
+
+// ─── BACKUP & RESTORE ───────────────────────────
+const BACKUP_KEEP = 10;
+
+function _fmtBackupTime(ts) {
+  const d = new Date(Number(ts)||0);
+  const pad = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+function _fmtAge(ts) {
+  const s = Math.floor((Date.now() - Number(ts))/1000);
+  if (s < 60) return `${s} วินาทีที่แล้ว`;
+  const m = Math.floor(s/60);
+  if (m < 60) return `${m} นาทีที่แล้ว`;
+  const h = Math.floor(m/60);
+  if (h < 24) return `${h} ชั่วโมงที่แล้ว`;
+  return `${Math.floor(h/24)} วันที่แล้ว`;
+}
+
+function renderBackupList(all) {
+  const el = document.getElementById('backup-list');
+  if (!el) return;
+  const ids = Object.keys(all || {}).sort().reverse(); // newest first
+  if (!ids.length) {
+    el.innerHTML = '<div style="color:var(--purple-mid);font-size:.85em;padding:14px;text-align:center">ยังไม่มี backup</div>';
+    return;
+  }
+  el.innerHTML = ids.map(id => {
+    const b = all[id] || {};
+    const m = b.meta || {};
+    const ts = m.ts || Number(String(id).replace(/^bk_/,''))|| 0;
+    const src = m.source === 'manual' ? '📸 Manual'
+              : m.source === 'auto-sync' ? '🤖 Auto'
+              : m.source === 'sync-button' ? '👆 ลูกค้ากด Sync'
+              : (m.source || '—');
+    return `<div style="background:#fff;border:1px solid var(--pink-light);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <div style="font-weight:700;font-size:.92em">${_fmtBackupTime(ts)} <span style="color:var(--purple-mid);font-weight:500;font-size:.85em">• ${_fmtAge(ts)}</span></div>
+        <div style="font-size:.78em;color:var(--purple-mid);margin-top:2px">${src} • ${m.count||0} สินค้า${m.note?` • ${esc(m.note)}`:''}</div>
+      </div>
+      <button class="btn btn-ghost" style="padding:6px 12px;font-size:.78em" onclick="previewBackup('${id}')">👁 Preview</button>
+      <button class="btn btn-orange" style="padding:6px 12px;font-size:.78em" onclick="restoreBackup('${id}')">⏪ Restore</button>
+      <button class="btn btn-ghost" style="padding:6px 10px;font-size:.78em;color:#b03030" onclick="deleteBackup('${id}')" title="ลบ backup นี้">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+function refreshBackupList() {
+  db.ref('_backups').once('value').then(snap => renderBackupList(snap.val() || {}));
+}
+
+async function createManualBackup() {
+  if (!db) { toast('Firebase ยังไม่พร้อม','error'); return; }
+  try {
+    const snap = await db.ref('products').once('value');
+    const products = snap.val() || {};
+    const count = Object.keys(products).length;
+    if (!count) { toast('ไม่มีสินค้าใน Firebase','warn'); return; }
+    const bkId = 'bk_' + Date.now();
+    await db.ref(`_backups/${bkId}`).set({
+      meta: { ts: Date.now(), source: 'manual', count, note: 'Manual backup จาก admin' },
+      products
+    });
+    // Rotate
+    const bkSnap = await db.ref('_backups').once('value');
+    const ids = Object.keys(bkSnap.val() || {}).sort();
+    if (ids.length > BACKUP_KEEP) {
+      const removals = {};
+      ids.slice(0, ids.length - BACKUP_KEEP).forEach(id => removals[`_backups/${id}`] = null);
+      await db.ref().update(removals);
+    }
+    toast(`✓ Backup สำเร็จ • ${count} สินค้า`,'success');
+  } catch(e) {
+    toast('Backup ล้มเหลว: ' + e.message,'error');
+  }
+}
+
+async function previewBackup(id) {
+  try {
+    const snap = await db.ref(`_backups/${id}`).once('value');
+    const b = snap.val() || {};
+    const products = b.products || {};
+    const m = b.meta || {};
+    const rows = Object.values(products);
+    const totalVariants = rows.reduce((s,r) => s + (Array.isArray(r?.[12]) ? r[12].length : 0), 0);
+    const withImg = rows.filter(r => r?.[4]).length;
+    const variantImgs = rows.reduce((s,r) => s + (Array.isArray(r?.[12]) ? r[12].filter(v=>v?.image).length : 0), 0);
+    alert(
+      `📸 Backup: ${_fmtBackupTime(m.ts)}\n` +
+      `Source: ${m.source||'—'}\n\n` +
+      `สินค้าทั้งหมด: ${rows.length}\n` +
+      `มีรูปหลัก: ${withImg}\n` +
+      `Variants ทั้งหมด: ${totalVariants}\n` +
+      `Variants ที่มีรูป: ${variantImgs}\n\n` +
+      `ตัวอย่าง 3 รายการแรก:\n` +
+      rows.slice(0,3).map(r => `• ${r?.[0]||'(ไม่มีชื่อ)'}`).join('\n')
+    );
+  } catch(e) {
+    toast('Preview ล้มเหลว: ' + e.message,'error');
+  }
+}
+
+async function restoreBackup(id) {
+  // Peek payload to see what's inside (products only / both)
+  const bkSnap = await db.ref(`_backups/${id}`).once('value');
+  const bk = bkSnap.val() || {};
+  const hasProducts = !!bk.products && Object.keys(bk.products).length;
+  const hasGeneral = !!bk.general && Object.keys(bk.general).length;
+  if (!hasProducts && !hasGeneral) { toast('Backup ว่างเปล่า','error'); return; }
+
+  const lines = [];
+  if (hasProducts) lines.push(`• /products (${Object.keys(bk.products).length} รายการ)`);
+  if (hasGeneral)  lines.push(`• /general (${Object.keys(bk.general).length} รายการ)`);
+
+  if (!confirm(
+    `⚠️ ยืนยันการ Restore?\n\n` +
+    `ระบบจะ:\n` +
+    `1. สร้าง backup ของข้อมูลปัจจุบันก่อน (กันพลาด)\n` +
+    `2. เขียนทับด้วย backup นี้:\n${lines.join('\n')}\n\n` +
+    `Backup ID: ${id}`
+  )) return;
+
+  try {
+    // Safety backup of current state (products + general)
+    const [curP, curG] = await Promise.all([
+      db.ref('products').once('value'),
+      db.ref('general').once('value'),
+    ]);
+    const curProducts = curP.val() || {};
+    const curGeneral = curG.val() || {};
+    const safetyId = 'bk_' + Date.now();
+    await db.ref(`_backups/${safetyId}`).set({
+      meta: { ts: Date.now(), source: 'manual', count: Object.keys(curProducts).length, note: `Safety ก่อน restore ${id}` },
+      products: curProducts,
+      general: curGeneral
+    });
+
+    // Overwrite paths that exist in the backup
+    const writes = {};
+    if (hasProducts) writes['products'] = bk.products;
+    if (hasGeneral)  writes['general']  = bk.general;
+    await db.ref().update(writes);
+
+    // Rotate
+    const allSnap = await db.ref('_backups').once('value');
+    const ids = Object.keys(allSnap.val() || {}).sort();
+    if (ids.length > BACKUP_KEEP) {
+      const removals = {};
+      ids.slice(0, ids.length - BACKUP_KEEP).forEach(bid => removals[`_backups/${bid}`] = null);
+      await db.ref().update(removals);
+    }
+
+    const summary = [hasProducts && `${Object.keys(bk.products).length} สินค้า`, hasGeneral && `${Object.keys(bk.general).length} คีย์ลัด`].filter(Boolean).join(' + ');
+    toast(`✓ Restore สำเร็จ • ${summary}`,'success');
+  } catch(e) {
+    toast('Restore ล้มเหลว: ' + e.message,'error');
+  }
+}
+
+async function deleteBackup(id) {
+  if (!confirm(`ลบ backup นี้ถาวร?\n\n${id}`)) return;
+  try {
+    await db.ref(`_backups/${id}`).remove();
+    toast('ลบ backup แล้ว','success');
+  } catch(e) {
+    toast('ลบไม่ได้: ' + e.message,'error');
+  }
+}
+
+// ─── MERGE FROM SHEET ────────────────────────────
+// Parse CSV/XLSX exported from Google Sheets (Apps Script's Firebase→Sheet schema:
+// column A..M = row[0]..row[12]). Match by parent_sku (column G / row[6]) and
+// merge ONLY user-selected fields. Never delete Firebase SKUs that are missing
+// from the file. Preserve images unless user explicitly opts in.
+let _mergeSheetEntries = null; // [{parent, row13}] parsed from file
+
+function openMergeSheetModal() {
+  document.getElementById('merge-sheet-file').value = '';
+  document.getElementById('merge-sheet-filename').textContent = '';
+  document.getElementById('merge-sheet-preview').textContent = '— ยังไม่ได้โหลดไฟล์ —';
+  document.getElementById('merge-sheet-apply-btn').disabled = true;
+  _mergeSheetEntries = null;
+  openModal('merge-sheet-modal');
+}
+
+function _parseMaybeJsonVariants(cell) {
+  if (Array.isArray(cell)) return cell;
+  const s = String(cell || '').trim();
+  if (!s) return [];
+  if (s.startsWith('[') || s.startsWith('{')) {
+    try { const v = JSON.parse(s); return Array.isArray(v) ? v : []; }
+    catch { return []; }
+  }
+  return [];
+}
+
+async function loadMergeSheetFile(event) {
+  const file = event.target.files?.[0];
+  event.target.value = '';
+  if (!file) return;
+  document.getElementById('merge-sheet-filename').textContent = `📄 ${file.name} (${(file.size/1024).toFixed(1)} KB)`;
+  try {
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type:'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const json = XLSX.utils.sheet_to_json(ws, { header:1, defval:'' });
+    if (!json.length) { toast('ไฟล์ว่าง','error'); return; }
+
+    // Detect header row: row 0 might contain labels like "name", "parent_sku" etc.
+    const firstRow = (json[0] || []).map(c => String(c||'').toLowerCase().trim());
+    const looksLikeHeader = firstRow.some(c => /name|sku|stock|price|product|parent|variant|ชื่อ|ราคา/i.test(c));
+    const startRow = looksLikeHeader ? 1 : 0;
+
+    // Extract entries: keep up to 13 columns matching row[] structure
+    const entries = [];
+    for (let i = startRow; i < json.length; i++) {
+      const r = json[i] || [];
+      if (!r.length) continue;
+      const row13 = [];
+      for (let c = 0; c < 13; c++) {
+        row13.push(c === 12 ? _parseMaybeJsonVariants(r[c]) : String(r[c] ?? '').trim());
+      }
+      const parent = row13[6];
+      if (!parent) continue; // need SKU to match
+      entries.push({ parent, row13 });
+    }
+
+    if (!entries.length) {
+      document.getElementById('merge-sheet-preview').innerHTML = `<span style="color:#d92626">❌ ไม่พบแถวที่มี parent_sku (column G) — ตรวจรูปแบบไฟล์</span>`;
+      _mergeSheetEntries = null;
+      return;
+    }
+    _mergeSheetEntries = entries;
+    renderMergeSheetPreview();
+  } catch(e) {
+    toast('อ่านไฟล์ไม่สำเร็จ: ' + e.message, 'error');
+  }
+}
+
+function _mergeSheetFlags() {
+  return {
+    text:         document.getElementById('ms-text').checked,
+    marketplaces: document.getElementById('ms-marketplaces').checked,
+    location:     document.getElementById('ms-location').checked,
+    mainimg:      document.getElementById('ms-mainimg').checked,
+    sizechart:    document.getElementById('ms-sizechart').checked,
+    variants:     document.getElementById('ms-variants').checked,
+    createNew:    document.getElementById('ms-create-new').checked,
+  };
+}
+
+function _buildMergeSheetPlan() {
+  if (!_mergeSheetEntries) return null;
+  const flags = _mergeSheetFlags();
+  // Index Firebase by parent_sku (row[6])
+  const fbBySku = {};
+  Object.entries(allProducts || {}).forEach(([k, r]) => {
+    const sku = String(r?.[6] || '').trim();
+    if (sku) fbBySku[sku] = { key: k, row: r };
+  });
+
+  const updates = [];   // { key, before, after, changedFields:[], variantChanges:{...} }
+  const creates = [];   // { row13 }
+  const unmatched = []; // [parent]
+
+  for (const ent of _mergeSheetEntries) {
+    const existing = fbBySku[ent.parent];
+    if (!existing) {
+      if (flags.createNew) creates.push({ row13: ent.row13 });
+      else unmatched.push(ent.parent);
+      continue;
+    }
+    const before = existing.row;
+    const after = [...before];
+    while (after.length < 13) after.push('');
+    const changed = [];
+
+    const setIfChosen = (idx, label, when) => {
+      if (!when) return;
+      const v = ent.row13[idx];
+      if (v == null) return;
+      if (typeof v === 'string') {
+        if (v && v !== String(after[idx] || '')) { after[idx] = v; changed.push(label); }
+      }
+    };
+
+    // Text fields: name(0), type(1), price(2), detail(3)
+    setIfChosen(0, 'ชื่อ',         flags.text);
+    setIfChosen(1, 'ประเภท',       flags.text);
+    setIfChosen(2, 'ราคา',         flags.text);
+    setIfChosen(3, 'รายละเอียด',   flags.text);
+    // Marketplaces: shopee(7), tiktok(8), lazada(10), page365(11)
+    setIfChosen(7,  'Shopee',  flags.marketplaces);
+    setIfChosen(8,  'TikTok',  flags.marketplaces);
+    setIfChosen(10, 'Lazada',  flags.marketplaces);
+    setIfChosen(11, 'Page365', flags.marketplaces);
+    setIfChosen(9,  'พิกัด',    flags.location);
+    setIfChosen(5,  'ตารางไซส์', flags.sizechart);
+    // Main image — only when flag ON and Sheet has a value (still don't blank)
+    if (flags.mainimg) {
+      const v = String(ent.row13[4] || '').trim();
+      if (v && v !== String(after[4] || '')) { after[4] = v; changed.push('รูปหลัก'); }
+    }
+
+    // Variants merge (stock + add new, preserve image)
+    let variantChanged = false;
+    if (flags.variants && Array.isArray(ent.row13[12]) && ent.row13[12].length) {
+      const _norm = s => String(s||'').trim().toLowerCase().replace(/\s+/g,'');
+      const existingVs = Array.isArray(after[12]) ? after[12] : [];
+      const byName = {};
+      existingVs.forEach(v => { byName[_norm(v?.name)] = v; });
+      const merged = [];
+      const seen = new Set();
+      ent.row13[12].forEach(sv => {
+        const n = _norm(sv?.name);
+        const ev = byName[n];
+        if (ev) {
+          const newStock = Number(sv.stock) || 0;
+          if (newStock !== (Number(ev.stock)||0)) variantChanged = true;
+          merged.push({ ...ev, stock: newStock, name: ev.name || sv.name, sku: ev.sku || sv.sku });
+          seen.add(n);
+        } else {
+          merged.push({ sku: String(sv.sku||''), name: String(sv.name||''), stock: Number(sv.stock)||0, image: '' });
+          variantChanged = true;
+        }
+      });
+      // Keep existing variants that Sheet didn't mention
+      existingVs.forEach(v => { if (!seen.has(_norm(v?.name))) merged.push(v); });
+      if (variantChanged) { after[12] = merged; changed.push(`variants(${merged.length})`); }
+    }
+
+    if (changed.length) {
+      updates.push({ key: existing.key, before, after, changedFields: changed });
+    }
+  }
+
+  return { updates, creates, unmatched, sheetCount: _mergeSheetEntries.length };
+}
+
+function renderMergeSheetPreview() {
+  if (!_mergeSheetEntries) return;
+  const plan = _buildMergeSheetPlan();
+  if (!plan) return;
+  const el = document.getElementById('merge-sheet-preview');
+  const btn = document.getElementById('merge-sheet-apply-btn');
+
+  if (!plan.updates.length && !plan.creates.length) {
+    el.innerHTML = `<div style="text-align:center;padding:14px">ไม่มี field ที่จะเปลี่ยน — ลองติ๊ก field เพิ่ม หรือเช็คว่า SKU ในไฟล์ตรงกับใน Firebase</div>
+      <div style="margin-top:8px">ไฟล์มี <strong>${plan.sheetCount}</strong> แถว • Match <strong>${plan.sheetCount - plan.unmatched.length}</strong> • ไม่ match <strong>${plan.unmatched.length}</strong></div>`;
+    btn.disabled = true;
+    return;
+  }
+
+  const sample = plan.updates.slice(0, 30).map(u => {
+    const name = u.before[0] || u.before[6] || '(ไม่มีชื่อ)';
+    return `<div style="background:#fff;padding:8px 12px;border-radius:8px;margin-bottom:6px;border:1px solid var(--pink-light)">
+      <div style="font-weight:600;font-size:.88em">${esc(name)} <span style="color:var(--purple-mid);font-weight:500;font-size:.85em">• SKU ${esc(u.before[6]||'')}</span></div>
+      <div style="font-size:.78em;color:#1a6e3f;margin-top:2px">เปลี่ยน: ${u.changedFields.map(esc).join(', ')}</div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML =
+    `<div style="background:#d5f5e3;color:#1a6e3f;padding:8px 12px;border-radius:8px;margin-bottom:10px;font-weight:600">
+       ✓ จะอัพเดต <strong>${plan.updates.length}</strong> สินค้า • สร้างใหม่ <strong>${plan.creates.length}</strong> • ` +
+    `ไม่ match <strong>${plan.unmatched.length}</strong> • ไฟล์มี <strong>${plan.sheetCount}</strong> แถว
+     </div>` +
+    sample +
+    (plan.updates.length > 30 ? `<div style="text-align:center;color:var(--purple-mid);padding:6px">... และอีก ${plan.updates.length - 30} รายการ</div>` : '') +
+    (plan.unmatched.length ? `<details style="margin-top:8px;font-size:.78em"><summary style="cursor:pointer">SKU ใน Sheet ที่ไม่ match Firebase (${plan.unmatched.length})</summary><div style="padding:6px;color:var(--purple-mid)">${plan.unmatched.slice(0,30).map(esc).join(', ')}${plan.unmatched.length>30?` +${plan.unmatched.length-30}`:''}</div></details>` : '');
+
+  btn.disabled = false;
+  btn.textContent = `✓ Apply Merge (${plan.updates.length + plan.creates.length})`;
+}
+
+async function applyMergeSheet() {
+  const plan = _buildMergeSheetPlan();
+  if (!plan || (!plan.updates.length && !plan.creates.length)) { toast('ไม่มีอะไรให้อัพเดต','warn'); return; }
+
+  if (!confirm(`🔀 ยืนยัน Merge?\n\n• อัพเดต: ${plan.updates.length}\n• สร้างใหม่: ${plan.creates.length}\n\nระบบจะ backup ก่อนเขียนอัตโนมัติ`)) return;
+
+  try {
+    await _preSyncBackup(`ก่อน Merge from Sheet (${plan.updates.length} update / ${plan.creates.length} new)`);
+  } catch(e) {
+    if (!confirm(`⚠️ Backup ล้ม: ${e.message}\n\nยังต้องการทำต่อ?`)) return;
+  }
+
+  try {
+    const ops = {};
+    plan.updates.forEach(u => { ops[`products/${u.key}`] = u.after; });
+    if (Object.keys(ops).length) await db.ref().update(ops);
+    for (const c of plan.creates) {
+      await db.ref('products').push(c.row13);
+    }
+    toast(`✓ Merge สำเร็จ • อัพเดต ${plan.updates.length} • สร้าง ${plan.creates.length}`, 'success');
+    closeModal('merge-sheet-modal');
+  } catch(e) {
+    toast('Merge ล้มเหลว: ' + e.message, 'error');
+  }
+}
+
+// ─── IMPORT JSON (EMERGENCY) ─────────────────────
+let _parsedImportJson = null;
+
+function openImportJsonModal() {
+  document.getElementById('import-json-text').value = '';
+  document.getElementById('import-json-preview').textContent = '';
+  document.getElementById('import-json-apply-btn').disabled = true;
+  _parsedImportJson = null;
+  openModal('import-json-modal');
+}
+
+function loadImportJsonFile(event) {
+  const file = event.target.files?.[0];
+  event.target.value = '';
+  if (!file) return;
+  document.getElementById('import-json-filename').textContent = `📄 ${file.name} (${(file.size/1024).toFixed(1)} KB)`;
+  const reader = new FileReader();
+  reader.onload = () => {
+    document.getElementById('import-json-text').value = String(reader.result || '');
+    previewImportJson();
+  };
+  reader.onerror = () => toast('อ่านไฟล์ไม่สำเร็จ','error');
+  reader.readAsText(file);
+}
+
+function previewImportJson() {
+  const txt = document.getElementById('import-json-text').value.trim();
+  const out = document.getElementById('import-json-preview');
+  const btn = document.getElementById('import-json-apply-btn');
+  if (!txt) { out.textContent = '— ยังไม่ได้วาง JSON —'; btn.disabled = true; _parsedImportJson = null; return; }
+  let raw;
+  try {
+    raw = JSON.parse(txt);
+  } catch(e) {
+    out.innerHTML = `<span style="color:#d92626">❌ JSON ไม่ถูกต้อง: ${esc(e.message)}</span>`;
+    btn.disabled = true; _parsedImportJson = null; return;
+  }
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    out.innerHTML = `<span style="color:#d92626">❌ ต้องเป็น object</span>`;
+    btn.disabled = true; _parsedImportJson = null; return;
+  }
+  // Detect Firebase export wrapper: top-level has "products" key
+  let products;
+  let extra = '';
+  if (raw.products && typeof raw.products === 'object' && !Array.isArray(raw.products)) {
+    products = raw.products;
+    extra = ' (จาก Firebase export — ดึงเฉพาะ /products)';
+  } else {
+    products = raw;
+  }
+  const keys = Object.keys(products);
+  const bad = keys.filter(k => !Array.isArray(products[k]));
+  if (bad.length) {
+    out.innerHTML = `<span style="color:#d92626">❌ ${bad.length} entry ไม่ใช่ array (row) — ตัวอย่าง: ${esc(bad.slice(0,3).join(', '))}</span>`;
+    btn.disabled = true; _parsedImportJson = null; return;
+  }
+  const rows = Object.values(products);
+  const withImg = rows.filter(r => r[4]).length;
+  const totalVariants = rows.reduce((s,r) => s + (Array.isArray(r[12]) ? r[12].length : 0), 0);
+  const variantImgs = rows.reduce((s,r) => s + (Array.isArray(r[12]) ? r[12].filter(v=>v?.image).length : 0), 0);
+  out.innerHTML =
+    `✓ <strong>${keys.length}</strong> สินค้า${extra} • รูปหลัก <strong>${withImg}</strong> • ` +
+    `variants <strong>${totalVariants}</strong> • รูป variant <strong>${variantImgs}</strong>`;
+  _parsedImportJson = products;
+  btn.disabled = false;
+}
+
+async function applyImportJson() {
+  if (!_parsedImportJson) { toast('ยังไม่ได้ Preview JSON','warn'); return; }
+  const mode = document.querySelector('input[name="import-json-mode"]:checked')?.value || 'merge';
+  const incomingKeys = Object.keys(_parsedImportJson);
+  const currentCount = Object.keys(allProducts||{}).length;
+
+  const warn = mode === 'replace'
+    ? `⚠️ โหมด "Replace All": จะลบทิ้งทุก SKU ที่ไม่อยู่ใน JSON\n\n` +
+      `• Firebase ตอนนี้: ${currentCount} สินค้า\n` +
+      `• JSON ที่ paste มา: ${incomingKeys.length} สินค้า\n` +
+      `• จะมี ${Math.max(currentCount - incomingKeys.length, 0)} สินค้าที่หายไป`
+    : `🔀 โหมด "Merge": เพิ่ม/อัพเดตเฉพาะ ${incomingKeys.length} SKU ใน JSON\n\n` +
+      `• Firebase ตอนนี้: ${currentCount} สินค้า\n` +
+      `• ของเดิมที่ไม่อยู่ใน JSON จะคงเดิม`;
+
+  if (!confirm(warn + `\n\nระบบจะ backup ก่อนเขียนอัตโนมัติ — ดำเนินการต่อ?`)) return;
+
+  try {
+    await _preSyncBackup(`ก่อน Import JSON (${mode}) ${incomingKeys.length} สินค้า`);
+  } catch(e) {
+    if (!confirm(`⚠️ Backup ล้ม: ${e.message}\n\nยังต้องการทำต่อ?`)) return;
+  }
+
+  try {
+    if (mode === 'replace') {
+      await db.ref('products').set(_parsedImportJson);
+    } else {
+      const ops = {};
+      for (const [k, v] of Object.entries(_parsedImportJson)) {
+        ops[`products/${k}`] = v;
+      }
+      await db.ref().update(ops);
+    }
+    toast(`✓ Restore สำเร็จ • ${incomingKeys.length} สินค้า (${mode})`,'success');
+    closeModal('import-json-modal');
+  } catch(e) {
+    toast('Restore ล้มเหลว: ' + e.message,'error');
+  }
 }
 
 // ─── STATS ──────────────────────────────────────
@@ -762,11 +1548,84 @@ function showSection(name) {
 
 // ─── PRODUCT TABLE ──────────────────────────────
 let productFilter = '';
+function _stockState(row){
+  const vs = Array.isArray(row?.[12]) ? row[12] : [];
+  if (!vs.length) return 'none';
+  const total = vs.reduce((s,v)=>s+(Number(v.stock)||0),0);
+  if (total <= 0) return 'out';
+  if (total < 5) return 'low';
+  return 'in';
+}
+function _totalStock(row){
+  const vs = Array.isArray(row?.[12]) ? row[12] : [];
+  return vs.reduce((s,v)=>s+(Number(v.stock)||0),0);
+}
+function _priceNum(row){
+  return parseInt(String(row?.[2]||'').replace(/[^0-9]/g,''))||0;
+}
+
+function _populateCategoryFilter(){
+  const sel = document.getElementById('filter-category');
+  if (!sel) return;
+  const cur = sel.value;
+  const cats = [...new Set(Object.values(allProducts).map(r => r?.[1]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'th'));
+  sel.innerHTML = '<option value="">📂 ประเภททั้งหมด</option>' + cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  if (cats.includes(cur)) sel.value = cur;
+}
+
+function clearProductFilters(){
+  document.getElementById('product-search').value = '';
+  ['filter-category','filter-stock','filter-image','filter-marketplace','filter-sort'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  productFilter = '';
+  renderProductTable();
+}
+
 function renderProductTable() {
+  _populateCategoryFilter();
   const rows = Object.entries(allProducts);
   const q = productFilter.toLowerCase();
+  const cat = document.getElementById('filter-category')?.value || '';
+  const stockF = document.getElementById('filter-stock')?.value || '';
+  const imgF = document.getElementById('filter-image')?.value || '';
+  const mpF = document.getElementById('filter-marketplace')?.value || '';
+  const sortF = document.getElementById('filter-sort')?.value || '';
   const tbody = document.getElementById('product-tbody');
-  const filtered = rows.filter(([,r])=> !q || (r[0]||'').toLowerCase().includes(q) || (r[1]||'').toLowerCase().includes(q) || (r[6]||'').toLowerCase().includes(q));
+
+  let filtered = rows.filter(([,r])=> {
+    if (q && !((r[0]||'').toLowerCase().includes(q) || (r[1]||'').toLowerCase().includes(q) || (r[6]||'').toLowerCase().includes(q))) return false;
+    if (cat && (r[1]||'') !== cat) return false;
+    if (stockF) {
+      const st = _stockState(r);
+      // "in" = any positive stock (includes low); "low"/"out"/"none" = exact match
+      if (stockF === 'in' && !(st === 'in' || st === 'low')) return false;
+      if (stockF !== 'in' && st !== stockF) return false;
+    }
+    if (imgF === 'has' && !r[4]) return false;
+    if (imgF === 'missing' && r[4]) return false;
+    if (imgF === 'variant-missing') {
+      const vs = Array.isArray(r[12]) ? r[12] : [];
+      if (!vs.some(v => !v.image)) return false;
+    }
+    if (mpF === 'shopee' && !r[7]) return false;
+    if (mpF === 'tiktok' && !r[8]) return false;
+    if (mpF === 'lazada' && !r[10]) return false;
+    if (mpF === 'page365' && !r[11]) return false;
+    if (mpF === 'no-marketplace' && (r[7]||r[8]||r[10]||r[11])) return false;
+    return true;
+  });
+
+  if (sortF === 'name_asc')   filtered.sort((a,b)=>String(a[1][0]||'').localeCompare(String(b[1][0]||''),'th'));
+  if (sortF === 'name_desc')  filtered.sort((a,b)=>String(b[1][0]||'').localeCompare(String(a[1][0]||''),'th'));
+  if (sortF === 'price_asc')  filtered.sort((a,b)=>_priceNum(a[1])-_priceNum(b[1]));
+  if (sortF === 'price_desc') filtered.sort((a,b)=>_priceNum(b[1])-_priceNum(a[1]));
+  if (sortF === 'stock_asc')  filtered.sort((a,b)=>_totalStock(a[1])-_totalStock(b[1]));
+  if (sortF === 'stock_desc') filtered.sort((a,b)=>_totalStock(b[1])-_totalStock(a[1]));
+
+  const countEl = document.getElementById('filter-count');
+  if (countEl) countEl.textContent = `${filtered.length} / ${rows.length} รายการ`;
+
   if (!filtered.length) { tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--purple-mid)">ไม่พบข้อมูล</td></tr>`; return; }
   tbody.innerHTML = filtered.map(([key,row]) => {
     const variants = Array.isArray(row[12]) ? row[12] : [];
@@ -1195,9 +2054,390 @@ function previewUrlImg(input, previewContainerId, previewImgId) {
 // Architecture ใหม่: browser เปิด URL ของ Apps Script
 // Apps Script จะ push ข้อมูลไป Firebase โดยตรง (server-to-server)
 // ไม่มีปัญหา CORS เพราะไม่ต้องรับ response กลับ
+// ─── AUTO-FILL VARIANT IMAGES ───────────────────
+// Fill missing variant.image by matching COLOR first. Priority:
+//   1. Sibling variant in same product with matching color
+//   2. Variant in OTHER products with matching color (cross-product)
+//   3. Main product image (only if no color match found anywhere)
+// Never overwrites an existing variant.image.
+
+const _SIZE_TOKENS = new Set([
+  'xs','s','m','l','xl','xxl','xxxl','3xl','4xl','5xl',
+  'free','freesize','free-size','onesize','one-size','os',
+  'ไซส์','size'
+]);
+
+// Common Thai ↔ English color aliases — fold to single canonical key
+const _COLOR_ALIASES = {
+  'ดำ':'black','สีดำ':'black','black':'black','blk':'black',
+  'ขาว':'white','สีขาว':'white','white':'white','wht':'white',
+  'แดง':'red','สีแดง':'red','red':'red',
+  'เขียว':'green','สีเขียว':'green','green':'green',
+  'น้ำเงิน':'blue','สีน้ำเงิน':'blue','blue':'blue',
+  'ฟ้า':'lightblue','สีฟ้า':'lightblue','lightblue':'lightblue','sky':'lightblue',
+  'เหลือง':'yellow','สีเหลือง':'yellow','yellow':'yellow',
+  'ส้ม':'orange','สีส้ม':'orange','orange':'orange',
+  'ชมพู':'pink','สีชมพู':'pink','pink':'pink',
+  'ม่วง':'purple','สีม่วง':'purple','purple':'purple','violet':'purple',
+  'น้ำตาล':'brown','สีน้ำตาล':'brown','brown':'brown',
+  'เทา':'gray','สีเทา':'gray','gray':'gray','grey':'gray',
+  'ครีม':'cream','สีครีม':'cream','cream':'cream','beige':'cream',
+  'กรม':'navy','สีกรม':'navy','navy':'navy','กรมท่า':'navy',
+  'เงิน':'silver','สีเงิน':'silver','silver':'silver',
+  'ทอง':'gold','สีทอง':'gold','gold':'gold',
+};
+
+function _isSizeToken(t) {
+  const x = String(t||'').toLowerCase().replace(/\s+/g,'');
+  if (!x) return false;
+  if (_SIZE_TOKENS.has(x)) return true;
+  if (/^\d{1,3}(\.\d+)?$/.test(x)) return true; // pure number like "32", "40"
+  return false;
+}
+
+function _normalizeColor(raw) {
+  let s = String(raw||'').trim().toLowerCase();
+  if (!s) return '';
+  s = s.replace(/^สี\s*/,'')           // strip "สี" prefix
+       .replace(/[\s\-_]+/g,' ')        // collapse separators
+       .trim();
+  if (_COLOR_ALIASES[s]) return _COLOR_ALIASES[s];
+  // Try first word
+  const first = s.split(' ')[0];
+  if (_COLOR_ALIASES[first]) return _COLOR_ALIASES[first];
+  return s; // keep as-is (canonical for unknown colors)
+}
+
+function _extractColor(name) {
+  const s = String(name||'').trim();
+  if (!s) return '';
+  // Split on comma/slash first (color, size format)
+  const parts = s.split(/[,/]/).map(p => p.trim()).filter(Boolean);
+  // Pick first part that is NOT a size token
+  for (const p of parts) {
+    if (!_isSizeToken(p)) return _normalizeColor(p);
+  }
+  // No clear color found — fall back to first part normalized
+  return _normalizeColor(parts[0] || s);
+}
+
+// State for the preview modal
+let _autofillCandidates = []; // [{key, row, idx, variantName, color, source, image, sourceVariantName}]
+
+function autoFillVariantImages() {
+  if (!db) { toast('Firebase ยังไม่พร้อม','error'); return; }
+  const rows = Object.entries(allProducts || {});
+  if (!rows.length) { toast('ไม่มีสินค้า','warn'); return; }
+
+  // Build color → image maps with source variant name attached
+  const globalColorSrc = {};   // color → {image, fromProductName, fromVariantName}
+  const productColorSrc = {};  // productKey → {color → {image, fromVariantName}}
+  rows.forEach(([key, row]) => {
+    const vs = Array.isArray(row?.[12]) ? row[12] : [];
+    const local = {};
+    vs.forEach(v => {
+      if (!v?.image) return;
+      const c = _extractColor(v?.name);
+      if (!c) return;
+      if (!local[c]) local[c] = { image: v.image, fromVariantName: v.name||'' };
+      if (!globalColorSrc[c]) globalColorSrc[c] = { image: v.image, fromProductName: row[0]||'', fromVariantName: v.name||'' };
+    });
+    productColorSrc[key] = local;
+  });
+
+  // Plan: every fillable variant becomes a candidate row
+  const candidates = [];
+  for (const [key, row] of rows) {
+    const variants = Array.isArray(row?.[12]) ? row[12] : [];
+    if (!variants.length) continue;
+    const mainImg = row[4] || '';
+    const local = productColorSrc[key] || {};
+    variants.forEach((v, idx) => {
+      if (v?.image) return;
+      const color = _extractColor(v?.name);
+      let source = null, image = '', sourceLabel = '';
+      if (color && local[color]) {
+        source = 'same-product';
+        image = local[color].image;
+        sourceLabel = `จาก "${local[color].fromVariantName}" (สินค้าเดียวกัน)`;
+      } else if (color && globalColorSrc[color]) {
+        source = 'cross-product';
+        image = globalColorSrc[color].image;
+        sourceLabel = `ยืมจาก "${globalColorSrc[color].fromProductName}" • variant "${globalColorSrc[color].fromVariantName}"`;
+      } else if (mainImg) {
+        source = 'main';
+        image = mainImg;
+        sourceLabel = 'รูปหลักของสินค้า (สีอาจไม่ตรง)';
+      } else {
+        source = 'none';
+        sourceLabel = 'ไม่มีต้นทาง';
+      }
+      candidates.push({
+        key, row,
+        productName: row[0] || '',
+        idx,
+        variantName: v?.name || '',
+        color,
+        source,
+        image,
+        sourceLabel,
+        // pre-tick: same-product is always safe; others depend on user toggle
+        defaultChecked: source === 'same-product'
+      });
+    });
+  }
+
+  if (!candidates.length) { toast('✓ ทุก variant มีรูปแล้ว','success'); return; }
+  _autofillCandidates = candidates;
+  openModal('autofill-modal');
+  rerenderAutofillPreview();
+}
+
+function rerenderAutofillPreview() {
+  const useMain = document.getElementById('af-use-main').checked;
+  const useCross = document.getElementById('af-cross-product').checked;
+  const strict = document.getElementById('af-only-same-color').checked;
+
+  // Counts
+  const counts = { 'same-product':0, 'cross-product':0, 'main':0, 'none':0 };
+  _autofillCandidates.forEach(c => counts[c.source]++);
+
+  // Auto-select logic based on toggles (only update defaults; preserve manual unticks via UI re-render)
+  _autofillCandidates.forEach(c => {
+    if (strict) {
+      c.defaultChecked = c.source === 'same-product';
+    } else {
+      if (c.source === 'same-product') c.defaultChecked = true;
+      else if (c.source === 'cross-product') c.defaultChecked = useCross;
+      else if (c.source === 'main') c.defaultChecked = useMain;
+      else c.defaultChecked = false;
+    }
+  });
+
+  const summary = document.getElementById('autofill-summary');
+  summary.innerHTML =
+    `รวม <strong>${_autofillCandidates.length}</strong> variant ที่ยังไม่มีรูป — ` +
+    `🎯 สีตรงในสินค้าเดียวกัน <strong>${counts['same-product']}</strong> • ` +
+    `🔄 ยืมข้ามสินค้า <strong>${counts['cross-product']}</strong> • ` +
+    `🖼️ รูปหลัก <strong>${counts['main']}</strong> • ` +
+    `❌ ไม่มีต้นทาง <strong>${counts['none']}</strong>`;
+
+  const el = document.getElementById('autofill-preview');
+  // Group by product for readability
+  const byProduct = {};
+  _autofillCandidates.forEach((c, i) => {
+    if (!byProduct[c.key]) byProduct[c.key] = { name: c.productName, items: [] };
+    byProduct[c.key].items.push({ ...c, i });
+  });
+
+  const sourceBadge = src => {
+    if (src === 'same-product') return '<span style="background:#d5f5e3;color:#1a6e3f;padding:2px 8px;border-radius:8px;font-size:.72em;font-weight:700">🎯 สีตรง</span>';
+    if (src === 'cross-product') return '<span style="background:#d6eaf8;color:#1a5276;padding:2px 8px;border-radius:8px;font-size:.72em;font-weight:700">🔄 ข้ามสินค้า</span>';
+    if (src === 'main') return '<span style="background:#fdebd0;color:#784212;padding:2px 8px;border-radius:8px;font-size:.72em;font-weight:700">🖼️ รูปหลัก</span>';
+    return '<span style="background:#fadbd8;color:#7b241c;padding:2px 8px;border-radius:8px;font-size:.72em;font-weight:700">❌ ไม่มี</span>';
+  };
+
+  el.innerHTML = Object.values(byProduct).map(g => `
+    <div style="background:#fff;border-radius:10px;padding:10px 14px;margin-bottom:10px;border:1px solid var(--pink-light)">
+      <div style="font-weight:700;font-size:.92em;margin-bottom:8px;color:var(--text)">${esc(g.name)}</div>
+      <div style="display:grid;grid-template-columns:1fr;gap:6px">
+        ${g.items.map(c => {
+          const noImg = !c.image;
+          const disabled = c.source === 'none';
+          return `<label style="display:flex;align-items:center;gap:10px;padding:6px;border-radius:8px;background:${disabled?'#fdf2f2':'#fafafa'};cursor:${disabled?'not-allowed':'pointer'}">
+            <input type="checkbox" data-i="${c.i}" ${c.defaultChecked?'checked':''} ${disabled?'disabled':''}>
+            <div style="width:42px;height:42px;border-radius:6px;overflow:hidden;background:#eee;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.7em;color:#888">
+              ${noImg?'—':`<img src="${esc(c.image)}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none';this.parentElement.textContent='?'">`}
+            </div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:.85em;font-weight:600">${esc(c.variantName||'(ไม่มีชื่อ)')} <span style="color:var(--purple-mid);font-weight:500;font-size:.85em">• สี: ${esc(c.color||'—')}</span></div>
+              <div style="font-size:.74em;color:var(--purple-mid);margin-top:2px">${sourceBadge(c.source)} <span style="margin-left:6px">${esc(c.sourceLabel)}</span></div>
+            </div>
+          </label>`;
+        }).join('')}
+      </div>
+    </div>
+  `).join('');
+
+  // Update apply button count
+  const checked = el.querySelectorAll('input[type=checkbox]:checked').length;
+  const btn = document.getElementById('af-apply-btn');
+  btn.textContent = `✓ Apply ${checked} variant`;
+  btn.disabled = checked === 0;
+
+  // Live update count as user toggles individual rows
+  el.querySelectorAll('input[type=checkbox]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const n = el.querySelectorAll('input[type=checkbox]:checked').length;
+      btn.textContent = `✓ Apply ${n} variant`;
+      btn.disabled = n === 0;
+    });
+  });
+}
+
+async function applyAutofill() {
+  const el = document.getElementById('autofill-preview');
+  const picked = [...el.querySelectorAll('input[type=checkbox]:checked')]
+    .map(cb => _autofillCandidates[Number(cb.dataset.i)])
+    .filter(c => c && c.image);
+  if (!picked.length) { toast('ไม่ได้ติ๊กรายการไหนเลย','warn'); return; }
+
+  try {
+    await _preSyncBackup(`ก่อน auto-fill ${picked.length} variant`);
+  } catch(e) {
+    if (!confirm(`⚠️ Backup ล้ม: ${e.message}\n\nยังต้องการทำต่อ?`)) return;
+  }
+
+  // Group picks by product key
+  const byKey = {};
+  picked.forEach(p => { (byKey[p.key] ||= []).push(p); });
+
+  const updates = {};
+  for (const [key, list] of Object.entries(byKey)) {
+    const row = list[0].row;
+    const newVariants = (Array.isArray(row[12]) ? row[12] : []).map(v => ({...v}));
+    list.forEach(p => {
+      if (newVariants[p.idx]) newVariants[p.idx] = { ...newVariants[p.idx], image: p.image };
+    });
+    const newRow = [...row];
+    while (newRow.length < 13) newRow.push('');
+    newRow[12] = newVariants;
+    updates[`products/${key}`] = newRow;
+  }
+  try {
+    await db.ref().update(updates);
+    toast(`✓ เติมรูปสำเร็จ • ${picked.length} variant • ${Object.keys(byKey).length} สินค้า`,'success');
+    closeModal('autofill-modal');
+  } catch(e) {
+    toast('เติมรูปล้มเหลว: ' + e.message,'error');
+  }
+}
+
+// ─── SYNC MERGE (Apps Script merge-safe push) ─────
+// Calls Apps Script syncAll endpoint which PATCH-merges Sheet → Firebase
+// (preserves images + variants + does not delete SKUs missing from Sheet)
+async function syncMerge() {
+  const s = getSettings();
+  if (!s.gasUrl) { toast('กรุณาตั้งค่า Apps Script URL ก่อน','warn'); return; }
+
+  const pCount = Object.keys(allProducts||{}).length;
+  const gCount = Object.keys(allGeneral||{}).length;
+  const ok = confirm(
+    `🔀 Sync Merge — Sheet ↔ Firebase\n\n` +
+    `Apps Script จะ:\n` +
+    `• Backup ปัจจุบันก่อน (auto)\n` +
+    `• PATCH-merge ข้อมูลใน Sheet → Firebase\n` +
+    `• Preserve รูป + variants ที่มีอยู่\n` +
+    `• ไม่ลบ SKU ที่ไม่อยู่ใน Sheet\n\n` +
+    `Firebase ปัจจุบัน: ${pCount} สินค้า / ${gCount} คีย์ลัด\n\n` +
+    `ดำเนินการ?`
+  );
+  if (!ok) { addLog('info','⏪ ยกเลิก sync'); return; }
+
+  // Client-side safety backup too (belt and braces)
+  try {
+    const bkId = await _preSyncBackup('ก่อน Sync Merge (client side)');
+    addLog('ok', `📸 Client backup: ${bkId}`);
+  } catch(e) {
+    addLog('warn', `⚠️ Client backup ล้ม: ${e.message}`);
+  }
+
+  addLog('info', '🔀 เรียก Apps Script syncAll (merge-safe)...');
+  addLog('info', '⏳ Apps Script อาจใช้เวลา 10-30 วินาที');
+
+  const url = `${s.gasUrl}?action=syncAll&t=${Date.now()}`;
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 60000);
+    const resp = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(timer);
+    const text = await resp.text();
+    const json = JSON.parse(text.trim());
+    if (json.success) {
+      const p = json.products || {};
+      const g = json.general || {};
+      const summary =
+        `📦 Products: updated ${p.updated||0} • created ${p.created||0} • skipped ${p.skipped||0}` +
+        (p.backupId ? ` • bk=${p.backupId}` : '') +
+        `\n📝 General: updated ${g.updated||0} • created ${g.created||0} • skipped ${g.skipped||0}` +
+        (g.backupId ? ` • bk=${g.backupId}` : '');
+      addLog('ok', `✅ Sync Merge สำเร็จ\n${summary}`);
+      document.getElementById('last-sync').textContent = new Date().toLocaleTimeString('th-TH');
+      toast('Sync Merge สำเร็จ ✓','success');
+    } else {
+      addLog('err', `❌ Apps Script error: ${json.error || 'unknown'}`);
+      toast('Sync ล้มเหลว: ' + (json.error||'unknown'), 'error');
+    }
+  } catch(e) {
+    if (e.name === 'AbortError') {
+      addLog('err', '❌ Timeout — Apps Script ใช้เวลานานเกิน 60 วินาที');
+    } else {
+      addLog('err', `❌ Fetch error: ${e.message}`);
+    }
+    // Fallback: open in new tab so user sees response
+    addLog('warn', '🔁 เปิด URL ใน tab ใหม่ เพื่อให้ user เห็น response');
+    window.open(url, '_blank');
+  }
+}
+
+// Snapshot both /products and /general to /_backups before any destructive sync
+async function _preSyncBackup(reason) {
+  if (!db) throw new Error('Firebase ยังไม่พร้อม');
+  const [pSnap, gSnap] = await Promise.all([
+    db.ref('products').once('value'),
+    db.ref('general').once('value'),
+  ]);
+  const products = pSnap.val() || {};
+  const general = gSnap.val() || {};
+  const bkId = 'bk_' + Date.now();
+  await db.ref(`_backups/${bkId}`).set({
+    meta: {
+      ts: Date.now(),
+      source: 'pre-sync',
+      count: Object.keys(products).length,
+      note: reason || 'ก่อน sync'
+    },
+    products,
+    general
+  });
+  // Rotate
+  const allSnap = await db.ref('_backups').once('value');
+  const ids = Object.keys(allSnap.val() || {}).sort();
+  if (ids.length > BACKUP_KEEP) {
+    const removals = {};
+    ids.slice(0, ids.length - BACKUP_KEEP).forEach(id => removals[`_backups/${id}`] = null);
+    await db.ref().update(removals);
+  }
+  return bkId;
+}
+
 async function syncSheetToFirebase(collection = 'both') {
   const s = getSettings();
   if (!s.gasUrl) { toast('กรุณาตั้งค่า Apps Script URL ก่อน','warn'); return; }
+
+  const pCount = Object.keys(allProducts||{}).length;
+  const gCount = Object.keys(allGeneral||{}).length;
+  // Hard warning: require typing CONFIRM to proceed (prevents accidental clicks)
+  const typed = prompt(
+    `🚨 อันตราย — Sheet → Firebase\n\n` +
+    `จะ "เขียนทับ" ข้อมูลใน Firebase ด้วยข้อมูลใน Sheet\n` +
+    `• SKU ใดที่ไม่อยู่ใน Sheet จะถูก "ลบ"\n` +
+    `• รูปที่ Sheet ไม่ได้เก็บไว้จะถูก "ลบ"\n\n` +
+    `Firebase ปัจจุบัน: ${pCount} สินค้า / ${gCount} คีย์ลัด\n\n` +
+    `⚠️ ถ้า Sheet ของคุณไม่ครบทุก SKU → ห้ามกดต่อ\n\n` +
+    `ระบบจะ backup ก่อนเขียน (rollback ได้ที่ Backup & Restore)\n\n` +
+    `พิมพ์คำว่า "REPLACE" เพื่อยืนยัน:`
+  );
+  if (typed !== 'REPLACE') { addLog('info', '⏪ ยกเลิก sync (ไม่ได้พิมพ์ REPLACE)'); return; }
+
+  try {
+    const bkId = await _preSyncBackup(`ก่อน sync Sheet→Firebase (${collection})`);
+    addLog('ok', `📸 Backup สำเร็จ: ${bkId}`);
+  } catch(e) {
+    if (!confirm(`⚠️ Backup ไม่สำเร็จ: ${e.message}\n\nยังต้องการ sync ต่อหรือไม่? (เสี่ยงสูง — รอแก้ backup ก่อนดีกว่า)`)) {
+      addLog('warn','⏪ ยกเลิก sync (backup ล้ม)'); return;
+    }
+  }
 
   const action = collection === 'products' ? 'syncProducts'
                : collection === 'general'  ? 'syncGeneral'
@@ -1248,6 +2488,28 @@ async function syncSheetToFirebase(collection = 'both') {
 async function syncFirebaseToSheet(collection = 'both') {
   const s = getSettings();
   if (!s.gasUrl) { toast('กรุณาตั้งค่า Apps Script URL ก่อน','warn'); return; }
+
+  const pCount = Object.keys(allProducts||{}).length;
+  const gCount = Object.keys(allGeneral||{}).length;
+  const typed = prompt(
+    `🚨 อันตราย — Firebase → Sheet\n\n` +
+    `จะ "เขียนทับ" Sheet ด้วยข้อมูลใน Firebase\n` +
+    `• ทุกอย่างที่อยู่ใน Sheet ตอนนี้แต่ไม่อยู่ใน Firebase จะ "หาย"\n` +
+    `• ถ้าเพิ่งแก้มือใน Sheet — จะถูกเขียนทับ\n\n` +
+    `Firebase ปัจจุบัน: ${pCount} สินค้า / ${gCount} คีย์ลัด\n\n` +
+    `💡 ถ้า Sheet เสีย กู้จาก Google Sheets → File → Version history\n` +
+    `ระบบจะ backup Firebase ก่อนเขียน\n\n` +
+    `พิมพ์คำว่า "REPLACE" เพื่อยืนยัน:`
+  );
+  if (typed !== 'REPLACE') { addLog('info', '⏪ ยกเลิก sync (ไม่ได้พิมพ์ REPLACE)'); return; }
+
+  try {
+    const bkId = await _preSyncBackup(`ก่อน sync Firebase→Sheet (${collection})`);
+    addLog('ok', `📸 Backup Firebase สำเร็จ: ${bkId}`);
+  } catch(e) {
+    addLog('warn', `⚠️ Backup ล้ม: ${e.message} (sync ต่อ)`);
+  }
+
   addLog('info', `📤 กำลัง sync Firebase → Sheet (${collection})...`);
 
   const syncTypes = collection === 'both' ? ['products','general'] : [collection];
@@ -1556,17 +2818,45 @@ function openP365AssignMenu(event, photoEl) {
   closeP365Menu();
   const url = photoEl.dataset.url;
   const variants = collectVariants();
+  const urlJson = JSON.stringify(url).replace(/"/g,'&quot;');
 
   const menu = document.createElement('div');
   menu.className = 'p365-assign-menu';
   const opts = [];
-  opts.push(`<button onclick="applyP365Photo('main', ${JSON.stringify(url).replace(/"/g,'&quot;')}, this)">🖼️ ใช้เป็นรูปหลักสินค้า</button>`);
+  opts.push(`<button onclick="applyP365Photo('main', ${urlJson}, this)">🖼️ ใช้เป็นรูปหลักสินค้า</button>`);
+
   if (variants.length) {
+    // Group variants by extracted color
+    const groups = {}; // colorKey → { label, indices: [], soldCount }
+    variants.forEach((v, i) => {
+      const colorKey = _extractColor(v.name) || '(ไม่ระบุสี)';
+      const displayLabel = (v.name||'').split(/[,/]/)[0]?.trim() || colorKey;
+      if (!groups[colorKey]) groups[colorKey] = { label: displayLabel, indices: [], soldCount: 0 };
+      groups[colorKey].indices.push(i);
+      if (v.stock <= 0) groups[colorKey].soldCount++;
+    });
+
+    const colorKeys = Object.keys(groups);
+    const showGrouped = colorKeys.length > 1 && colorKeys.some(k => groups[k].indices.length > 1);
+
+    if (showGrouped) {
+      opts.push(`<div style="font-size:.7em;color:var(--purple-mid);padding:6px 12px 2px;font-weight:700">🎨 เลือกตามสี (apply ทุกไซส์)</div>`);
+      colorKeys.forEach(k => {
+        const g = groups[k];
+        const sizeNote = g.indices.length > 1 ? ` • ${g.indices.length} ไซส์` : '';
+        const soldNote = g.soldCount === g.indices.length ? ' (หมดทั้งสี)'
+                       : g.soldCount > 0 ? ` (หมด ${g.soldCount})` : '';
+        const idxJson = JSON.stringify(g.indices).replace(/"/g,'&quot;');
+        opts.push(`<button onclick='applyP365Photo("idx-list", ${urlJson}, this, ${idxJson})'>🎨 ${esc(g.label)}${sizeNote}${soldNote}</button>`);
+      });
+      opts.push(`<div style="font-size:.7em;color:var(--purple-mid);padding:8px 12px 2px;font-weight:700">หรือเลือกทีละ variant</div>`);
+    }
+
     variants.forEach((v, i) => {
       const label = v.name || v.sku || `variant ${i+1}`;
-      opts.push(`<button onclick="applyP365Photo(${i}, ${JSON.stringify(url).replace(/"/g,'&quot;')}, this)">🎨 ${esc(label)}${v.stock<=0?' (หมด)':''}</button>`);
+      opts.push(`<button onclick="applyP365Photo(${i}, ${urlJson}, this)" style="font-size:.82em">${esc(label)}${v.stock<=0?' (หมด)':''}</button>`);
     });
-    opts.push(`<button class="divider" onclick="applyP365Photo('all', ${JSON.stringify(url).replace(/"/g,'&quot;')}, this)">→ Apply กับทุก variant</button>`);
+    opts.push(`<button class="divider" onclick="applyP365Photo('all', ${urlJson}, this)">→ Apply กับทุก variant (${variants.length})</button>`);
   } else {
     opts.push(`<button disabled style="opacity:.5">ยังไม่มี variants — ปิด modal นี้แล้วเพิ่มก่อน</button>`);
   }
@@ -1575,13 +2865,17 @@ function openP365AssignMenu(event, photoEl) {
   document.body.appendChild(menu);
   p365MenuEl = menu;
   const rect = photoEl.getBoundingClientRect();
-  menu.style.left = Math.min(rect.left + window.scrollX, window.innerWidth - 220) + 'px';
+  menu.style.left = Math.min(rect.left + window.scrollX, window.innerWidth - 240) + 'px';
   menu.style.top  = (rect.bottom + window.scrollY + 4) + 'px';
   setTimeout(() => document.addEventListener('click', p365MenuOutside, true), 0);
 }
 
 function normalizeVName(s) { return String(s||'').trim().toLowerCase().replace(/\s+/g,''); }
-function normalizeProdName(s) { return String(s||'').trim().toLowerCase().replace(/[\s\-_\.]+/g,'').replace(/lamsang/g,''); }
+function normalizeProdName(s) {
+  return String(s||'').trim().toLowerCase()
+    .replace(/[\s\-_\.|\/\\()\[\]{}'"`,:;!?@#$%^&*+=~]+/g,'')
+    .replace(/lamsang/g,'');
+}
 
 // ═══════════════════════════════════════════════
 //  SYNC ALL STOCK FROM PAGE365
@@ -1611,11 +2905,28 @@ async function runSyncAll() {
   const updateMainImg = document.getElementById('sync-update-mainimg').checked;
   const fillEmptyImg = document.getElementById('sync-fill-empty-variant-img').checked;
 
-  startBtn.disabled = true; startBtn.textContent = 'กำลัง sync...';
+  startBtn.disabled = true; startBtn.textContent = 'กำลัง backup...';
   cancelBtn.style.display = 'none';
   banner.classList.add('syncing'); banner.disabled = true;
   document.getElementById('sync-all-config').style.display = 'none';
   document.getElementById('sync-all-progress').style.display = 'block';
+
+  // Safety backup BEFORE any change
+  try {
+    const bkId = await _preSyncBackup('ก่อน Sync All จาก Page365');
+    spLog('ok', `📸 Backup สำเร็จ: ${bkId}`);
+  } catch(e) {
+    spLog('err', `⚠️ Backup ล้ม: ${e.message}`);
+    if (!confirm(`⚠️ Backup ล้ม: ${e.message}\n\nยังต้องการ sync ต่อ?`)) {
+      startBtn.disabled = false; startBtn.textContent = '🚀 เริ่ม Sync';
+      cancelBtn.style.display = 'inline-flex';
+      banner.classList.remove('syncing'); banner.disabled = false;
+      document.getElementById('sync-all-config').style.display = 'block';
+      document.getElementById('sync-all-progress').style.display = 'none';
+      return;
+    }
+  }
+  startBtn.textContent = 'กำลัง sync...';
 
   const shop = (JSON.parse(localStorage.getItem('admin_settings')||'{}').p365Shop) || 'lamsangstores';
   document.getElementById('sp-status').textContent = '⏳ โหลดสินค้าจาก Page365...';
@@ -1633,22 +2944,33 @@ async function runSyncAll() {
     }
     spLog('ok', `✓ พบ ${p365Cache.list.length} สินค้าใน Page365`);
 
-    // 2) Build name index
+    // 2) Build SKU + name indexes (SKU is primary match key)
     const p365ByName = {};
-    p365Cache.list.forEach(p => { p365ByName[normalizeProdName(p.name)] = p; });
+    const p365BySku = {};
+    p365Cache.list.forEach(p => {
+      p365ByName[normalizeProdName(p.name)] = p;
+      const sku = String(p.parent_sku || p.sku || p.merchant_sku || '').trim();
+      if (sku) p365BySku[sku] = p;
+    });
 
     // 3) Iterate local products
     const localEntries = Object.entries(allProducts);
     document.getElementById('sp-status').textContent = `กำลังประมวล 0/${localEntries.length}`;
 
     const updates = {};
-    let matchCount=0, unmatchedCount=0, stockUpdates=0, varsAdded=0;
+    let matchCount=0, unmatchedCount=0, stockUpdates=0, varsAdded=0, skuMatchCount=0;
 
     for (let i = 0; i < localEntries.length; i++) {
       const [key, row] = localEntries[i];
       const localName = row[0] || '';
+      const localSku  = String(row[6] || '').trim();
       const norm = normalizeProdName(localName);
-      const p365 = p365ByName[norm] || p365Cache.list.find(p => normalizeProdName(p.name).includes(norm) || norm.includes(normalizeProdName(p.name)));
+      // Try SKU match first (most reliable), fall back to name
+      let p365 = localSku ? p365BySku[localSku] : null;
+      if (p365) skuMatchCount++;
+      else if (norm) {
+        p365 = p365ByName[norm] || p365Cache.list.find(p => normalizeProdName(p.name).includes(norm) || norm.includes(normalizeProdName(p.name)));
+      }
 
       document.getElementById('sp-fill').style.width = `${(i+1)/localEntries.length*100}%`;
       document.getElementById('sp-status').textContent = `กำลังประมวล ${i+1}/${localEntries.length}: ${localName}`;
@@ -1703,7 +3025,8 @@ async function runSyncAll() {
         const newRow = [...row];
         while (newRow.length < 13) newRow.push('');
         newRow[12] = curVariants;
-        if (updateMainImg && mainImgFromP365) newRow[4] = mainImgFromP365;
+        // Fill main image ONLY when current is empty — never overwrite curated photo
+        if (updateMainImg && mainImgFromP365 && !newRow[4]) newRow[4] = mainImgFromP365;
 
         updates[`products/${key}`] = newRow;
         spLog('ok', `✓ ${localName} → ${detail.name} (stock อัพ ${rowStockUpdates}${rowAdded?`, เพิ่ม ${rowAdded} variants`:''})`);
@@ -1712,6 +3035,8 @@ async function runSyncAll() {
         spLog('err', `✗ ${localName}: ${e.message}`);
       }
     }
+
+    spLog('info', `📊 Match — by SKU: ${skuMatchCount}, by name: ${matchCount - skuMatchCount}, ไม่ match: ${unmatchedCount}`);
 
     // 4) Batch update
     document.getElementById('sp-status').textContent = '💾 กำลังบันทึก...';
@@ -1736,7 +3061,7 @@ async function runSyncAll() {
   }
 }
 
-function syncStockFromPage365() {
+async function syncStockFromPage365() {
   if (!p365CurrentProduct) return;
   const p365Vs = p365CurrentProduct.variants || [];
   const rows = [...document.querySelectorAll('#variants-list .variant-row')];
@@ -1756,9 +3081,36 @@ function syncStockFromPage365() {
   });
   // re-render the variants bar to reflect new local stock
   renderP365Photos(p365CurrentProduct);
-  let msg = `Sync stock สำเร็จ ✓ ${matched}/${rows.length} variants`;
-  if (unmatched.length) msg += ` • ไม่ match: ${unmatched.join(', ')}`;
-  toast(msg, matched ? 'success' : 'warn');
+
+  // Save to Firebase immediately — don't wait for user to press บันทึก
+  const editingKey = typeof editProductKey !== 'undefined' ? editProductKey : null;
+  if (editingKey && matched > 0) {
+    try {
+      const updatedVariants = collectVariants();
+      const snap = await db.ref(`products/${editingKey}`).once('value');
+      const row = snap.val();
+      if (Array.isArray(row) || (row && typeof row === 'object')) {
+        const r = Array.isArray(row) ? [...row] : (() => {
+          const arr = []; for (let i=0; i<13; i++) arr.push(row[i] != null ? row[i] : '');
+          return arr;
+        })();
+        while (r.length < 13) r.push('');
+        r[12] = updatedVariants;
+        await db.ref(`products/${editingKey}`).set(r);
+        toast(`✓ Sync ${matched}/${rows.length} variants → Firebase แล้ว`,'success');
+      } else {
+        toast(`อัพ DOM ${matched}/${rows.length} แต่หา product key ไม่เจอใน Firebase — กดบันทึกเพื่อบันทึก`,'warn');
+      }
+    } catch(e) {
+      toast(`Sync DOM ${matched}/${rows.length} สำเร็จ แต่บันทึก Firebase ล้ม: ${e.message}`,'error');
+    }
+  } else if (!editingKey) {
+    let msg = `Sync DOM ${matched}/${rows.length} — เป็นสินค้าใหม่ ต้องกด "บันทึก" ก่อน`;
+    if (unmatched.length) msg += ` • ไม่ match: ${unmatched.join(', ')}`;
+    toast(msg, matched ? 'success' : 'warn');
+  } else if (unmatched.length === rows.length) {
+    toast(`❌ ไม่ match สัก variant: ${unmatched.join(', ')}`,'error');
+  }
 }
 
 function createVariantsFromPage365() {
@@ -1781,31 +3133,43 @@ function createVariantsFromPage365() {
   toast(added ? `สร้าง ${added} variants ใหม่ ✓ — อย่าลืม assign รูปและบันทึก` : 'ทุก variant มีอยู่แล้ว ไม่มีอะไรเพิ่ม', added ? 'success' : 'warn');
 }
 
-function applyP365Photo(target, url, btn) {
+function _applyP365ToRow(row, url) {
+  const inp = row.querySelector('[data-field=image]');
+  inp.value = url;
+  updateVariantThumb(inp);
+  const wrap = row.querySelector('.v-thumb-wrap');
+  wrap.innerHTML = `<img class="v-thumb" src="${esc(url)}">`;
+  if ((Number(row.querySelector('[data-field=stock]').value)||0) <= 0) wrap.classList.add('sold');
+}
+
+function applyP365Photo(target, url, btn, idxList) {
   if (target === 'main') {
     document.getElementById('p-img1').value = url;
     previewUrlImg(document.getElementById('p-img1'), 'upload-preview-1', 'preview-img-1');
     toast('ตั้งเป็นรูปหลักสำเร็จ ✓','success');
   } else if (target === 'all') {
-    [...document.querySelectorAll('#variants-list .variant-row')].forEach(row => {
-      const inp = row.querySelector('[data-field=image]');
-      inp.value = url;
-      updateVariantThumb(inp);
-      const wrap = row.querySelector('.v-thumb-wrap');
-      wrap.innerHTML = `<img class="v-thumb" src="${esc(url)}">`;
-      if ((Number(row.querySelector('[data-field=stock]').value)||0) <= 0) wrap.classList.add('sold');
-    });
+    [...document.querySelectorAll('#variants-list .variant-row')].forEach(row => _applyP365ToRow(row, url));
     toast(`Apply ครบทุก variant สำเร็จ ✓`,'success');
+  } else if (target === 'idx-list' && Array.isArray(idxList)) {
+    const rows = [...document.querySelectorAll('#variants-list .variant-row')];
+    let applied = 0; let label = '';
+    idxList.forEach(i => {
+      const row = rows[Number(i)];
+      if (row) {
+        _applyP365ToRow(row, url);
+        applied++;
+        if (!label) {
+          const nm = row.querySelector('[data-field=name]').value || '';
+          label = (nm.split(/[,/]/)[0] || nm).trim();
+        }
+      }
+    });
+    toast(`ใช้รูปกับสี "${label}" ${applied} ไซส์สำเร็จ ✓`,'success');
   } else {
     const rows = [...document.querySelectorAll('#variants-list .variant-row')];
     const row = rows[Number(target)];
     if (row) {
-      const inp = row.querySelector('[data-field=image]');
-      inp.value = url;
-      updateVariantThumb(inp);
-      const wrap = row.querySelector('.v-thumb-wrap');
-      wrap.innerHTML = `<img class="v-thumb" src="${esc(url)}">`;
-      if ((Number(row.querySelector('[data-field=stock]').value)||0) <= 0) wrap.classList.add('sold');
+      _applyP365ToRow(row, url);
       const name = row.querySelector('[data-field=name]').value || row.querySelector('[data-field=sku]').value;
       toast(`ใช้รูปนี้กับ "${name}" สำเร็จ ✓`,'success');
     }
@@ -2213,13 +3577,40 @@ async function handleExcelImport(event) {
       if (r[6]) existingBySku[String(r[6]).trim()] = {key:k, row:r};
     });
 
+    // Helper: normalize variant name for matching
+    const _normVName = s => String(s||'').trim().toLowerCase().replace(/\s+/g,'');
+
     const updates = [], creates = [];
     Object.values(groups).forEach(g => {
       if (existingBySku[g.parent]) {
         const {key, row} = existingBySku[g.parent];
         const newRow = [...row];
         while (newRow.length < 13) newRow.push('');
-        newRow[12] = g.variants;
+        // MERGE variants: preserve existing image, only update stock from Excel.
+        // For variants not in Excel, keep them. For new variants from Excel, add.
+        const existingVs = Array.isArray(row[12]) ? row[12] : [];
+        const existingByName = {};
+        existingVs.forEach(v => { existingByName[_normVName(v?.name)] = v; });
+        const mergedVs = [];
+        const seenNames = new Set();
+        g.variants.forEach(ev => {
+          const norm = _normVName(ev.name);
+          const existing = existingByName[norm];
+          if (existing) {
+            // Update stock; preserve image and other fields from existing
+            mergedVs.push({ ...existing, name: existing.name || ev.name, stock: ev.stock, sku: existing.sku || ev.sku });
+            seenNames.add(norm);
+          } else {
+            // New variant from Excel — use Excel image only if existing didn't have one
+            mergedVs.push({ sku: ev.sku, name: ev.name, stock: ev.stock, image: ev.image || '' });
+          }
+        });
+        // Keep variants that exist in Firebase but were missing from Excel (do not delete)
+        existingVs.forEach(v => {
+          const norm = _normVName(v?.name);
+          if (!seenNames.has(norm)) mergedVs.push(v);
+        });
+        newRow[12] = mergedVs;
         updates.push({key, row: newRow, name: row[0] || g.name, parent: g.parent});
       } else {
         const newRow = [g.name, g.category, g.price, '', g.mainImg, '', g.parent, '', '', '', '', '', g.variants];
@@ -2276,8 +3667,20 @@ async function handleExcelImport(event) {
 async function confirmImport() {
   if (!pendingImport) return;
   const btn = document.getElementById('import-confirm-btn');
-  btn.disabled = true; btn.textContent = 'กำลังนำเข้า...';
+  btn.disabled = true; btn.textContent = 'กำลังสำรองข้อมูล...';
   try {
+    // Safety backup BEFORE any write
+    try {
+      await _preSyncBackup(`ก่อน Excel import (${pendingImport.updates.length} update / ${pendingImport.creates.length} new)`);
+    } catch(e) {
+      console.warn('Pre-import backup failed:', e);
+      if (!confirm(`⚠️ Backup ก่อน import ล้ม: ${e.message}\n\nยังต้องการ import ต่อ?`)) {
+        btn.disabled = false; btn.textContent = 'ยืนยัน import';
+        return;
+      }
+    }
+    btn.textContent = 'กำลังนำเข้า...';
+
     const ops = {};
     pendingImport.updates.forEach(u => { ops[`products/${u.key}`] = u.row; });
     // batch updates

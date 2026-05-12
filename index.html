@@ -755,6 +755,32 @@
       font-size:1.6em;font-weight:800;
       color:var(--pink);margin-bottom:14px;
     }
+    .detail-color-stock{
+      display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px;
+    }
+    .dcs-chip{
+      display:flex;align-items:center;gap:8px;
+      background:#fff;border:1px solid var(--pink-light);border-radius:12px;
+      padding:6px 12px 6px 6px;font-size:.82em;
+      transition:transform .15s, box-shadow .15s;
+    }
+    .dcs-chip:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.08)}
+    .dcs-chip img,.dcs-chip .dcs-fallback{
+      width:36px;height:36px;border-radius:8px;object-fit:cover;flex-shrink:0;
+      background:#f0ebf8;display:flex;align-items:center;justify-content:center;
+      font-weight:700;color:var(--purple-mid);
+    }
+    .dcs-chip .dcs-color{font-weight:700;color:var(--text);line-height:1.1}
+    .dcs-chip .dcs-count{font-size:.85em;color:#1a6e3f;font-weight:600;margin-top:2px}
+    .dcs-chip .dcs-sizes{color:var(--purple-mid);font-weight:500;font-size:.92em}
+    .dcs-chip.out .dcs-count{color:#b03030}
+    .dcs-chip.out img,.dcs-chip.out .dcs-fallback{filter:grayscale(.7) brightness(.85)}
+    .dcs-chip.out .dcs-color{color:var(--muted);text-decoration:line-through}
+    body.dark .dcs-chip{background:#1e1c2e;border-color:#2a2640}
+    body.dark .dcs-chip .dcs-color{color:#e4dfff}
+    body.dark .dcs-chip .dcs-count{color:#7be09f}
+    body.dark .dcs-chip.out .dcs-count{color:#ff8b8b}
+    body.dark .dcs-chip .dcs-sizes{color:#a99fc5}
     .detail-action-row{
       display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;
     }
@@ -1488,9 +1514,32 @@ function initFirebase(){
   const db = firebase.database();
   _customerDb = db;
   db.ref('products').on('value', snap => {
-    productRows = snap.val() ? Object.values(snap.val()) : [];
+    const raw = snap.val() || {};
+    // Normalize: Firebase may return arrays as numeric-keyed objects
+    productRows = Object.values(raw).map(row => {
+      let r = row;
+      if (r && typeof r === 'object' && !Array.isArray(r)) {
+        const keys = Object.keys(r);
+        if (keys.length && keys.every(k => /^\d+$/.test(k))) {
+          r = keys.sort((a,b)=>Number(a)-Number(b)).map(k => r[k]);
+        }
+      }
+      if (Array.isArray(r) && r[12] && typeof r[12] === 'object' && !Array.isArray(r[12])) {
+        const vk = Object.keys(r[12]);
+        if (vk.length && vk.every(k => /^\d+$/.test(k))) {
+          r[12] = vk.sort((a,b)=>Number(a)-Number(b)).map(k => r[12][k]);
+        }
+      }
+      return r;
+    });
     buildCatPills(productRows);
     if (currentTab==='product') window.renderProductGrid(productRows);
+    // Refresh detail page if currently viewing — keeps detail in sync with grid
+    const detailView = document.getElementById('product-details-view');
+    if (typeof currentDetailIdx === 'number' && currentDetailIdx >= 0
+        && detailView && detailView.style.display === 'block') {
+      showProductDetail(currentDetailIdx, false);
+    }
   });
   db.ref('general').on('value', snap => {
     generalRows = snap.val() ? Object.values(snap.val()) : [];
@@ -1509,24 +1558,36 @@ function initFirebase(){
 const CUSTOMER_P365_PROXIES = [
   url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
   url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+  url => `https://cors.lol/?url=${encodeURIComponent(url)}`,
+  url => `https://thingproxy.freeboard.io/fetch/${url}`,
 ];
 const CUSTOMER_SYNC_STALE_MS = 10 * 60 * 1000; // auto-sync if older than 10 min
 let customerLastSyncAt = 0;
 let customerSyncing = false;
 
 async function _customerFetch(url) {
-  let err;
+  let lastErr;
   for (const proxy of CUSTOMER_P365_PROXIES) {
     try {
-      const res = await fetch(proxy(url));
+      const ctrl = new AbortController();
+      const to = setTimeout(() => ctrl.abort(), 12000);
+      const res = await fetch(proxy(url), { signal: ctrl.signal, cache: 'no-store' });
+      clearTimeout(to);
       if (!res.ok) throw new Error('HTTP '+res.status);
-      return await res.json();
-    } catch(e) { err = e; }
+      const txt = await res.text();
+      try { return JSON.parse(txt); }
+      catch { throw new Error('non-JSON'); }
+    } catch(e) { lastErr = e; }
   }
-  throw err || new Error('CORS proxy failed');
+  throw lastErr || new Error('CORS proxy failed');
 }
 
-function _custNormName(s){ return String(s||'').trim().toLowerCase().replace(/[\s\-_\.]+/g,'').replace(/lamsang/g,''); }
+function _custNormName(s){
+  return String(s||'').trim().toLowerCase()
+    .replace(/[\s\-_\.|\/\\()\[\]{}'"`,:;!?@#$%^&*+=~]+/g,'')
+    .replace(/lamsang/g,'');
+}
 function _custNormVName(s){ return String(s||'').trim().toLowerCase().replace(/\s+/g,''); }
 
 function updateSyncBtnLabel() {
@@ -1541,13 +1602,25 @@ function updateSyncBtnLabel() {
 }
 setInterval(updateSyncBtnLabel, 60000);
 
+function _p365VariantPhoto(pv) {
+  // Page365 returns the variant image under several possible keys
+  return pv?.photo?.normal || pv?.photo?.url || pv?.photo_url || pv?.image_url
+      || pv?.image?.normal || pv?.image?.url || pv?.image || '';
+}
+
 async function customerSyncFromPage365(silent) {
-  if (customerSyncing) return;
+  if (customerSyncing) {
+    if (!silent) showSyncToast('⏳ กำลัง sync อยู่ — รอสักครู่', 'info');
+    return;
+  }
   if (silent) {
     const age = Date.now() - (customerLastSyncAt || 0);
-    if (age < CUSTOMER_SYNC_STALE_MS) return; // fresh — skip
+    if (age < CUSTOMER_SYNC_STALE_MS) return; // fresh — skip auto only
   }
-  if (!_customerDb || !productRows.length) return;
+  if (!_customerDb) {
+    if (!silent) showSyncToast('❌ ยังเชื่อมต่อ Firebase ไม่ได้', 'error');
+    return;
+  }
 
   customerSyncing = true;
   const btn = document.getElementById('sync-btn');
@@ -1558,6 +1631,11 @@ async function customerSyncFromPage365(silent) {
 
   const shop = 'lamsangstores';
   try {
+    // Read products fresh from Firebase (don't depend on local productRows)
+    const snap = await _customerDb.ref('products').once('value');
+    const dataMap = snap.val() || {};
+    if (!Object.keys(dataMap).length) throw new Error('ไม่มีสินค้าใน Firebase');
+
     // 1) Load product list (deduped)
     const seen = new Set(); const list = [];
     for (let page=1; page<=20; page++) {
@@ -1568,41 +1646,55 @@ async function customerSyncFromPage365(silent) {
       if (added===0) break;
       if (d.count && list.length>=d.count) break;
     }
+    if (!list.length) throw new Error('โหลดรายการสินค้าจาก Page365 ไม่ได้');
     const byName = {};
-    list.forEach(p => byName[_custNormName(p.name)] = p);
+    const bySku = {};
+    list.forEach(p => {
+      byName[_custNormName(p.name)] = p;
+      // Page365 may expose parent_sku under different keys depending on shop setup
+      const sku = String(p.parent_sku || p.sku || p.merchant_sku || '').trim();
+      if (sku) bySku[sku] = p;
+    });
 
-    // 2) Read current Firebase products as map (with keys)
-    const snap = await _customerDb.ref('products').once('value');
-    const dataMap = snap.val() || {};
     const updates = {};
-    let matched=0, totalStockUpdates=0;
+    let matched=0, totalStockUpdates=0, imgUpdates=0, failed=0;
 
-    // 3) Sequential fetch with small concurrency
+    // 2) Sequential fetch with small concurrency
     const entries = Object.entries(dataMap);
     const concurrency = 4;
     let cursor = 0;
+    const unmatchedProducts = [];
     async function worker() {
       while (cursor < entries.length) {
         const i = cursor++;
         const [key, row] = entries[i];
+        // Match by SKU first (most reliable), fall back to name matching
+        const sku = String(row[6] || '').trim();
         const norm = _custNormName(row[0]||'');
-        if (!norm) continue;
-        const p365 = byName[norm] || list.find(p => _custNormName(p.name).includes(norm) || norm.includes(_custNormName(p.name)));
-        if (!p365) continue;
+        let p365 = sku ? bySku[sku] : null;
+        if (!p365 && norm) {
+          p365 = byName[norm] || list.find(p => _custNormName(p.name).includes(norm) || norm.includes(_custNormName(p.name)));
+        }
+        if (!p365) { unmatchedProducts.push(row[0]||'(ไม่มีชื่อ)'); continue; }
         try {
           const detail = await _customerFetch(`https://${shop}.page365.net/products/${p365.id}.json`);
           const p365Vs = detail.variants || [];
           let curVariants = Array.isArray(row[12]) ? [...row[12]] : [];
-          const mainImg = detail.photos?.[0]?.normal || '';
+          const mainImg = detail.photos?.[0]?.normal || detail.photos?.[0]?.url || '';
 
-          // Update existing variants' stock
-          let rowSU = 0;
+          // Update existing variants: stock only — NEVER overwrite curated image
+          let rowSU = 0, rowIU = 0;
           curVariants = curVariants.map(v => {
             const pv = p365Vs.find(p => _custNormVName(p.name) === _custNormVName(v.name));
             if (pv) {
               const newStock = pv.in_stock ? (Number(pv.available)||0) : 0;
               if (newStock !== (Number(v.stock)||0)) rowSU++;
-              return {...v, stock: newStock, image: v.image || mainImg};
+              // Fill image only when missing (preserve user's curated photo per SKU)
+              if (!v.image) {
+                const pvImg = _p365VariantPhoto(pv) || mainImg;
+                if (pvImg) { rowIU++; return {...v, stock: newStock, image: pvImg}; }
+              }
+              return {...v, stock: newStock};
             }
             return v;
           });
@@ -1610,32 +1702,67 @@ async function customerSyncFromPage365(silent) {
           const existing = new Set(curVariants.map(v => _custNormVName(v.name)));
           p365Vs.forEach(pv => {
             if (existing.has(_custNormVName(pv.name))) return;
-            curVariants.push({sku:'', name: pv.name||'', stock: pv.in_stock?(Number(pv.available)||0):0, image: mainImg});
+            const pvImg = _p365VariantPhoto(pv) || mainImg;
+            curVariants.push({sku:'', name: pv.name||'', stock: pv.in_stock?(Number(pv.available)||0):0, image: pvImg});
+            if (pvImg) rowIU++;
           });
           const newRow = [...row];
           while (newRow.length < 13) newRow.push('');
           newRow[12] = curVariants;
+          // Update main product image only when missing (preserve admin-curated photo)
+          if (!newRow[4] && mainImg) { newRow[4] = mainImg; rowIU++; }
           updates[`products/${key}`] = newRow;
           totalStockUpdates += rowSU;
+          imgUpdates += rowIU;
           matched++;
-        } catch {}
+        } catch(e) { failed++; }
       }
     }
     await Promise.all(Array.from({length: concurrency}, worker));
     if (Object.keys(updates).length) {
+      // Snapshot current /products to /_backups before applying changes
+      try {
+        const bkId = 'bk_' + Date.now();
+        await _customerDb.ref(`_backups/${bkId}`).set({
+          meta: {
+            ts: Date.now(),
+            source: silent ? 'auto-sync' : 'sync-button',
+            count: Object.keys(dataMap).length,
+            note: `ก่อน sync • ${matched} สินค้า`
+          },
+          products: dataMap
+        });
+        // Rotate: keep last 10
+        const bkSnap = await _customerDb.ref('_backups').once('value');
+        const all = bkSnap.val() || {};
+        const ids = Object.keys(all).sort();
+        if (ids.length > 10) {
+          const removals = {};
+          ids.slice(0, ids.length - 10).forEach(id => removals[`_backups/${id}`] = null);
+          await _customerDb.ref().update(removals);
+        }
+      } catch(e) { console.warn('Backup failed:', e); }
+
       updates['_meta/lastSyncAt'] = Date.now();
       await _customerDb.ref().update(updates);
     } else {
       await _customerDb.ref('_meta/lastSyncAt').set(Date.now());
     }
+    const summary = `✓ Sync • ${matched} สินค้า`
+      + (totalStockUpdates ? ` • stock ${totalStockUpdates}` : '')
+      + (imgUpdates ? ` • รูป ${imgUpdates}` : '')
+      + (failed ? ` • ข้าม ${failed}` : '')
+      + (unmatchedProducts.length ? ` • ไม่ match ${unmatchedProducts.length}` : '');
+    if (unmatchedProducts.length) {
+      console.warn('⚠️ Sync: สินค้าที่ไม่ match Page365 (' + unmatchedProducts.length + ' ตัว):', unmatchedProducts);
+    }
     if (!silent) {
-      showSyncToast(`✓ Sync สำเร็จ • ${matched} สินค้า`, 'success');
-    } else if (totalStockUpdates > 0) {
-      // Silent auto-sync that actually changed something → brief subtle toast
-      showSyncToast(`🔄 อัพเดต stock ล่าสุด • ${matched} สินค้า`, 'success');
+      showSyncToast(summary, 'success');
+    } else if (totalStockUpdates > 0 || imgUpdates > 0) {
+      showSyncToast(`🔄 อัพเดตล่าสุด • ${matched} สินค้า`, 'success');
     }
   } catch(e) {
-    if (!silent) showSyncToast('❌ Sync ล้มเหลว: ' + e.message, 'error');
+    if (!silent) showSyncToast('❌ Sync ล้มเหลว: ' + (e.message||'unknown'), 'error');
   } finally {
     customerSyncing = false;
     if (btn) btn.classList.remove('syncing');
@@ -1647,8 +1774,9 @@ async function customerSyncFromPage365(silent) {
 function showSyncToast(msg, type) {
   const el = document.createElement('div');
   el.textContent = msg;
+  const bg = type==='error' ? '#d92626' : (type==='info' ? '#555' : '#1a6e3f');
   el.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
-    background:${type==='error'?'#d92626':'#1a6e3f'};color:#fff;padding:12px 20px;
+    background:${bg};color:#fff;padding:12px 20px;
     border-radius:12px;font-weight:600;font-size:.9em;z-index:9999;
     box-shadow:0 6px 20px rgba(0,0,0,.25);font-family:'Prompt',sans-serif`;
   document.body.appendChild(el);
@@ -1678,7 +1806,17 @@ function copyText(text, btn){
 }
 
 // ── STOCK / SOLD OUT helpers ────────────────────────────────
-function getVariants(row){ return Array.isArray(row?.[12]) ? row[12] : []; }
+function getVariants(row){
+  const v = row?.[12];
+  if (Array.isArray(v)) return v;
+  // Firebase may return numeric-keyed array as plain object {"0":..., "1":...}
+  if (v && typeof v === 'object') {
+    return Object.keys(v).filter(k => /^\d+$/.test(k))
+                         .sort((a,b) => Number(a) - Number(b))
+                         .map(k => v[k]);
+  }
+  return [];
+}
 function isSoldOut(row){
   const vs = getVariants(row);
   if (!vs.length) return false;
@@ -1946,6 +2084,34 @@ function showProductDetail(idx,push=true){
         ${row[6]?`<div class="detail-sku">SKU: ${esc(row[6])}</div>`:''}
         <div class="detail-type">${esc(row[1])}</div>
         <div class="detail-price">${esc(row[2])}</div>
+        ${variants.length ? (() => {
+          // Build per-color stock summary (sum across all sizes of that color)
+          const byColor = {};
+          variants.forEach(v => {
+            const {color} = parseVariant(v.name);
+            const c = color || '—';
+            if (!byColor[c]) byColor[c] = { total: 0, sizes: 0, sold: 0, img: '' };
+            byColor[c].total += Number(v.stock) || 0;
+            byColor[c].sizes++;
+            if ((Number(v.stock)||0) <= 0) byColor[c].sold++;
+            if (!byColor[c].img && v.image) byColor[c].img = v.image;
+          });
+          const colors = Object.keys(byColor);
+          if (!colors.length) return '';
+          return `<div class="detail-color-stock">
+            ${colors.map(c => {
+              const g = byColor[c];
+              const allOut = g.sold === g.sizes;
+              return `<div class="dcs-chip${allOut?' out':''}">
+                ${g.img ? `<img src="${esc(g.img)}" onerror="this.style.display='none'">` : `<div class="dcs-fallback">${esc(c).slice(0,1)}</div>`}
+                <div class="dcs-info">
+                  <div class="dcs-color">${esc(c)}</div>
+                  <div class="dcs-count">${allOut ? 'หมด' : g.total + ' ชิ้น'} <span class="dcs-sizes">• ${g.sizes} ไซส์</span></div>
+                </div>
+              </div>`;
+            }).join('')}
+          </div>`;
+        })() : ''}
         ${variants.length ? `<div class="inline-comp-wrap" id="inline-comp-area"></div>` : ''}
         <div class="detail-action-row">
           <button class="btn btn-pink" onclick='copyInfoToast(${JSON.stringify(copyTxt)},"ข้อความสินค้า")'>📋 Copy</button>
