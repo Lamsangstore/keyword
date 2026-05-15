@@ -781,6 +781,25 @@
     body.dark .dcs-chip .dcs-count{color:#7be09f}
     body.dark .dcs-chip.out .dcs-count{color:#ff8b8b}
     body.dark .dcs-chip .dcs-sizes{color:#a99fc5}
+    .dss-size-selector{
+      display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px;
+    }
+    .dss-size-btn{
+      padding:6px 14px;border-radius:20px;border:1px solid var(--pink-light);
+      background:#fff;color:var(--text);font-weight:600;font-size:.82em;cursor:pointer;
+      font-family:'Prompt',sans-serif;transition:all .15s;
+    }
+    .dss-size-btn:hover{background:var(--pink-pale);border-color:var(--pink)}
+    .dss-size-btn.active{
+      background:linear-gradient(90deg,var(--purple-light),var(--purple));
+      color:#fff;border-color:transparent;
+    }
+    .dss-current{
+      font-size:.82em;color:var(--purple-mid);font-weight:600;margin:0 0 8px;
+    }
+    body.dark .dss-size-btn{background:#1e1c2e;border-color:#2a2640;color:#e4dfff}
+    body.dark .dss-size-btn:hover{background:#2a2640;border-color:#3a3458}
+    body.dark .dss-current{color:#a99fc5}
     .detail-action-row{
       display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;
     }
@@ -1331,6 +1350,11 @@
 <div id="top-nav">
   <button class="back-btn" onclick="handleBack()">‹ กลับ</button>
   <span class="live-pill">Live</span>
+  <div style="flex:1"></div>
+  <button class="as-sync-btn" onclick="customerSyncFromPage365(false)" title="อัพเดต stock จาก Page365">
+    <span class="sync-icon">🔄</span>
+    <span class="sync-label">Sync stock</span>
+  </button>
 </div>
 
 <!-- MAIN -->
@@ -1591,14 +1615,18 @@ function _custNormName(s){
 function _custNormVName(s){ return String(s||'').trim().toLowerCase().replace(/\s+/g,''); }
 
 function updateSyncBtnLabel() {
-  const lbl = document.getElementById('sync-label');
-  if (!lbl) return;
-  if (!customerLastSyncAt) { lbl.textContent = 'Sync stock'; return; }
-  const min = Math.floor((Date.now() - customerLastSyncAt)/60000);
-  if (min < 1) lbl.textContent = 'Sync ✓ <1m';
-  else if (min < 60) lbl.textContent = `Sync ✓ ${min}m`;
-  else if (min < 24*60) lbl.textContent = `Sync ${Math.floor(min/60)}h`;
-  else lbl.textContent = `Sync ${Math.floor(min/1440)}d`;
+  const lbls = document.querySelectorAll('.sync-label');
+  if (!lbls.length) return;
+  let text;
+  if (!customerLastSyncAt) text = 'Sync stock';
+  else {
+    const min = Math.floor((Date.now() - customerLastSyncAt)/60000);
+    if (min < 1) text = 'Sync ✓ <1m';
+    else if (min < 60) text = `Sync ✓ ${min}m`;
+    else if (min < 24*60) text = `Sync ${Math.floor(min/60)}h`;
+    else text = `Sync ${Math.floor(min/1440)}d`;
+  }
+  lbls.forEach(l => l.textContent = text);
 }
 setInterval(updateSyncBtnLabel, 60000);
 
@@ -1623,11 +1651,10 @@ async function customerSyncFromPage365(silent) {
   }
 
   customerSyncing = true;
-  const btn = document.getElementById('sync-btn');
-  const lbl = document.getElementById('sync-label');
-  if (btn) btn.classList.add('syncing');
-  if (btn) btn.disabled = true;
-  if (lbl) lbl.textContent = 'กำลังอัพเดต...';
+  const btns = document.querySelectorAll('.as-sync-btn');
+  const lbls = document.querySelectorAll('.sync-label');
+  btns.forEach(b => { b.classList.add('syncing'); b.disabled = true; });
+  lbls.forEach(l => l.textContent = 'กำลังอัพเดต...');
 
   const shop = 'lamsangstores';
   try {
@@ -1765,8 +1792,7 @@ async function customerSyncFromPage365(silent) {
     if (!silent) showSyncToast('❌ Sync ล้มเหลว: ' + (e.message||'unknown'), 'error');
   } finally {
     customerSyncing = false;
-    if (btn) btn.classList.remove('syncing');
-    if (btn) btn.disabled = false;
+    btns.forEach(b => { b.classList.remove('syncing'); b.disabled = false; });
     updateSyncBtnLabel();
   }
 }
@@ -2084,34 +2110,7 @@ function showProductDetail(idx,push=true){
         ${row[6]?`<div class="detail-sku">SKU: ${esc(row[6])}</div>`:''}
         <div class="detail-type">${esc(row[1])}</div>
         <div class="detail-price">${esc(row[2])}</div>
-        ${variants.length ? (() => {
-          // Build per-color stock summary (sum across all sizes of that color)
-          const byColor = {};
-          variants.forEach(v => {
-            const {color} = parseVariant(v.name);
-            const c = color || '—';
-            if (!byColor[c]) byColor[c] = { total: 0, sizes: 0, sold: 0, img: '' };
-            byColor[c].total += Number(v.stock) || 0;
-            byColor[c].sizes++;
-            if ((Number(v.stock)||0) <= 0) byColor[c].sold++;
-            if (!byColor[c].img && v.image) byColor[c].img = v.image;
-          });
-          const colors = Object.keys(byColor);
-          if (!colors.length) return '';
-          return `<div class="detail-color-stock">
-            ${colors.map(c => {
-              const g = byColor[c];
-              const allOut = g.sold === g.sizes;
-              return `<div class="dcs-chip${allOut?' out':''}">
-                ${g.img ? `<img src="${esc(g.img)}" onerror="this.style.display='none'">` : `<div class="dcs-fallback">${esc(c).slice(0,1)}</div>`}
-                <div class="dcs-info">
-                  <div class="dcs-color">${esc(c)}</div>
-                  <div class="dcs-count">${allOut ? 'หมด' : g.total + ' ชิ้น'} <span class="dcs-sizes">• ${g.sizes} ไซส์</span></div>
-                </div>
-              </div>`;
-            }).join('')}
-          </div>`;
-        })() : ''}
+        ${variants.length ? `<div id="detail-color-stock-area"></div>` : ''}
         ${variants.length ? `<div class="inline-comp-wrap" id="inline-comp-area"></div>` : ''}
         <div class="detail-action-row">
           <button class="btn btn-pink" onclick='copyInfoToast(${JSON.stringify(copyTxt)},"ข้อความสินค้า")'>📋 Copy</button>
@@ -2132,9 +2131,60 @@ function showProductDetail(idx,push=true){
   document.getElementById('fab-wrap').style.display='flex';
   addRecent(idx);
   window.scrollTo(0,0);
+  // Reset size filter for each new product
+  _detailSelectedSize = null;
+  // Initial render of color chips (all sizes)
+  renderDetailColorChips(variants, null);
   // Build inline composite gallery (async)
   const compArea = document.getElementById('inline-comp-area');
   if (compArea) embedComposites(idx, compArea);
+}
+
+// Currently selected size in detail page (null = ทุกไซส์)
+let _detailSelectedSize = null;
+
+function renderDetailColorChips(variants, selectedSize) {
+  const area = document.getElementById('detail-color-stock-area');
+  if (!area || !variants?.length) return;
+
+  const hasSizes = new Set(variants.map(v => parseVariant(v.name).size).filter(Boolean)).size > 1;
+
+  // Filter variants by selected size (if any)
+  const filtered = selectedSize
+    ? variants.filter(v => parseVariant(v.name).size === selectedSize)
+    : variants;
+
+  // Group by color
+  const byColor = {};
+  filtered.forEach(v => {
+    const {color} = parseVariant(v.name);
+    const c = color || '—';
+    if (!byColor[c]) byColor[c] = { total: 0, items: 0, sold: 0, img: '' };
+    byColor[c].total += Number(v.stock) || 0;
+    byColor[c].items++;
+    if ((Number(v.stock)||0) <= 0) byColor[c].sold++;
+    if (!byColor[c].img && v.image) byColor[c].img = v.image;
+  });
+  const colors = Object.keys(byColor);
+
+  const subline = selectedSize
+    ? `<div class="dss-current">📏 ไซส์ <strong>${esc(selectedSize)}</strong> — แยกตามสี <span style="color:var(--muted);font-weight:500">(เลือกไซส์อื่นที่ปุ่มด้านล่าง)</span></div>`
+    : (hasSizes ? `<div class="dss-current">📦 รวมทุกไซส์ — แยกตามสี <span style="color:var(--muted);font-weight:500">(เลือกไซส์ที่ปุ่มด้านล่าง)</span></div>` : '');
+
+  area.innerHTML = subline + `<div class="detail-color-stock">
+    ${colors.map(c => {
+      const g = byColor[c];
+      const allOut = g.sold === g.items;
+      const note = selectedSize ? '' : `<span class="dcs-sizes">• ${g.items} ไซส์</span>`;
+      return `<div class="dcs-chip${allOut?' out':''}">
+        ${g.img ? `<img src="${esc(g.img)}" onerror="this.style.display='none'">` : `<div class="dcs-fallback">${esc(c).slice(0,1)}</div>`}
+        <div class="dcs-info">
+          <div class="dcs-color">${esc(c)}</div>
+          <div class="dcs-count">${allOut ? 'หมด' : g.total + ' ชิ้น'} ${note}</div>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
 }
 
 // ── GENERAL GRID ────────────────────────────────────────────
@@ -3051,6 +3101,12 @@ async function switchInlineComp(i) {
     await _renderInlineComp(i);
   }
   renderInlineCompUI(container);
+  // Sync color chips with selected size
+  const sizeLabel = window._inlineGroups[i]?.group?.sizeLabel || null;
+  _detailSelectedSize = sizeLabel;
+  if (currentDetailRow) {
+    renderDetailColorChips(getVariants(currentDetailRow), sizeLabel);
+  }
 }
 
 async function downloadAllInlineComp() {
