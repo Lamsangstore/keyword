@@ -1319,6 +1319,11 @@
     @media(max-width:480px){
       #cart-fab{bottom:72px;right:14px;width:54px;height:54px;font-size:1.35em}
     }
+    /* In detail view, fab-wrap (+) occupies bottom-right — lift cart above it */
+    body.in-detail #cart-fab{bottom:148px}
+    @media(max-width:480px){
+      body.in-detail #cart-fab{bottom:138px}
+    }
     body.dark #cart-fab{box-shadow:0 6px 24px rgba(0,0,0,.5)}
     body.dark #cart-fab .cart-fab-badge{background:#1e1c2e;color:#E0C7EE;border-color:#8E5FB8}
 
