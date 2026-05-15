@@ -717,6 +717,21 @@
       background:rgba(255,59,107,.1)!important;
       border-color:var(--pink)!important;
     }
+    .pcard .btn-cart{
+      flex:0 0 auto;
+      background:linear-gradient(135deg,#E0C7EE,#B894D8)!important;
+      color:#fff!important;
+      border-color:transparent!important;
+      padding:8px 12px!important;
+    }
+    .pcard .btn-cart:hover{
+      filter:brightness(1.08);
+      transform:translateY(-1px);
+    }
+    body.dark .pcard .btn-cart{
+      background:linear-gradient(135deg,#5a4878,#3a2c54)!important;
+      color:#E0C7EE!important;
+    }
     .pcard .btn.copied{
       background:#f0fdf4!important;color:#15803d!important;
       border-color:#86efac!important;
@@ -2478,6 +2493,7 @@ function renderProductGrid(rows){
         </div>
         <div class="pcard-actions">
           <button class="btn btn-info" onclick="event.stopPropagation();copyProductInfo(${item.i},this)">📋 Copy</button>
+          <button class="btn btn-cart" onclick="event.stopPropagation();openAddToCartPicker(${item.i})" title="เพิ่มลงตะกร้า">🛒</button>
           ${hasPikad?`<button class="btn btn-loc" onclick="event.stopPropagation();copyText(productRows[${item.i}][9],this)">📍 พิกัด</button>`:''}
         </div>
       </div>`;
@@ -3024,6 +3040,7 @@ window.renderProductGrid = function(rows){
         </div>
         <div class="pcard-actions">
           <button class="btn btn-info" onclick="event.stopPropagation();copyProductInfo(${i},this)">📋 Copy</button>
+          <button class="btn btn-cart" onclick="event.stopPropagation();openAddToCartPicker(${i})" title="เพิ่มลงตะกร้า">🛒</button>
           ${hasPikad?`<button class="btn btn-loc" onclick="event.stopPropagation();copyText(productRows[${i}][9],this)">📍 พิกัด</button>`:''}
         </div>
       </div>`;
