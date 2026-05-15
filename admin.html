@@ -325,6 +325,7 @@
           <div class="panel-title">💾 Backup & Restore <span class="badge">เก็บ 10 backup ล่าสุด</span></div>
           <div class="sync-bar">
             <button class="btn btn-pink" onclick="createManualBackup()">📸 Backup ตอนนี้</button>
+            <button class="btn btn-blue" onclick="exportFirebaseToJson()" title="ดาวน์โหลด Firebase ทั้งหมดเป็นไฟล์ JSON เก็บนอก cloud">💾 ดาวน์โหลด Backup (.json)</button>
             <button class="btn btn-orange" onclick="openImportJsonModal()">🔧 Import JSON (กู้คืนฉุกเฉิน)</button>
             <button class="btn btn-ghost" onclick="refreshBackupList()">🔄 รีเฟรช</button>
           </div>
@@ -1076,6 +1077,49 @@ function renderBackupList(all) {
 
 function refreshBackupList() {
   db.ref('_backups').once('value').then(snap => renderBackupList(snap.val() || {}));
+}
+
+// Download the full Firebase data as a JSON file (excludes /_backups to avoid recursion)
+async function exportFirebaseToJson() {
+  if (!db) { toast('Firebase ยังไม่พร้อม','error'); return; }
+  const btn = event?.target;
+  const orig = btn?.textContent;
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ กำลังดาวน์โหลด...'; }
+  try {
+    const snap = await db.ref('/').once('value');
+    const data = snap.val() || {};
+    // Keep /_backups out — those are already backups, would bloat file ~10×
+    delete data._backups;
+
+    const productsCount = data.products ? Object.keys(data.products).length : 0;
+    const generalCount  = data.general  ? Object.keys(data.general).length  : 0;
+
+    const payload = {
+      _exportedAt: new Date().toISOString(),
+      _exportedBy: 'admin-ui',
+      _productsCount: productsCount,
+      _generalCount: generalCount,
+      ...data,
+    };
+
+    const json = JSON.stringify(payload, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const ts   = new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `lamsang-firebase-${ts}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+
+    toast(`✓ Export สำเร็จ • ${productsCount} สินค้า / ${generalCount} คีย์ลัด`, 'success');
+  } catch(e) {
+    toast('Export ล้มเหลว: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = orig; }
+  }
 }
 
 async function createManualBackup() {
