@@ -386,6 +386,120 @@
       50%{transform:scale(1.05)}
     }
     /* sync button on topbar */
+    /* ── CART BUTTON ── */
+    .cart-btn{
+      position:relative;display:inline-flex;align-items:center;justify-content:center;
+      padding:8px 10px;font-size:1.05em;background:transparent;border:1px solid transparent;
+      border-radius:10px;cursor:pointer;color:var(--ink, #1a1a2e);
+      transition:all .15s;font-family:inherit;
+    }
+    .cart-btn:hover{background:var(--pink-pale);border-color:var(--pink-light)}
+    .cart-badge{
+      position:absolute;top:0;right:0;min-width:18px;height:18px;padding:0 5px;
+      background:var(--pink);color:#fff;border-radius:9px;font-size:.65em;font-weight:800;
+      display:none;align-items:center;justify-content:center;line-height:1;
+    }
+    body.dark .cart-btn{color:#fff}
+    body.dark .cart-btn:hover{background:rgba(255,255,255,.08)}
+
+    /* ── CART DRAWER ── */
+    #cart-drawer{display:none;position:fixed;inset:0;z-index:600}
+    #cart-drawer.open{display:block}
+    .cart-drawer-overlay{position:absolute;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(4px)}
+    .cart-drawer-panel{
+      position:absolute;top:0;right:0;bottom:0;width:min(420px,100%);
+      background:#fff;display:flex;flex-direction:column;
+      box-shadow:-4px 0 24px rgba(0,0,0,.15);
+      animation:slideInRight .25s var(--ease, ease-out);
+    }
+    @keyframes slideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}
+    body.dark .cart-drawer-panel{background:#1e1c2e;color:#e4dfff}
+    .cart-header{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:18px 20px;border-bottom:1px solid var(--pink-light);
+    }
+    .cart-header h3{margin:0;font-size:1.05em}
+    body.dark .cart-header{border-bottom-color:#2a2640}
+    .cart-close{
+      background:transparent;border:none;font-size:1.2em;cursor:pointer;
+      width:32px;height:32px;border-radius:50%;color:inherit;
+    }
+    .cart-close:hover{background:rgba(0,0,0,.08)}
+    body.dark .cart-close:hover{background:rgba(255,255,255,.1)}
+    .cart-items{flex:1;overflow-y:auto;padding:12px 16px}
+    .cart-item{
+      display:flex;gap:10px;padding:10px;background:#fafafa;
+      border-radius:10px;margin-bottom:8px;border:1px solid var(--pink-light);
+    }
+    body.dark .cart-item{background:#2a2640;border-color:#3a3458}
+    .cart-item-img{
+      width:56px;height:56px;border-radius:8px;background:#eee;overflow:hidden;
+      flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.5em;
+    }
+    .cart-item-img img{width:100%;height:100%;object-fit:cover}
+    .cart-item-info{flex:1;min-width:0}
+    .cart-item-name{font-weight:600;font-size:.88em;line-height:1.3}
+    .cart-item-variant{font-size:.76em;color:var(--purple-mid);margin-top:2px}
+    .cart-item-price{font-size:.85em;font-weight:700;color:var(--pink);margin-top:3px}
+    .cart-item-actions{display:flex;align-items:center;gap:4px;flex-shrink:0}
+    .cart-qty-btn{
+      width:24px;height:24px;border-radius:50%;border:1px solid var(--pink-light);
+      background:#fff;font-weight:700;cursor:pointer;font-family:inherit;color:var(--text);
+    }
+    body.dark .cart-qty-btn{background:#1e1c2e;border-color:#3a3458;color:#e4dfff}
+    .cart-qty-btn:hover{background:var(--pink-pale);border-color:var(--pink)}
+    .cart-qty{min-width:22px;text-align:center;font-weight:700;font-size:.88em}
+    .cart-remove-btn{
+      width:24px;height:24px;border-radius:50%;border:none;background:#fadbd8;
+      color:#b03030;cursor:pointer;font-family:inherit;margin-left:4px;
+    }
+    .cart-remove-btn:hover{background:#f5b7b1}
+    .cart-footer{
+      padding:14px 20px;border-top:1px solid var(--pink-light);background:#fff;
+    }
+    body.dark .cart-footer{background:#1e1c2e;border-top-color:#2a2640}
+    .cart-total-row{
+      display:flex;justify-content:space-between;align-items:center;
+      margin-bottom:10px;font-size:1.1em;font-weight:600;
+    }
+    .cart-total-row strong{font-size:1.3em;color:var(--pink)}
+    .cart-actions{display:flex;gap:8px}
+
+    /* Cart picker (variant selector) */
+    #cart-picker{display:none;position:fixed;inset:0;z-index:700;align-items:center;justify-content:center;padding:16px}
+    #cart-picker.open{display:flex}
+    .cart-picker-overlay{position:absolute;inset:0;background:rgba(0,0,0,.5)}
+    .cart-picker-panel{
+      position:relative;background:#fff;border-radius:16px;padding:0;
+      max-width:480px;width:100%;max-height:80vh;display:flex;flex-direction:column;
+      box-shadow:0 10px 40px rgba(0,0,0,.3);
+    }
+    body.dark .cart-picker-panel{background:#1e1c2e;color:#e4dfff}
+    .cart-picker-header{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:14px 18px;border-bottom:1px solid var(--pink-light);
+    }
+    body.dark .cart-picker-header{border-bottom-color:#2a2640}
+    .cart-picker-header h4{margin:0;font-size:1em}
+    #cart-picker-body{padding:14px 18px;overflow-y:auto;flex:1}
+    .cart-picker-actions{padding:12px 18px;border-top:1px solid var(--pink-light);display:flex;gap:8px}
+    body.dark .cart-picker-actions{border-top-color:#2a2640}
+    .cpv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+    .cpv-btn{
+      display:flex;flex-direction:column;align-items:center;gap:4px;
+      padding:10px 8px;border:1px solid var(--pink-light);border-radius:10px;
+      background:#fff;cursor:pointer;font-family:inherit;color:inherit;
+      transition:all .12s;
+    }
+    body.dark .cpv-btn{background:#2a2640;border-color:#3a3458}
+    .cpv-btn:hover:not(:disabled){background:var(--pink-pale);border-color:var(--pink);transform:translateY(-1px)}
+    .cpv-btn:disabled{opacity:.45;cursor:not-allowed}
+    .cpv-btn .cpv-img{width:48px;height:48px;border-radius:6px;background:#f0ebf8;overflow:hidden;display:flex;align-items:center;justify-content:center}
+    .cpv-btn .cpv-img img{width:100%;height:100%;object-fit:cover}
+    .cpv-btn .cpv-name{font-size:.82em;font-weight:600;text-align:center;line-height:1.2}
+    .cpv-btn .cpv-stock{font-size:.72em;color:#1a6e3f;font-weight:600}
+    .cpv-btn .cpv-stock.out{color:#b03030}
+
     .as-sync-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;
       background:linear-gradient(135deg,#E1FEFE,#E3EBFD);color:#3a2c54;border:none;
       border-radius:10px;cursor:pointer;font-family:'Prompt',sans-serif;font-weight:600;
@@ -1319,6 +1433,9 @@
     <span class="sync-icon">🔄</span>
     <span class="sync-label" id="sync-label">Sync stock</span>
   </button>
+  <button class="cart-btn" onclick="openCartDrawer()" title="ตะกร้าออเดอร์ (Shift+T)">
+    🛒<span class="cart-badge">0</span>
+  </button>
   <button id="dark-toggle" onclick="toggleDark()" title="Dark Mode">🌙</button>
   <a href="admin.html" class="as-settings" title="Admin">⚙️</a>
 </header>
@@ -1356,6 +1473,46 @@
     <span class="sync-icon">🔄</span>
     <span class="sync-label">Sync stock</span>
   </button>
+  <button class="cart-btn" onclick="openCartDrawer()" title="ตะกร้าออเดอร์">
+    🛒<span class="cart-badge">0</span>
+  </button>
+</div>
+
+<!-- CART DRAWER -->
+<div id="cart-drawer">
+  <div class="cart-drawer-overlay" onclick="closeCartDrawer()"></div>
+  <div class="cart-drawer-panel">
+    <div class="cart-header">
+      <h3>🛍️ ตะกร้าออเดอร์</h3>
+      <button class="cart-close" onclick="closeCartDrawer()">✕</button>
+    </div>
+    <div id="cart-items" class="cart-items"></div>
+    <div class="cart-footer">
+      <div class="cart-total-row">
+        <span>รวม:</span>
+        <strong><span id="cart-total">0</span>฿</strong>
+      </div>
+      <div class="cart-actions">
+        <button class="btn btn-ghost" onclick="clearCart()" style="flex:0">🗑️ ล้าง</button>
+        <button class="btn btn-pink" onclick="generateCartMessage()" style="flex:1">📋 Copy ข้อความออเดอร์</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD TO CART PICKER (variant selector) -->
+<div id="cart-picker">
+  <div class="cart-picker-overlay" onclick="closeCartPicker()"></div>
+  <div class="cart-picker-panel">
+    <div class="cart-picker-header">
+      <h4 id="cart-picker-title">เพิ่มลงตะกร้า</h4>
+      <button class="cart-close" onclick="closeCartPicker()">✕</button>
+    </div>
+    <div id="cart-picker-body"></div>
+    <div class="cart-picker-actions">
+      <button class="btn btn-ghost" onclick="closeCartPicker()" style="flex:1">เสร็จสิ้น</button>
+    </div>
+  </div>
 </div>
 
 <!-- MAIN -->
@@ -1805,6 +1962,328 @@ async function customerSyncFromPage365(silent) {
   }
 }
 
+// ═══════════════════════════════════════════════
+//  CART (ตะกร้าออเดอร์สำหรับคุยลูกค้า)
+// ═══════════════════════════════════════════════
+const CART_KEY = 'lamsang_cart_v1';
+
+function getCart() {
+  try { return JSON.parse(localStorage.getItem(CART_KEY)) || []; }
+  catch { return []; }
+}
+function saveCart(c) {
+  localStorage.setItem(CART_KEY, JSON.stringify(c));
+  updateCartBadge();
+  const drawer = document.getElementById('cart-drawer');
+  if (drawer?.classList.contains('open')) renderCartDrawer();
+}
+function addToCart(item) {
+  const c = getCart();
+  const idx = c.findIndex(x => x.idx === item.idx && x.variantName === item.variantName);
+  if (idx >= 0) c[idx].qty = (c[idx].qty || 1) + (item.qty || 1);
+  else c.push(item);
+  saveCart(c);
+  showSyncToast(`🛒 +1 ${item.name}${item.variantName?' • '+item.variantName:''}`, 'success');
+}
+function removeFromCart(i) { const c = getCart(); c.splice(i, 1); saveCart(c); }
+function updateCartQty(i, qty) {
+  const c = getCart();
+  if (!c[i]) return;
+  if (qty <= 0) { c.splice(i, 1); }
+  else c[i].qty = qty;
+  saveCart(c);
+}
+function clearCart() {
+  if (!confirm('ล้างตะกร้าทั้งหมด?')) return;
+  saveCart([]);
+}
+function updateCartBadge() {
+  const count = getCart().reduce((s, it) => s + (it.qty || 1), 0);
+  document.querySelectorAll('.cart-badge').forEach(b => {
+    b.textContent = count;
+    b.style.display = count > 0 ? 'flex' : 'none';
+  });
+}
+
+function openCartDrawer() {
+  const d = document.getElementById('cart-drawer');
+  if (d) { d.classList.add('open'); renderCartDrawer(); }
+}
+function closeCartDrawer() {
+  document.getElementById('cart-drawer')?.classList.remove('open');
+}
+
+function renderCartDrawer() {
+  const list = document.getElementById('cart-items');
+  const totalEl = document.getElementById('cart-total');
+  if (!list || !totalEl) return;
+  const items = getCart();
+  if (!items.length) {
+    list.innerHTML = '<div style="text-align:center;padding:50px 20px;color:var(--muted);font-size:.9em">🛒<br><br>ตะกร้าว่าง<br><span style="font-size:.85em">เปิดสินค้า → กด 🛒 เพิ่ม</span></div>';
+    totalEl.textContent = '0';
+    return;
+  }
+  let total = 0;
+  list.innerHTML = items.map((it, i) => {
+    const qty = it.qty || 1;
+    const price = parseInt(String(it.price || '').replace(/[^0-9]/g, '')) || 0;
+    const lineTotal = price * qty;
+    total += lineTotal;
+    return `<div class="cart-item">
+      <div class="cart-item-img">${it.image ? `<img src="${esc(it.image)}" onerror="this.style.display='none';this.parentElement.textContent='📦'">` : '📦'}</div>
+      <div class="cart-item-info">
+        <div class="cart-item-name">${esc(it.name || '')}</div>
+        ${it.variantName ? `<div class="cart-item-variant">${esc(it.variantName)}</div>` : ''}
+        <div class="cart-item-price">${price ? price + '฿' : '—'}${qty > 1 ? ` × ${qty} = <strong>${lineTotal}฿</strong>` : ''}</div>
+      </div>
+      <div class="cart-item-actions">
+        <button class="cart-qty-btn" onclick="updateCartQty(${i}, ${qty - 1})">−</button>
+        <span class="cart-qty">${qty}</span>
+        <button class="cart-qty-btn" onclick="updateCartQty(${i}, ${qty + 1})">+</button>
+        <button class="cart-remove-btn" onclick="removeFromCart(${i})" title="ลบ">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+  totalEl.textContent = total.toLocaleString();
+}
+
+function generateCartMessage() {
+  const items = getCart();
+  if (!items.length) { showSyncToast('ตะกร้าว่าง', 'error'); return; }
+  let total = 0;
+  const lines = items.map((it, i) => {
+    const qty = it.qty || 1;
+    const price = parseInt(String(it.price || '').replace(/[^0-9]/g, '')) || 0;
+    const lineTotal = price * qty;
+    total += lineTotal;
+    const variant = it.variantName ? ` ${it.variantName}` : '';
+    const qtyStr = qty > 1 ? ` × ${qty}` : '';
+    const priceStr = qty > 1 ? `${lineTotal}฿ (${price}×${qty})` : `${price}฿`;
+    return `${i + 1}. ${it.name}${variant}${qtyStr} — ${priceStr}`;
+  });
+  const msg = `🛍️ สรุปออเดอร์\n\n${lines.join('\n')}\n\n💰 รวม: ${total.toLocaleString()}฿`;
+  copyToClipboard(msg);
+  showSyncToast(`📋 Copy ${items.length} รายการ • ${total.toLocaleString()}฿`, 'success');
+}
+
+function copyToClipboard(text) {
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).catch(() => _fallbackCopy(text));
+  } else _fallbackCopy(text);
+}
+function _fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.cssText = 'position:fixed;left:-9999px';
+  document.body.appendChild(ta); ta.select();
+  document.execCommand('copy'); document.body.removeChild(ta);
+}
+
+// Variant picker — opens when user clicks "🛒 เพิ่ม" in detail page
+function openAddToCartPicker(idx) {
+  const row = productRows[idx];
+  if (!row) return;
+  const variants = getVariants(row);
+  if (!variants.length) {
+    addToCart({
+      idx, name: row[0] || '', price: row[2] || '', sku: row[6] || '',
+      image: row[4] || '', variantName: '', qty: 1
+    });
+    return;
+  }
+  // Build picker UI — group by color
+  const byColor = {};
+  variants.forEach((v, vi) => {
+    const { color } = parseVariant(v.name);
+    const c = color || '—';
+    if (!byColor[c]) byColor[c] = { img: '', items: [] };
+    if (!byColor[c].img && v.image) byColor[c].img = v.image;
+    byColor[c].items.push({ ...v, _vi: vi });
+  });
+  const colors = Object.keys(byColor);
+
+  const body = document.getElementById('cart-picker-body');
+  document.getElementById('cart-picker-title').textContent = `🛒 ${row[0] || 'เพิ่มลงตะกร้า'}`;
+  body.innerHTML = colors.map(c => {
+    const g = byColor[c];
+    return `<div style="margin-bottom:14px">
+      <div style="font-weight:700;font-size:.88em;margin-bottom:6px;display:flex;align-items:center;gap:8px">
+        ${g.img ? `<img src="${esc(g.img)}" style="width:24px;height:24px;border-radius:4px;object-fit:cover">` : ''}
+        ${esc(c)}
+      </div>
+      <div class="cpv-grid">
+        ${g.items.map(v => {
+          const stock = Number(v.stock) || 0;
+          const out = stock <= 0;
+          const {size} = parseVariant(v.name);
+          const label = size || v.name;
+          return `<button class="cpv-btn" ${out?'disabled':''} onclick="cartAddVariant(${idx}, ${v._vi})">
+            <div class="cpv-img">${v.image ? `<img src="${esc(v.image)}">` : '📦'}</div>
+            <div class="cpv-name">${esc(label)}</div>
+            <div class="cpv-stock${out?' out':''}">${out ? 'หมด' : stock + ' ชิ้น'}</div>
+          </button>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('cart-picker').classList.add('open');
+}
+
+function closeCartPicker() {
+  document.getElementById('cart-picker')?.classList.remove('open');
+}
+
+function cartAddVariant(idx, vi) {
+  const row = productRows[idx];
+  if (!row) return;
+  const variants = getVariants(row);
+  const v = variants[vi];
+  if (!v) return;
+  addToCart({
+    idx, name: row[0] || '', price: row[2] || '', sku: row[6] || '',
+    image: v.image || row[4] || '', variantName: v.name || '', qty: 1
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  COPY TEMPLATES (เทมเพลตข้อความ chat)
+// ═══════════════════════════════════════════════
+const COPY_TEMPLATES = [
+  {
+    key: 'info',
+    label: '📋 ข้อมูล',
+    text: '{name}\nราคา {price}\n{detail}'
+  },
+  {
+    key: 'ready',
+    label: '✅ พร้อมส่ง',
+    text: '{name} ราคา {price} ค่ะ มีของพร้อมส่งเลยนะคะ 🎀'
+  },
+  {
+    key: 'out',
+    label: '❌ ของหมด',
+    text: 'ขออภัยค่ะ {name} หมดแล้วน้า 🙏 ตอนนี้ที่มีเหลือ: {avail}'
+  },
+  {
+    key: 'sizes',
+    label: '📏 ไซส์',
+    text: '{name} ราคา {price} ค่ะ มีไซส์ {sizes} ลูกค้าใส่ไซส์อะไรคะ'
+  },
+  {
+    key: 'colors',
+    label: '🎨 สี',
+    text: '{name} ราคา {price} ค่ะ มีสี {colors} ลูกค้าชอบสีไหนคะ'
+  },
+  {
+    key: 'price',
+    label: '💰 ราคา',
+    text: '{name} ราคา {price} ค่ะ'
+  },
+];
+
+function fillTemplate(tplText, row) {
+  const variants = getVariants(row);
+  const inStock = variants.filter(v => (Number(v.stock)||0) > 0);
+  const sizes = [...new Set(variants.map(v => parseVariant(v.name).size).filter(Boolean))];
+  const sizeOrder = ['XS','S','M','L','XL','XXL','XXXL','3XL','4XL','5XL','FREE'];
+  sizes.sort((a,b) => {
+    const ai = sizeOrder.indexOf(String(a).toUpperCase());
+    const bi = sizeOrder.indexOf(String(b).toUpperCase());
+    if (ai>=0 && bi>=0) return ai-bi;
+    if (ai>=0) return -1;
+    if (bi>=0) return 1;
+    return String(a).localeCompare(String(b));
+  });
+  const colors = [...new Set(variants.map(v => parseVariant(v.name).color).filter(Boolean))];
+  const availLines = inStock.length
+    ? inStock.map(v => `${v.name}: ${v.stock}`).join(', ')
+    : '(ไม่มีเหลือ)';
+  return String(tplText||'')
+    .replace(/\{name\}/g, row[0] || '')
+    .replace(/\{price\}/g, row[2] || '')
+    .replace(/\{detail\}/g, row[3] || '')
+    .replace(/\{sku\}/g, row[6] || '')
+    .replace(/\{sizes\}/g, sizes.join(', '))
+    .replace(/\{colors\}/g, colors.join(', '))
+    .replace(/\{avail\}/g, availLines);
+}
+
+function copyWithTemplate(idx, key) {
+  const row = productRows[idx];
+  if (!row) return;
+  const tpl = COPY_TEMPLATES.find(t => t.key === key) || COPY_TEMPLATES[0];
+  const text = fillTemplate(tpl.text, row).trim();
+  copyToClipboard(text);
+  showSyncToast(`📋 Copy ${tpl.label}`, 'success');
+}
+
+// Template menu next to Copy button
+function toggleTemplateMenu(idx, btn) {
+  const existing = document.getElementById('tpl-menu');
+  if (existing) { existing.remove(); return; }
+  const menu = document.createElement('div');
+  menu.id = 'tpl-menu';
+  menu.style.cssText = 'position:absolute;background:#fff;border:1px solid var(--pink-light);border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.15);padding:6px;z-index:200;min-width:160px;display:flex;flex-direction:column;gap:2px;font-family:inherit';
+  menu.innerHTML = COPY_TEMPLATES.map(t =>
+    `<button onclick="copyWithTemplate(${idx},'${t.key}');document.getElementById('tpl-menu')?.remove()"
+      style="background:transparent;border:none;text-align:left;padding:8px 12px;border-radius:6px;cursor:pointer;font-size:.85em;font-family:inherit;color:inherit">${t.label}</button>`
+  ).join('');
+  document.body.appendChild(menu);
+  if (document.body.classList.contains('dark')) {
+    menu.style.background = '#2a2640';
+    menu.style.borderColor = '#3a3458';
+    menu.style.color = '#e4dfff';
+  }
+  const r = btn.getBoundingClientRect();
+  menu.style.left = Math.min(r.left + window.scrollX, window.innerWidth - 180) + 'px';
+  menu.style.top = (r.bottom + window.scrollY + 4) + 'px';
+  setTimeout(() => {
+    const close = e => {
+      if (!menu.contains(e.target) && e.target !== btn) {
+        menu.remove();
+        document.removeEventListener('click', close);
+      }
+    };
+    document.addEventListener('click', close);
+  }, 0);
+}
+
+// ═══════════════════════════════════════════════
+//  KEYBOARD SHORTCUTS
+// ═══════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  const tag = e.target.tagName;
+  const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable;
+  if (isInput) {
+    if (e.key === 'Escape') e.target.blur();
+    return;
+  }
+  // Skip if modal open
+  const modalOpen = document.querySelector('#cart-drawer.open, #cart-picker.open, #lightbox[style*="block"]');
+  if (e.key === 'Escape') {
+    if (document.getElementById('cart-picker')?.classList.contains('open')) { closeCartPicker(); return; }
+    if (document.getElementById('cart-drawer')?.classList.contains('open')) { closeCartDrawer(); return; }
+    return;
+  }
+  if (modalOpen) return;
+  if (e.key === '/') {
+    e.preventDefault();
+    const s = document.getElementById('search-input');
+    if (s) { s.focus(); s.select(); }
+  } else if (e.key === 's' || e.key === 'S') {
+    if (e.shiftKey || e.metaKey || e.ctrlKey) return;
+    customerSyncFromPage365(false);
+  } else if ((e.key === 'T' || e.key === 't') && e.shiftKey) {
+    openCartDrawer();
+  } else if (e.key === 'c' && typeof currentDetailIdx === 'number' && currentDetailIdx >= 0) {
+    copyWithTemplate(currentDetailIdx, 'info');
+  } else if (e.key === 'b' && typeof currentDetailIdx === 'number' && currentDetailIdx >= 0) {
+    handleBack();
+  }
+});
+
+// Initial cart badge update
+window.addEventListener('DOMContentLoaded', updateCartBadge);
+
 function showSyncToast(msg, type) {
   const el = document.createElement('div');
   el.textContent = msg;
@@ -2121,7 +2600,9 @@ function showProductDetail(idx,push=true){
         ${variants.length ? `<div id="detail-color-stock-area"></div>` : ''}
         ${variants.length ? `<div class="inline-comp-wrap" id="inline-comp-area"></div>` : ''}
         <div class="detail-action-row">
-          <button class="btn btn-pink" onclick='copyInfoToast(${JSON.stringify(copyTxt)},"ข้อความสินค้า")'>📋 Copy</button>
+          <button class="btn btn-pink" onclick="copyWithTemplate(${idx}, 'info')">📋 Copy</button>
+          <button class="btn btn-pink" style="padding:8px 10px" onclick="toggleTemplateMenu(${idx}, this)" title="เลือกเทมเพลต">▼</button>
+          <button class="btn btn-info" onclick="openAddToCartPicker(${idx})">🛒 +</button>
           ${shopee?`<button class="btn btn-shopee" onclick="openLink('${shopee}')">🛒 Shopee</button>`:''}
           ${tiktok?`<button class="btn btn-tiktok" onclick="openLink('${tiktok}')">♪ TikTok</button>`:''}
           ${lazada?`<button class="btn btn-laz" onclick="openLink('${lazada}')">🟠 Lazada</button>`:''}
