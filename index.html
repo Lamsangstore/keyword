@@ -1271,6 +1271,39 @@
     #scroll-top.show{opacity:1;pointer-events:auto;transform:translateY(0)}
     #scroll-top:hover{filter:brightness(1.1);transform:translateY(-2px)}
 
+    /* ── FLOATING CART FAB ── */
+    #cart-fab{
+      position:fixed;bottom:80px;right:20px;z-index:500;
+      width:60px;height:60px;border-radius:50%;
+      background:linear-gradient(135deg,#C9A6E3,#8E5FB8);
+      border:none;cursor:pointer;
+      display:none;align-items:center;justify-content:center;
+      font-size:1.5em;color:#fff;
+      box-shadow:0 6px 24px rgba(142,95,184,.45);
+      transition:transform .2s var(--ease),filter .15s,box-shadow .2s;
+    }
+    #cart-fab.show{display:flex;animation:fabPop .35s var(--ease)}
+    @keyframes fabPop{
+      0%{transform:scale(.5);opacity:0}
+      60%{transform:scale(1.08);opacity:1}
+      100%{transform:scale(1);opacity:1}
+    }
+    #cart-fab:hover{filter:brightness(1.08);transform:translateY(-2px);box-shadow:0 8px 28px rgba(142,95,184,.55)}
+    #cart-fab:active{transform:scale(.95)}
+    #cart-fab .cart-fab-badge{
+      position:absolute;top:-4px;right:-4px;min-width:24px;height:24px;padding:0 7px;
+      background:#fff;color:var(--pink);border-radius:12px;
+      font-size:.72em;font-weight:800;
+      display:flex;align-items:center;justify-content:center;line-height:1;
+      box-shadow:0 2px 8px rgba(0,0,0,.18);
+      border:2px solid #C9A6E3;
+    }
+    @media(max-width:480px){
+      #cart-fab{bottom:72px;right:14px;width:54px;height:54px;font-size:1.35em}
+    }
+    body.dark #cart-fab{box-shadow:0 6px 24px rgba(0,0,0,.5)}
+    body.dark #cart-fab .cart-fab-badge{background:#1e1c2e;color:#E0C7EE;border-color:#8E5FB8}
+
     /* ── SKELETON LOADING ── */
     .skeleton-grid{
       display:grid;
@@ -1467,6 +1500,11 @@
 
 <!-- SCROLL TO TOP -->
 <button id="scroll-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<!-- FLOATING CART FAB -->
+<button id="cart-fab" onclick="openCartDrawer()" title="ตะกร้าออเดอร์ (Shift+T)" aria-label="เปิดตะกร้า">
+  🛒<span class="cart-fab-badge">0</span>
+</button>
 
 <!-- FAB QUICK COPY (shown in detail view) -->
 <div id="fab-wrap">
@@ -2019,6 +2057,11 @@ function updateCartBadge() {
     b.textContent = count;
     b.style.display = count > 0 ? 'flex' : 'none';
   });
+  // Floating FAB — only show when there's at least 1 item
+  const fab = document.getElementById('cart-fab');
+  const fabBadge = fab?.querySelector('.cart-fab-badge');
+  if (fab) fab.classList.toggle('show', count > 0);
+  if (fabBadge) fabBadge.textContent = count;
 }
 
 function openCartDrawer() {
