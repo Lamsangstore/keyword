@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="firebase-config.js"></script>
@@ -995,11 +996,18 @@ function _normalizeProducts(raw) {
 }
 
 // ─── FIREBASE INIT ───────────────────────────────
-function initApp() {
+async function initApp() {
   loadSettings();
   setInterval(refreshLastUpdateDisplay, 60000); // refresh "X hours ago" every minute
   firebase.initializeApp(window.FIREBASE_CONFIG);
   db = firebase.database();
+  // Sign in anonymously so writes pass security rules
+  try {
+    await firebase.auth().signInAnonymously();
+  } catch(e) {
+    console.error('Anonymous auth failed:', e);
+    toast('⚠️ Firebase auth ล้ม — เปิด Anonymous Auth ใน Console ก่อน', 'error');
+  }
 
   // Real-time listeners
   db.ref('products').on('value', snap => {

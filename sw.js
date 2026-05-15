@@ -1,5 +1,5 @@
 // ── LAMSANG Service Worker ──
-const CACHE = 'lamsang-v15';  // ← bump version ทุกครั้งที่ deploy ใหม่
+const CACHE = 'lamsang-v16';  // ← bump version ทุกครั้งที่ deploy ใหม่
 const PRECACHE = [
   './',
   './index.html',

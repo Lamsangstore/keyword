@@ -23,6 +23,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <script src="firebase-config.js"></script>
   <style>
@@ -1533,10 +1534,17 @@ function selectCatPill(cat, el) {
 
 // ── FIREBASE ────────────────────────────────────────────────
 let _customerDb = null;
-function initFirebase(){
+async function initFirebase(){
   firebase.initializeApp(window.FIREBASE_CONFIG);
   const db = firebase.database();
   _customerDb = db;
+  // Sign in anonymously so writes pass security rules
+  try {
+    await firebase.auth().signInAnonymously();
+  } catch(e) {
+    console.error('Anonymous auth failed:', e);
+    showSyncToast('⚠️ Firebase auth ล้ม — เปิด Anonymous Auth ใน Console ก่อน', 'error');
+  }
   db.ref('products').on('value', snap => {
     const raw = snap.val() || {};
     // Normalize: Firebase may return arrays as numeric-keyed objects
