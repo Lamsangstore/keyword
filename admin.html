@@ -569,6 +569,38 @@
           <div style="font-size:.8em;color:var(--purple-mid)">💡 Deploy Code.gs เป็น Web App แบบ "Execute as me, Access: Anyone"</div>
         </div>
         <div class="panel">
+          <div class="panel-title">🎁 โปรโมชั่น & ส่วนลด <span class="badge">แสดงในตะกร้า + ข้อความ Copy</span></div>
+          <label style="display:flex;align-items:center;gap:8px;margin-bottom:14px;cursor:pointer">
+            <input type="checkbox" id="promo-enabled" onchange="savePromo()">
+            <span style="font-weight:600">เปิดใช้โปรโมชั่น</span>
+          </label>
+          <div class="form-row full">
+            <div>
+              <label>หัวข้อโปรโมชั่น</label>
+              <input type="text" id="promo-header" placeholder="💰 ดีลเด็ดเฉพาะในแชท:" oninput="savePromoDebounced()">
+            </div>
+          </div>
+          <div style="font-weight:600;margin:14px 0 8px;font-size:.9em">📊 ขั้นส่วนลด (เพิ่ม/ลด/แก้ได้ตลอด)</div>
+          <div id="promo-tiers-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>
+          <button class="btn btn-ghost" style="padding:6px 12px;font-size:.82em" onclick="addPromoTier()">+ เพิ่มขั้น</button>
+          <div class="form-row full" style="margin-top:14px">
+            <div>
+              <label>บรรทัด "ส่งฟรี" (optional)</label>
+              <input type="text" id="promo-shipping" placeholder="✅ พร้อมบริการ ส่งฟรีทั่วไทย ตั้งแต่ชิ้นแรก!" oninput="savePromoDebounced()">
+            </div>
+          </div>
+          <div class="form-row full">
+            <div>
+              <label>บรรทัด CTA ท้ายข้อความ (optional)</label>
+              <input type="text" id="promo-footer" placeholder="เลือกชมสินค้าแล้วแคปรูปส่งมาสั่งซื้อในแชทนี้ได้เลยค่ะ" oninput="savePromoDebounced()">
+            </div>
+          </div>
+          <div style="background:#fff3cd;border-radius:8px;padding:10px 12px;font-size:.82em;margin-top:14px;color:#7d5413">
+            <strong>👁️ ตัวอย่างข้อความ</strong> (จะแสดงในข้อความ Copy ออเดอร์ของลูกค้า):
+            <pre id="promo-preview" style="white-space:pre-wrap;font-family:'Prompt',sans-serif;margin:8px 0 0;padding:10px;background:#fff;border-radius:6px;font-size:.95em;color:var(--text)"></pre>
+          </div>
+        </div>
+        <div class="panel">
           <div class="panel-title">🔒 เปลี่ยนรหัสผ่าน Admin</div>
           <div class="form-row">
             <div><label>รหัสผ่านใหม่</label><input type="password" id="new-pw" placeholder="รหัสผ่านใหม่"></div>
@@ -1065,6 +1097,128 @@ function changePw() {
 }
 
 // ═══════════════════════════════════════════════
+//  PROMO TIERS — ตั้งค่าโปรโมชั่นสำหรับตะกร้า
+// ═══════════════════════════════════════════════
+const DEFAULT_PROMO = {
+  enabled: true,
+  header: '💰 ดีลเด็ดเฉพาะในแชท:',
+  tiers: [
+    { qty: 1, discount: 10 },
+    { qty: 2, discount: 15 },
+    { qty: 3, discount: 20 },
+  ],
+  shipping: '✅ พร้อมบริการ ส่งฟรีทั่วไทย ตั้งแต่ชิ้นแรก!',
+  footer: 'เลือกชมสินค้าแล้วแคปรูปส่งมาสั่งซื้อในแชทนี้ได้เลยค่ะ',
+};
+let _promoTiers = [...DEFAULT_PROMO.tiers];
+let _promoSaveTimer = null;
+let _promoRemoteApplying = false;
+
+function subscribeRemotePromo() {
+  if (!db) return;
+  db.ref('_adminSettings/promo').on('value', snap => {
+    const v = snap.val();
+    _promoRemoteApplying = true;
+    if (v && typeof v === 'object') {
+      let tiers = v.tiers;
+      if (tiers && typeof tiers === 'object' && !Array.isArray(tiers)) {
+        const k = Object.keys(tiers).filter(x=>/^\d+$/.test(x)).sort((a,b)=>Number(a)-Number(b));
+        if (k.length) tiers = k.map(x => tiers[x]);
+      }
+      _promoTiers = Array.isArray(tiers) && tiers.length ? tiers : [...DEFAULT_PROMO.tiers];
+      document.getElementById('promo-enabled').checked = v.enabled !== false;
+      document.getElementById('promo-header').value = v.header || '';
+      document.getElementById('promo-shipping').value = v.shipping || '';
+      document.getElementById('promo-footer').value = v.footer || '';
+    } else {
+      _promoTiers = [...DEFAULT_PROMO.tiers];
+      document.getElementById('promo-enabled').checked = true;
+      document.getElementById('promo-header').value = DEFAULT_PROMO.header;
+      document.getElementById('promo-shipping').value = DEFAULT_PROMO.shipping;
+      document.getElementById('promo-footer').value = DEFAULT_PROMO.footer;
+    }
+    renderPromoTiers();
+    refreshPromoPreview();
+    _promoRemoteApplying = false;
+  });
+}
+
+function renderPromoTiers() {
+  const list = document.getElementById('promo-tiers-list');
+  if (!list) return;
+  if (!_promoTiers.length) {
+    list.innerHTML = '<div style="color:var(--purple-mid);font-size:.85em;padding:8px">— ยังไม่มีขั้นส่วนลด —</div>';
+    return;
+  }
+  list.innerHTML = _promoTiers.map((t, i) => `
+    <div style="display:flex;gap:8px;align-items:center">
+      <span style="color:var(--purple-mid);font-size:.85em;min-width:50px">ซื้อ</span>
+      <input type="number" min="1" value="${Number(t.qty)||1}" style="width:80px;padding:6px 10px;border:1px solid var(--pink-light);border-radius:8px" onchange="updatePromoTier(${i}, 'qty', this.value)">
+      <span style="color:var(--purple-mid);font-size:.85em">ชิ้น → ลด</span>
+      <input type="number" min="0" max="100" value="${Number(t.discount)||0}" style="width:80px;padding:6px 10px;border:1px solid var(--pink-light);border-radius:8px" onchange="updatePromoTier(${i}, 'discount', this.value)">
+      <span style="color:var(--purple-mid);font-size:.85em">%</span>
+      <button class="btn btn-ghost" style="padding:6px 10px;font-size:.78em;color:#b03030" onclick="removePromoTier(${i})" title="ลบขั้นนี้">✕</button>
+    </div>
+  `).join('');
+}
+
+function addPromoTier() {
+  const maxQty = Math.max(0, ..._promoTiers.map(t => Number(t.qty)||0));
+  _promoTiers.push({ qty: maxQty + 1, discount: 0 });
+  renderPromoTiers();
+  savePromo();
+}
+function removePromoTier(i) {
+  _promoTiers.splice(i, 1);
+  renderPromoTiers();
+  savePromo();
+}
+function updatePromoTier(i, field, value) {
+  if (!_promoTiers[i]) return;
+  _promoTiers[i][field] = Number(value) || 0;
+  savePromoDebounced();
+  refreshPromoPreview();
+}
+
+function savePromoDebounced() {
+  clearTimeout(_promoSaveTimer);
+  _promoSaveTimer = setTimeout(savePromo, 500);
+  refreshPromoPreview();
+}
+
+async function savePromo() {
+  if (_promoRemoteApplying) return;
+  if (!db) return;
+  const payload = {
+    enabled: document.getElementById('promo-enabled').checked,
+    header: document.getElementById('promo-header').value.trim(),
+    tiers: _promoTiers.filter(t => (Number(t.qty)||0) > 0),
+    shipping: document.getElementById('promo-shipping').value.trim(),
+    footer: document.getElementById('promo-footer').value.trim(),
+    _updatedAt: Date.now()
+  };
+  try {
+    await db.ref('_adminSettings/promo').set(payload);
+  } catch(e) { console.warn('Save promo failed:', e); }
+}
+
+function refreshPromoPreview() {
+  const el = document.getElementById('promo-preview');
+  if (!el) return;
+  const enabled = document.getElementById('promo-enabled')?.checked;
+  if (!enabled || !_promoTiers.length) { el.textContent = '(ปิดโปรโมชั่น)'; return; }
+  const header = document.getElementById('promo-header').value || DEFAULT_PROMO.header;
+  const shipping = document.getElementById('promo-shipping').value || '';
+  const footer = document.getElementById('promo-footer').value || '';
+  const sorted = [..._promoTiers].sort((a,b)=>(Number(a.qty)||0)-(Number(b.qty)||0));
+  const tierLines = sorted.map(t => `   ซื้อ ${t.qty} ชิ้น ลด ${t.discount}%`).join('\n');
+  let preview = `${header}\n${tierLines}`;
+  if (shipping) preview += `\n\n${shipping}`;
+  if (footer) preview += `\n${footer}`;
+  el.textContent = preview;
+}
+
+// ═══════════════════════════════════════════════
 //  USER NAME (per-device identity for audit log)
 // ═══════════════════════════════════════════════
 function getUserName() {
@@ -1405,6 +1559,8 @@ async function initApp() {
   });
   // Sync shared admin settings across devices
   subscribeRemoteSettings();
+  // Sync promo config
+  subscribeRemotePromo();
   // Subscribe audit log for live updates
   db.ref('_auditLog').on('value', snap => renderAuditLog(snap.val() || {}));
   // Subscribe editing awareness

@@ -464,6 +464,24 @@
     }
     .cart-total-row strong{font-size:1.3em;color:var(--pink)}
     .cart-actions{display:flex;gap:8px}
+    .cart-promo-summary{margin-bottom:10px;font-size:.85em}
+    .cart-promo-summary:empty{display:none}
+    .cart-promo-row{display:flex;justify-content:space-between;padding:2px 0;color:var(--purple-mid)}
+    .cart-promo-tier{
+      background:linear-gradient(90deg,#fef3c7,#fde68a);color:#7c2d12;
+      font-weight:700;text-align:center;padding:6px 10px;border-radius:8px;
+      margin:6px 0;font-size:.92em;
+    }
+    .cart-promo-discount{color:#16a34a;font-weight:700;font-size:1em}
+    .cart-promo-hint{
+      background:var(--pink-pale);color:var(--pink);
+      padding:8px 12px;border-radius:8px;font-weight:600;font-size:.88em;
+      text-align:center;
+    }
+    body.dark .cart-promo-row{color:#a99fc5}
+    body.dark .cart-promo-tier{background:linear-gradient(90deg,#3a2c54,#5a4878);color:#fde68a}
+    body.dark .cart-promo-discount{color:#7be09f}
+    body.dark .cart-promo-hint{background:rgba(184,148,216,.15);color:#E0C7EE}
 
     /* Cart picker (variant selector) */
     #cart-picker{display:none;position:fixed;inset:0;z-index:700;align-items:center;justify-content:center;padding:16px}
@@ -1541,8 +1559,9 @@
     </div>
     <div id="cart-items" class="cart-items"></div>
     <div class="cart-footer">
+      <div id="cart-promo-summary" class="cart-promo-summary"></div>
       <div class="cart-total-row">
-        <span>รวม:</span>
+        <span>รวมสุทธิ:</span>
         <strong><span id="cart-total">0</span>฿</strong>
       </div>
       <div class="cart-actions">
@@ -1792,6 +1811,8 @@ async function initFirebase(){
     customerLastSyncAt = snap.val() || 0;
     updateSyncBtnLabel();
   });
+  // Subscribe promo config (live updates from admin)
+  subscribePromo();
   // Auto-sync on load if stale
   setTimeout(() => customerSyncFromPage365(true), 2500);
 }
@@ -2016,6 +2037,76 @@ async function customerSyncFromPage365(silent) {
 }
 
 // ═══════════════════════════════════════════════
+//  PROMO TIERS — read live from Firebase /_adminSettings/promo
+// ═══════════════════════════════════════════════
+const DEFAULT_PROMO = {
+  enabled: true,
+  header: '💰 ดีลเด็ดเฉพาะในแชท:',
+  tiers: [
+    { qty: 1, discount: 10 },
+    { qty: 2, discount: 15 },
+    { qty: 3, discount: 20 },
+  ],
+  shipping: '✅ พร้อมบริการ ส่งฟรีทั่วไทย ตั้งแต่ชิ้นแรก!',
+  footer: 'เลือกชมสินค้าแล้วแคปรูปส่งมาสั่งซื้อในแชทนี้ได้เลยค่ะ',
+};
+let _promoConfig = DEFAULT_PROMO;
+
+function subscribePromo() {
+  if (!_customerDb) return;
+  _customerDb.ref('_adminSettings/promo').on('value', snap => {
+    const v = snap.val();
+    if (v && typeof v === 'object') {
+      // Normalize tiers (may come back as numeric-keyed object)
+      let tiers = v.tiers;
+      if (tiers && typeof tiers === 'object' && !Array.isArray(tiers)) {
+        const k = Object.keys(tiers).filter(x=>/^\d+$/.test(x)).sort((a,b)=>Number(a)-Number(b));
+        if (k.length) tiers = k.map(x => tiers[x]);
+      }
+      _promoConfig = {
+        enabled: v.enabled !== false,
+        header: v.header || DEFAULT_PROMO.header,
+        tiers: Array.isArray(tiers) && tiers.length ? tiers : DEFAULT_PROMO.tiers,
+        shipping: v.shipping || '',
+        footer: v.footer || '',
+      };
+    } else {
+      _promoConfig = DEFAULT_PROMO;
+    }
+    // Refresh cart UI if drawer open
+    if (document.getElementById('cart-drawer')?.classList.contains('open')) {
+      renderCartDrawer();
+    }
+  });
+}
+
+function computePromo(items) {
+  const p = _promoConfig || DEFAULT_PROMO;
+  const totalQty = items.reduce((s, it) => s + (it.qty || 1), 0);
+  const subtotal = items.reduce((s, it) => {
+    const price = parseInt(String(it.price||'').replace(/[^0-9]/g,'')) || 0;
+    return s + price * (it.qty || 1);
+  }, 0);
+  if (!p.enabled || !p.tiers?.length || totalQty === 0) {
+    return { totalQty, subtotal, tier: null, discountPct: 0, discountAmt: 0, finalTotal: subtotal };
+  }
+  // Find best tier: highest qty threshold <= totalQty
+  const sorted = [...p.tiers].sort((a,b) => (Number(a.qty)||0) - (Number(b.qty)||0));
+  let tier = null;
+  for (const t of sorted) {
+    if (totalQty >= (Number(t.qty)||0)) tier = t;
+  }
+  const pct = tier ? (Number(tier.discount)||0) : 0;
+  const discountAmt = Math.round(subtotal * pct / 100);
+  return {
+    totalQty, subtotal, tier,
+    discountPct: pct,
+    discountAmt,
+    finalTotal: Math.max(0, subtotal - discountAmt)
+  };
+}
+
+// ═══════════════════════════════════════════════
 //  CART (ตะกร้าออเดอร์สำหรับคุยลูกค้า)
 // ═══════════════════════════════════════════════
 const CART_KEY = 'lamsang_cart_v1';
@@ -2075,19 +2166,19 @@ function closeCartDrawer() {
 function renderCartDrawer() {
   const list = document.getElementById('cart-items');
   const totalEl = document.getElementById('cart-total');
+  const summary = document.getElementById('cart-promo-summary');
   if (!list || !totalEl) return;
   const items = getCart();
   if (!items.length) {
     list.innerHTML = '<div style="text-align:center;padding:50px 20px;color:var(--muted);font-size:.9em">🛒<br><br>ตะกร้าว่าง<br><span style="font-size:.85em">เปิดสินค้า → กด 🛒 เพิ่ม</span></div>';
     totalEl.textContent = '0';
+    if (summary) summary.innerHTML = '';
     return;
   }
-  let total = 0;
   list.innerHTML = items.map((it, i) => {
     const qty = it.qty || 1;
     const price = parseInt(String(it.price || '').replace(/[^0-9]/g, '')) || 0;
     const lineTotal = price * qty;
-    total += lineTotal;
     return `<div class="cart-item">
       <div class="cart-item-img">${it.image ? `<img src="${esc(it.image)}" onerror="this.style.display='none';this.parentElement.textContent='📦'">` : '📦'}</div>
       <div class="cart-item-info">
@@ -2103,26 +2194,60 @@ function renderCartDrawer() {
       </div>
     </div>`;
   }).join('');
-  totalEl.textContent = total.toLocaleString();
+
+  // Promo computation + summary
+  const p = computePromo(items);
+  totalEl.textContent = p.finalTotal.toLocaleString();
+  if (summary) {
+    if (p.discountAmt > 0 && p.tier) {
+      summary.innerHTML = `
+        <div class="cart-promo-row"><span>ราคาเต็ม</span><span>${p.subtotal.toLocaleString()}฿</span></div>
+        <div class="cart-promo-tier">🎯 ซื้อ ${p.totalQty} ชิ้น ลด ${p.discountPct}%</div>
+        <div class="cart-promo-row cart-promo-discount"><span>ส่วนลด</span><span>−${p.discountAmt.toLocaleString()}฿</span></div>
+      `;
+    } else if (_promoConfig?.enabled && _promoConfig?.tiers?.length) {
+      // Show next tier preview
+      const sorted = [..._promoConfig.tiers].sort((a,b) => (Number(a.qty)||0) - (Number(b.qty)||0));
+      const next = sorted.find(t => p.totalQty < (Number(t.qty)||0));
+      if (next) {
+        const need = (Number(next.qty)||0) - p.totalQty;
+        summary.innerHTML = `<div class="cart-promo-hint">💡 เพิ่มอีก <strong>${need}</strong> ชิ้น → ลด <strong>${next.discount}%</strong></div>`;
+      } else {
+        summary.innerHTML = '';
+      }
+    } else {
+      summary.innerHTML = '';
+    }
+  }
 }
 
 function generateCartMessage() {
   const items = getCart();
   if (!items.length) { showSyncToast('ตะกร้าว่าง', 'error'); return; }
-  let total = 0;
   const lines = items.map((it, i) => {
     const qty = it.qty || 1;
     const price = parseInt(String(it.price || '').replace(/[^0-9]/g, '')) || 0;
     const lineTotal = price * qty;
-    total += lineTotal;
     const variant = it.variantName ? ` ${it.variantName}` : '';
     const qtyStr = qty > 1 ? ` × ${qty}` : '';
     const priceStr = qty > 1 ? `${lineTotal}฿ (${price}×${qty})` : `${price}฿`;
     return `${i + 1}. ${it.name}${variant}${qtyStr} — ${priceStr}`;
   });
-  const msg = `🛍️ สรุปออเดอร์\n\n${lines.join('\n')}\n\n💰 รวม: ${total.toLocaleString()}฿`;
+  const p = computePromo(items);
+  let msg = `🛍️ สรุปออเดอร์\n\n${lines.join('\n')}`;
+  if (p.discountAmt > 0 && p.tier) {
+    msg += `\n\nราคาเต็ม: ${p.subtotal.toLocaleString()}฿`;
+    msg += `\n🎯 ${_promoConfig.header || '💰 ดีลเด็ดเฉพาะในแชท:'}`;
+    msg += `\n   ซื้อ ${p.totalQty} ชิ้น ลด ${p.discountPct}%`;
+    msg += `\nส่วนลด: −${p.discountAmt.toLocaleString()}฿`;
+    msg += `\n\n✨ รวมสุทธิ: ${p.finalTotal.toLocaleString()}฿`;
+  } else {
+    msg += `\n\n💰 รวม: ${p.subtotal.toLocaleString()}฿`;
+  }
+  if (_promoConfig?.shipping) msg += `\n\n${_promoConfig.shipping}`;
+  if (_promoConfig?.footer) msg += `\n${_promoConfig.footer}`;
   copyToClipboard(msg);
-  showSyncToast(`📋 Copy ${items.length} รายการ • ${total.toLocaleString()}฿`, 'success');
+  showSyncToast(`📋 Copy ${items.length} รายการ • ${p.finalTotal.toLocaleString()}฿`, 'success');
 }
 
 function copyToClipboard(text) {
