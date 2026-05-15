@@ -56,6 +56,44 @@
 
     /* ── CARDS / PANELS ── */
     .panel{background:var(--white);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow);margin-bottom:24px}
+    /* Stock Alerts */
+    .alerts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+    .alert-card{background:#fff;border:1px solid var(--pink-light);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+    .alert-card-head{display:flex;align-items:center;gap:8px}
+    .alert-icon{font-size:1.2em}
+    .alert-title{font-weight:700;font-size:.92em;flex:1}
+    .alert-num{font-size:1.4em;font-weight:800;color:var(--pink)}
+    .alert-out .alert-num{color:#d92626}
+    .alert-low .alert-num{color:#d97e1a}
+    .alert-trending .alert-num{color:#7c3aed}
+    .alert-popular .alert-num{color:#16a34a}
+    .alert-list{display:flex;flex-direction:column;gap:4px;font-size:.78em;max-height:180px;overflow-y:auto}
+    .alert-item{display:flex;align-items:center;gap:6px;padding:4px 8px;background:#fafafa;border-radius:6px;cursor:pointer;transition:all .12s}
+    .alert-item:hover{background:var(--pink-pale)}
+    .alert-item img{width:24px;height:24px;border-radius:4px;object-fit:cover;flex-shrink:0}
+    .alert-item-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+    .alert-item-meta{color:var(--purple-mid);font-size:.92em;font-weight:600;flex-shrink:0}
+    body.dark .alert-card{background:#1e1c2e;border-color:#2a2640}
+    body.dark .alert-item{background:#2a2640;color:#e4dfff}
+    body.dark .alert-item:hover{background:#3a3458}
+    /* Audit log */
+    .audit-entry{display:flex;gap:10px;padding:8px 12px;background:#fafafa;border-radius:8px;align-items:flex-start}
+    .audit-time{font-family:monospace;font-size:.78em;color:var(--purple-mid);flex-shrink:0;width:70px}
+    .audit-user{font-weight:700;color:var(--pink)}
+    .audit-action{flex:1;line-height:1.4}
+    body.dark .audit-entry{background:#2a2640;color:#e4dfff}
+    /* User name overlay */
+    #user-name-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:none;align-items:center;justify-content:center;padding:20px}
+    #user-name-overlay.open{display:flex}
+    #user-name-overlay .un-card{background:#fff;border-radius:14px;padding:22px 26px;max-width:380px;width:100%;text-align:center}
+    body.dark #user-name-overlay .un-card{background:#1e1c2e;color:#e4dfff}
+    #user-name-overlay h3{margin:0 0 8px;font-size:1.1em}
+    #user-name-overlay p{font-size:.85em;color:var(--purple-mid);margin:0 0 14px}
+    #user-name-overlay input{width:100%;padding:10px 14px;border:1px solid var(--pink-light);border-radius:10px;font-family:inherit;font-size:1em;margin-bottom:12px}
+    .un-current-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:var(--pink-pale);color:var(--pink);border-radius:14px;font-size:.78em;font-weight:700;cursor:pointer;border:1px solid var(--pink-light);font-family:inherit}
+    .un-current-badge:hover{background:var(--pink-light)}
+    /* Editing badge in product table */
+    .editing-badge{display:inline-flex;align-items:center;gap:4px;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:10px;font-size:.7em;font-weight:700;margin-left:6px}
     .panel-title{font-size:1.15em;font-weight:700;color:var(--text);margin-bottom:18px;display:flex;align-items:center;gap:8px}
     .panel-title .badge{font-size:.7em;font-weight:600;background:var(--pink-pale);color:var(--pink);padding:2px 8px;border-radius:20px}
 
@@ -266,6 +304,16 @@
 </head>
 <body>
 
+<!-- ── USER NAME OVERLAY (first time / change) ── -->
+<div id="user-name-overlay">
+  <div class="un-card">
+    <h3>👋 คุณคือใคร?</h3>
+    <p>กรุณาใส่ชื่อเล่นของคุณ — ใช้เพื่อบันทึก audit log<br>(แชร์เครื่องกันได้ — เปลี่ยนชื่อเมื่อสลับคน)</p>
+    <input id="un-input" type="text" placeholder="เช่น พี่อิ๋ว, น้องบี" maxlength="20" onkeydown="if(event.key==='Enter')saveUserName()" autofocus>
+    <button class="btn btn-pink" style="width:100%" onclick="saveUserName()">เริ่มใช้งาน</button>
+  </div>
+</div>
+
 <!-- ── LOGIN ── -->
 <div id="login-screen">
   <div class="login-box">
@@ -283,6 +331,7 @@
   <div class="topbar">
     <div class="topbar-title">⚙️ Admin Panel <span class="live-dot">Firebase Live</span></div>
     <div class="topbar-right">
+      <button type="button" class="un-current-badge" onclick="promptUserName(true)" id="un-badge" title="คลิกเพื่อเปลี่ยนชื่อ">👤 <span id="un-badge-text">—</span></button>
       <button class="btn btn-green btn-sm" onclick="syncAll()" id="sync-all-btn">🔄 Sync ทั้งหมด</button>
       <a href="index.html" target="_blank"><button class="btn btn-ghost" style="font-size:.8em;padding:7px 14px">👁 ดูหน้าหลัก</button></a>
       <button class="logout-btn" onclick="doLogout()">ออกจากระบบ</button>
@@ -334,6 +383,54 @@
           </div>
           <div id="backup-list" style="display:grid;gap:8px;max-height:420px;overflow-y:auto">
             <div style="color:var(--purple-mid);font-size:.85em;padding:14px;text-align:center">กำลังโหลด...</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">🚨 Stock Alerts <span class="badge" id="stock-alerts-badge">—</span></div>
+          <div class="alerts-grid">
+            <div class="alert-card alert-out">
+              <div class="alert-card-head">
+                <span class="alert-icon">🔴</span>
+                <span class="alert-title">หมดทุกสี</span>
+                <span class="alert-num" id="alert-out-count">0</span>
+              </div>
+              <div class="alert-list" id="alert-out-list"></div>
+            </div>
+            <div class="alert-card alert-low">
+              <div class="alert-card-head">
+                <span class="alert-icon">🟡</span>
+                <span class="alert-title">เหลือน้อย (&lt;5)</span>
+                <span class="alert-num" id="alert-low-count">0</span>
+              </div>
+              <div class="alert-list" id="alert-low-list"></div>
+            </div>
+            <div class="alert-card alert-trending">
+              <div class="alert-card-head">
+                <span class="alert-icon">📉</span>
+                <span class="alert-title">ขายเร็ว 24ชม</span>
+                <span class="alert-num" id="alert-trend-count">0</span>
+              </div>
+              <div class="alert-list" id="alert-trend-list"></div>
+            </div>
+            <div class="alert-card alert-popular">
+              <div class="alert-card-head">
+                <span class="alert-icon">⭐</span>
+                <span class="alert-title">ดูบ่อย 24ชม</span>
+                <span class="alert-num" id="alert-popular-count">0</span>
+              </div>
+              <div class="alert-list" id="alert-popular-list"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">📜 Audit Log
+            <span class="badge">20 ล่าสุด</span>
+            <button class="btn btn-ghost" style="padding:4px 10px;font-size:.75em;margin-left:8px" onclick="exportAuditLog()">📥 Export</button>
+          </div>
+          <div id="audit-log-list" style="display:grid;gap:6px;max-height:320px;overflow-y:auto;font-size:.85em">
+            <div style="color:var(--purple-mid);padding:14px;text-align:center">กำลังโหลด...</div>
           </div>
         </div>
       </div>
@@ -967,6 +1064,287 @@ function changePw() {
   document.getElementById('new-pw2').value = '';
 }
 
+// ═══════════════════════════════════════════════
+//  USER NAME (per-device identity for audit log)
+// ═══════════════════════════════════════════════
+function getUserName() {
+  return localStorage.getItem('admin_user') || '';
+}
+function promptUserName(force) {
+  if (!force && getUserName()) return;
+  document.getElementById('un-input').value = getUserName();
+  document.getElementById('user-name-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('un-input')?.focus(), 100);
+}
+function saveUserName() {
+  const v = document.getElementById('un-input').value.trim();
+  if (!v) { toast('กรุณาใส่ชื่อ','warn'); return; }
+  localStorage.setItem('admin_user', v);
+  document.getElementById('user-name-overlay').classList.remove('open');
+  document.getElementById('un-badge-text').textContent = v;
+  toast(`สวัสดี ${v} 👋`, 'success');
+}
+function refreshUserBadge() {
+  const u = getUserName();
+  const el = document.getElementById('un-badge-text');
+  if (el) el.textContent = u || 'ตั้งชื่อ';
+}
+
+// ═══════════════════════════════════════════════
+//  AUDIT LOG
+// ═══════════════════════════════════════════════
+const AUDIT_KEEP = 500;
+async function auditLog(action, target, details) {
+  if (!db) return;
+  try {
+    const entry = {
+      ts: Date.now(),
+      user: getUserName() || 'unknown',
+      action: String(action || ''),
+      target: String(target || ''),
+      details: details ? String(details).slice(0, 300) : ''
+    };
+    await db.ref('_auditLog').push(entry);
+    // Rotate occasionally (every ~50 writes statistically)
+    if (Math.random() < 0.02) _rotateAuditLog();
+  } catch(e) { console.warn('audit log failed:', e); }
+}
+async function _rotateAuditLog() {
+  try {
+    const snap = await db.ref('_auditLog').once('value');
+    const all = snap.val() || {};
+    const ids = Object.keys(all);
+    if (ids.length > AUDIT_KEEP) {
+      // Sort by ts ascending, remove oldest
+      ids.sort((a,b) => (all[a]?.ts||0) - (all[b]?.ts||0));
+      const removeIds = ids.slice(0, ids.length - AUDIT_KEEP);
+      const removals = {};
+      removeIds.forEach(id => removals[`_auditLog/${id}`] = null);
+      await db.ref().update(removals);
+    }
+  } catch(e) { console.warn('rotate audit:', e); }
+}
+function _fmtAuditTime(ts) {
+  const d = new Date(Number(ts)||0);
+  const now = Date.now();
+  const diff = Math.floor((now - Number(ts)) / 1000);
+  if (diff < 60) return diff + 's ago';
+  if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+  return d.toLocaleString('th-TH', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+}
+function renderAuditLog(entries) {
+  const el = document.getElementById('audit-log-list');
+  if (!el) return;
+  const ids = Object.keys(entries || {});
+  if (!ids.length) { el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--purple-mid)">ยังไม่มี audit log</div>'; return; }
+  // Sort by ts desc, limit 20
+  ids.sort((a,b) => (entries[b]?.ts||0) - (entries[a]?.ts||0));
+  const top = ids.slice(0, 20);
+  el.innerHTML = top.map(id => {
+    const e = entries[id] || {};
+    return `<div class="audit-entry">
+      <div class="audit-time">${_fmtAuditTime(e.ts)}</div>
+      <div class="audit-action">
+        <span class="audit-user">${esc(e.user || '?')}</span>
+        ${esc(e.action || '')}
+        ${e.target ? `→ <strong>${esc(e.target)}</strong>` : ''}
+        ${e.details ? `<div style="color:var(--purple-mid);font-size:.88em;margin-top:2px">${esc(e.details)}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+async function exportAuditLog() {
+  if (!db) return;
+  try {
+    const snap = await db.ref('_auditLog').once('value');
+    const all = snap.val() || {};
+    const list = Object.values(all).sort((a,b) => (b.ts||0) - (a.ts||0));
+    const csvLines = ['ts,datetime,user,action,target,details'];
+    list.forEach(e => {
+      const dt = new Date(Number(e.ts)||0).toISOString();
+      const row = [e.ts, dt, e.user, e.action, e.target, e.details]
+        .map(v => `"${String(v||'').replace(/"/g,'""')}"`).join(',');
+      csvLines.push(row);
+    });
+    const blob = new Blob([csvLines.join('\n')], {type:'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `audit-log-${new Date().toISOString().slice(0,19).replace(/[:.]/g,'-')}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    toast(`Export ${list.length} entries ✓`, 'success');
+  } catch(e) {
+    toast('Export ล้มเหลว: ' + e.message, 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  STOCK ALERTS
+// ═══════════════════════════════════════════════
+async function renderStockAlerts() {
+  if (!allProducts) return;
+  const entries = Object.entries(allProducts);
+
+  // 1. หมดทุกสี (all variants stock <= 0, has variants)
+  const outProducts = entries.filter(([,r]) => {
+    const vs = Array.isArray(r?.[12]) ? r[12] : [];
+    if (!vs.length) return false;
+    return vs.every(v => (Number(v?.stock)||0) <= 0);
+  }).map(([k,r]) => ({key:k, row:r, name:r[0]||'', img:r[4]||'', total:0}));
+
+  // 2. เหลือน้อย (0 < total < 5)
+  const lowProducts = entries.map(([k,r]) => {
+    const vs = Array.isArray(r?.[12]) ? r[12] : [];
+    const total = vs.reduce((s,v) => s + (Number(v?.stock)||0), 0);
+    return {key:k, row:r, name:r[0]||'', img:r[4]||'', total};
+  }).filter(p => p.total > 0 && p.total < 5)
+    .sort((a,b) => a.total - b.total);
+
+  // 3. ขายเร็ว 24h — compare with backup from ~24h ago
+  let trendingProducts = [];
+  try {
+    const bkSnap = await db.ref('_backups').once('value');
+    const all = bkSnap.val() || {};
+    const targetTs = Date.now() - 24*3600*1000;
+    // Find backup closest to 24h ago
+    let bestBk = null; let bestDiff = Infinity;
+    Object.values(all).forEach(bk => {
+      const t = bk?.meta?.ts || 0;
+      if (!t) return;
+      const diff = Math.abs(t - targetTs);
+      if (diff < bestDiff) { bestDiff = diff; bestBk = bk; }
+    });
+    if (bestBk && bestBk.products) {
+      // For each current product, find old total and compute drop
+      const oldProducts = bestBk.products;
+      const _toArr = v => {
+        if (Array.isArray(v)) return v;
+        if (v && typeof v === 'object') {
+          const keys = Object.keys(v).filter(k => /^\d+$/.test(k)).sort((a,b)=>Number(a)-Number(b));
+          if (keys.length) return keys.map(k => v[k]);
+        }
+        return [];
+      };
+      trendingProducts = entries.map(([k,r]) => {
+        const oldRow = _toArr(oldProducts[k]);
+        const oldVs = _toArr(oldRow[12]);
+        const curVs = Array.isArray(r?.[12]) ? r[12] : [];
+        const oldTotal = oldVs.reduce((s,v) => s + (Number(v?.stock)||0), 0);
+        const curTotal = curVs.reduce((s,v) => s + (Number(v?.stock)||0), 0);
+        const drop = oldTotal - curTotal;
+        return {key:k, name:r[0]||'', img:r[4]||'', drop, oldTotal, curTotal};
+      }).filter(p => p.drop > 0).sort((a,b) => b.drop - a.drop).slice(0, 10);
+    }
+  } catch(e) { console.warn('trending calc:', e); }
+
+  // 4. ดูบ่อย 24h — count from audit log
+  let popularProducts = [];
+  try {
+    const auditSnap = await db.ref('_auditLog').once('value');
+    const audit = auditSnap.val() || {};
+    const since = Date.now() - 24*3600*1000;
+    const viewCount = {};
+    Object.values(audit).forEach(e => {
+      if ((e?.ts || 0) < since) return;
+      if (e?.action === 'view-product' || e?.action === 'cart-add' || e?.action === 'copy-template') {
+        viewCount[e.target||''] = (viewCount[e.target||''] || 0) + 1;
+      }
+    });
+    popularProducts = Object.entries(viewCount)
+      .map(([name, count]) => ({ name, count, img: '' }))
+      .sort((a,b) => b.count - a.count).slice(0, 10);
+    // Try to enrich with images from current products
+    const nameToImg = {};
+    entries.forEach(([,r]) => { if (r[0] && r[4]) nameToImg[r[0]] = r[4]; });
+    popularProducts.forEach(p => { p.img = nameToImg[p.name] || ''; });
+  } catch(e) { console.warn('popular calc:', e); }
+
+  // Render
+  const renderList = (arr, fmt) => arr.length
+    ? arr.slice(0, 6).map(fmt).join('')
+    : '<div style="color:var(--purple-mid);text-align:center;padding:12px;font-size:.88em">— ไม่มี —</div>';
+
+  document.getElementById('alert-out-count').textContent = outProducts.length;
+  document.getElementById('alert-out-list').innerHTML = renderList(outProducts, p =>
+    `<div class="alert-item" onclick="openProductModal('${p.key}')">
+      ${p.img ? `<img src="${esc(p.img)}">` : ''}
+      <span class="alert-item-name">${esc(p.name)}</span>
+      <span class="alert-item-meta" style="color:#d92626">หมด</span>
+    </div>`);
+
+  document.getElementById('alert-low-count').textContent = lowProducts.length;
+  document.getElementById('alert-low-list').innerHTML = renderList(lowProducts, p =>
+    `<div class="alert-item" onclick="openProductModal('${p.key}')">
+      ${p.img ? `<img src="${esc(p.img)}">` : ''}
+      <span class="alert-item-name">${esc(p.name)}</span>
+      <span class="alert-item-meta" style="color:#d97e1a">${p.total} ชิ้น</span>
+    </div>`);
+
+  document.getElementById('alert-trend-count').textContent = trendingProducts.length;
+  document.getElementById('alert-trend-list').innerHTML = renderList(trendingProducts, p =>
+    `<div class="alert-item" onclick="openProductModal('${p.key}')">
+      ${p.img ? `<img src="${esc(p.img)}">` : ''}
+      <span class="alert-item-name">${esc(p.name)}</span>
+      <span class="alert-item-meta" style="color:#7c3aed">−${p.drop}</span>
+    </div>`);
+
+  document.getElementById('alert-popular-count').textContent = popularProducts.length;
+  document.getElementById('alert-popular-list').innerHTML = renderList(popularProducts, p =>
+    `<div class="alert-item">
+      ${p.img ? `<img src="${esc(p.img)}">` : ''}
+      <span class="alert-item-name">${esc(p.name)}</span>
+      <span class="alert-item-meta" style="color:#16a34a">×${p.count}</span>
+    </div>`);
+
+  // Badge: total alerts needing attention
+  const badge = document.getElementById('stock-alerts-badge');
+  if (badge) badge.textContent = (outProducts.length + lowProducts.length) + ' ต้องสนใจ';
+}
+
+// ═══════════════════════════════════════════════
+//  EDITING AWARENESS (who's editing which product)
+// ═══════════════════════════════════════════════
+const EDIT_TIMEOUT = 60_000; // 60s
+let _activeEditing = {};
+let _editingHeartbeat = null;
+
+function _editingPath(key) { return `_editing/${key}`; }
+
+async function markEditing(key) {
+  if (!db || !key) return;
+  try {
+    await db.ref(_editingPath(key)).set({ user: getUserName() || 'unknown', ts: Date.now() });
+    // Heartbeat every 25s
+    clearInterval(_editingHeartbeat);
+    _editingHeartbeat = setInterval(() => {
+      db.ref(_editingPath(key)).set({ user: getUserName() || 'unknown', ts: Date.now() }).catch(()=>{});
+    }, 25_000);
+    // Auto-clear on tab close
+    window.addEventListener('beforeunload', () => clearEditing(key), { once: true });
+  } catch(e) { console.warn('mark editing:', e); }
+}
+async function clearEditing(key) {
+  if (!db || !key) return;
+  clearInterval(_editingHeartbeat);
+  _editingHeartbeat = null;
+  try { await db.ref(_editingPath(key)).remove(); } catch(e) {}
+}
+function subscribeEditing() {
+  if (!db) return;
+  db.ref('_editing').on('value', snap => {
+    const all = snap.val() || {};
+    const now = Date.now();
+    const fresh = {};
+    Object.entries(all).forEach(([k, e]) => {
+      if (e?.ts && (now - e.ts) < EDIT_TIMEOUT) fresh[k] = e;
+    });
+    _activeEditing = fresh;
+    // Re-render product table to show badges
+    if (typeof renderProductTable === 'function') renderProductTable();
+  });
+}
+
 // ─── Firebase array-shape normalizer ─────────────
 // Firebase RTDB sometimes returns arrays as numeric-keyed objects.
 // Convert {"0":a, "1":b} → [a, b] recursively for product rows.
@@ -1027,6 +1405,20 @@ async function initApp() {
   });
   // Sync shared admin settings across devices
   subscribeRemoteSettings();
+  // Subscribe audit log for live updates
+  db.ref('_auditLog').on('value', snap => renderAuditLog(snap.val() || {}));
+  // Subscribe editing awareness
+  subscribeEditing();
+  // Re-render stock alerts when products change
+  db.ref('products').on('value', () => {
+    // Debounce — products listener already fires renderProductTable, just refresh alerts
+    clearTimeout(window._alertsTimer);
+    window._alertsTimer = setTimeout(renderStockAlerts, 500);
+  });
+
+  // Prompt for user name if not set
+  refreshUserBadge();
+  if (!getUserName()) setTimeout(() => promptUserName(false), 800);
 }
 
 // ─── BACKUP & RESTORE ───────────────────────────
@@ -1115,6 +1507,7 @@ async function exportFirebaseToJson() {
     setTimeout(() => URL.revokeObjectURL(url), 2000);
 
     toast(`✓ Export สำเร็จ • ${productsCount} สินค้า / ${generalCount} คีย์ลัด`, 'success');
+    auditLog('Export JSON', '', `${productsCount} สินค้า / ${generalCount} คีย์ลัด`);
   } catch(e) {
     toast('Export ล้มเหลว: ' + e.message, 'error');
   } finally {
@@ -1143,6 +1536,7 @@ async function createManualBackup() {
       await db.ref().update(removals);
     }
     toast(`✓ Backup สำเร็จ • ${count} สินค้า`,'success');
+    auditLog('Manual backup', '', `${count} สินค้า`);
   } catch(e) {
     toast('Backup ล้มเหลว: ' + e.message,'error');
   }
@@ -1225,6 +1619,7 @@ async function restoreBackup(id) {
 
     const summary = [hasProducts && `${Object.keys(bk.products).length} สินค้า`, hasGeneral && `${Object.keys(bk.general).length} คีย์ลัด`].filter(Boolean).join(' + ');
     toast(`✓ Restore สำเร็จ • ${summary}`,'success');
+    auditLog('Restore backup', id, summary);
   } catch(e) {
     toast('Restore ล้มเหลว: ' + e.message,'error');
   }
@@ -1465,6 +1860,7 @@ async function applyMergeSheet() {
       await db.ref('products').push(c.row13);
     }
     toast(`✓ Merge สำเร็จ • อัพเดต ${plan.updates.length} • สร้าง ${plan.creates.length}`, 'success');
+    auditLog('Merge from Sheet', '', `อัพ ${plan.updates.length} / สร้าง ${plan.creates.length}`);
     closeModal('merge-sheet-modal');
   } catch(e) {
     toast('Merge ล้มเหลว: ' + e.message, 'error');
@@ -1572,6 +1968,7 @@ async function applyImportJson() {
       await db.ref().update(ops);
     }
     toast(`✓ Restore สำเร็จ • ${incomingKeys.length} สินค้า (${mode})`,'success');
+    auditLog('Import JSON', '', `${mode} • ${incomingKeys.length} สินค้า`);
     closeModal('import-json-modal');
   } catch(e) {
     toast('Restore ล้มเหลว: ' + e.message,'error');
@@ -1691,7 +2088,7 @@ function renderProductTable() {
     return `
     <tr>
       <td style="position:relative">${row[4]?`<img class="td-img" src="${row[4]}" onerror="this.src='https://placehold.co/54x54/FFD1DC/E87A90?text=?'">`:'<div style="width:54px;height:54px;background:#f5f5f5;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.4em">📦</div>'}${allOut?'<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-15deg);background:rgba(231,76,60,.85);color:#fff;font-size:.55em;font-weight:800;padding:2px 6px;border-radius:4px;letter-spacing:.5px">SOLD OUT</div>':''}</td>
-      <td class="td-name" title="${esc(row[0])}">${esc(row[0])}</td>
+      <td class="td-name" title="${esc(row[0])}">${esc(row[0])}${_activeEditing[key] && _activeEditing[key].user !== getUserName() ? `<span class="editing-badge" title="กำลังแก้โดย ${esc(_activeEditing[key].user)}">✏️ ${esc(_activeEditing[key].user)}</span>` : ''}</td>
       <td><span style="background:var(--pink-pale);color:var(--pink);padding:3px 8px;border-radius:8px;font-size:.8em;font-weight:600">${esc(row[1]||'—')}</span></td>
       <td class="td-price">${esc(row[2]||'—')}</td>
       <td style="font-size:.75em;color:var(--purple-mid)">${esc(row[6]||'—')}</td>
@@ -1736,13 +2133,14 @@ function filterGeneral() { generalFilter = document.getElementById('general-sear
 function deleteItem(collection, key, name) {
   if (!confirm(`ลบ "${name}" ออกจากระบบ?\n\n⚠️ ข้อมูลจะถูกลบจาก Firebase ทันที`)) return;
   db.ref(`${collection}/${key}`).remove()
-    .then(() => toast(`ลบ "${name}" สำเร็จ`, 'success'))
+    .then(() => { toast(`ลบ "${name}" สำเร็จ`, 'success'); auditLog('ลบ', name, collection); })
     .catch(e => toast('เกิดข้อผิดพลาด: ' + e.message, 'error'));
 }
 
 // ─── PRODUCT MODAL ──────────────────────────────
 function openProductModal(key = null) {
   editProductKey = key;
+  if (key) markEditing(key);
   document.getElementById('product-modal-title').textContent = key ? '✏️ แก้ไขสินค้า' : '➕ เพิ่มสินค้า';
   const fields = ['p-name','p-type','p-price','p-sku','p-shopee','p-tiktok','p-lazada','p-page365','p-link','p-img1','p-img2','p-detail'];
   fields.forEach(id => document.getElementById(id).value = '');
@@ -1954,8 +2352,11 @@ async function saveProduct() {
   try {
     if (editProductKey) {
       await db.ref(`products/${editProductKey}`).set(row);
+      auditLog('แก้สินค้า', name, `${variants.length} variants`);
+      clearEditing(editProductKey);
     } else {
       await db.ref('products').push(row);
+      auditLog('เพิ่มสินค้า', name, `${variants.length} variants`);
     }
     toast(`บันทึก "${name}" สำเร็จ ✓`, 'success');
     closeModal('product-modal');
@@ -2359,6 +2760,7 @@ async function applyAutofill() {
   try {
     await db.ref().update(updates);
     toast(`✓ เติมรูปสำเร็จ • ${picked.length} variant • ${Object.keys(byKey).length} สินค้า`,'success');
+    auditLog('Auto-fill variant images', '', `${picked.length} variants ใน ${Object.keys(byKey).length} สินค้า`);
     closeModal('autofill-modal');
   } catch(e) {
     toast('เติมรูปล้มเหลว: ' + e.message,'error');
@@ -2416,6 +2818,7 @@ async function syncMerge() {
       addLog('ok', `✅ Sync Merge สำเร็จ\n${summary}`);
       document.getElementById('last-sync').textContent = new Date().toLocaleTimeString('th-TH');
       toast('Sync Merge สำเร็จ ✓','success');
+      auditLog('Sync Merge', '', `Products: u=${p.updated||0} c=${p.created||0}`);
     } else {
       addLog('err', `❌ Apps Script error: ${json.error || 'unknown'}`);
       toast('Sync ล้มเหลว: ' + (json.error||'unknown'), 'error');
@@ -2677,7 +3080,7 @@ function addLog(type, msg) {
   log.scrollTop = log.scrollHeight;
 }
 
-document.addEventListener('keydown', e => { if(e.key==='Escape') { closeModal('product-modal'); closeModal('general-modal'); closeModal('copy-img-modal'); closeModal('import-modal'); closeModal('p365-picker-modal'); closeP365Menu(); } });
+document.addEventListener('keydown', e => { if(e.key==='Escape') { if (editProductKey) clearEditing(editProductKey); closeModal('product-modal'); closeModal('general-modal'); closeModal('copy-img-modal'); closeModal('import-modal'); closeModal('p365-picker-modal'); closeP365Menu(); } });
 
 // ═══════════════════════════════════════════════
 //  PAGE365 PHOTO PICKER
@@ -3099,6 +3502,7 @@ async function runSyncAll() {
     document.getElementById('sp-status').textContent = `✓ เสร็จสิ้น — Match ${matchCount} • ไม่ match ${unmatchedCount} • อัพ stock ${stockUpdates} • เพิ่ม ${varsAdded} variants`;
     setLastImportAt(Date.now());
     toast(`Sync สำเร็จ ✓ อัพ ${matchCount} สินค้า`, 'success');
+    auditLog('Sync All จาก Page365', '', `match ${matchCount} / stock อัพ ${stockUpdates} / +variants ${varsAdded}`);
     cancelBtn.style.display = 'inline-flex';
     cancelBtn.textContent = 'ปิด';
     startBtn.style.display = 'none';
@@ -3742,6 +4146,7 @@ async function confirmImport() {
       await db.ref('products').push(c.row);
     }
     toast(`นำเข้าสำเร็จ ✓ อัปเดต ${pendingImport.updates.length} • เพิ่มใหม่ ${pendingImport.creates.length}`, 'success');
+    auditLog('Excel import', '', `อัพ ${pendingImport.updates.length} / สร้าง ${pendingImport.creates.length}`);
     setLastImportAt(Date.now());
     closeModal('import-modal');
     pendingImport = null;

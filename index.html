@@ -1984,6 +1984,7 @@ function addToCart(item) {
   else c.push(item);
   saveCart(c);
   showSyncToast(`🛒 +1 ${item.name}${item.variantName?' • '+item.variantName:''}`, 'success');
+  _customerAudit('cart-add', item.name||'', item.variantName||'');
 }
 function removeFromCart(i) { const c = getCart(); c.splice(i, 1); saveCart(c); }
 function updateCartQty(i, qty) {
@@ -2214,6 +2215,21 @@ function copyWithTemplate(idx, key) {
   const text = fillTemplate(tpl.text, row).trim();
   copyToClipboard(text);
   showSyncToast(`📋 Copy ${tpl.label}`, 'success');
+  _customerAudit('copy-template', row[0]||'', tpl.label);
+}
+
+// Optional audit log push from customer side
+function _customerAudit(action, target, details) {
+  if (!_customerDb) return;
+  try {
+    _customerDb.ref('_auditLog').push({
+      ts: Date.now(),
+      user: localStorage.getItem('admin_user') || 'index-user',
+      action: String(action||''),
+      target: String(target||''),
+      details: details ? String(details).slice(0, 300) : ''
+    }).catch(()=>{});
+  } catch(e) {}
 }
 
 // Template menu next to Copy button
@@ -2478,6 +2494,7 @@ function copyProductInfo(idx,btn){
 }
 
 function showProductDetail(idx,push=true){
+  if (push && productRows[idx]) _customerAudit('view-product', productRows[idx][0]||'', '');
   const row=productRows[idx]; if(!row) return;
   if(push) history.pushState({view:'detail',tab:'product',idx},'');
   document.getElementById('product-grid-view').style.display='none';
