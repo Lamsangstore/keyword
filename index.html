@@ -1327,6 +1327,45 @@
     body.dark #cart-fab{box-shadow:0 6px 24px rgba(0,0,0,.5)}
     body.dark #cart-fab .cart-fab-badge{background:#1e1c2e;color:#E0C7EE;border-color:#8E5FB8}
 
+    /* ── COMMAND PALETTE ── */
+    #cmd-palette{display:none;position:fixed;inset:0;z-index:9500;align-items:flex-start;justify-content:center;padding:80px 20px 20px}
+    #cmd-palette.open{display:flex}
+    .cmd-overlay{position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px)}
+    .cmd-panel{position:relative;background:#fff;border-radius:14px;width:100%;max-width:640px;max-height:70vh;display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.3);overflow:hidden;font-family:'Prompt',sans-serif}
+    body.dark .cmd-panel{background:#1e1c2e;color:#e4dfff}
+    .cmd-input-wrap{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--pink-light)}
+    body.dark .cmd-input-wrap{border-bottom-color:#2a2640}
+    .cmd-icon{font-size:1.15em}
+    #cmd-input{flex:1;border:none;outline:none;font-size:1em;font-family:inherit;color:inherit;background:transparent}
+    .cmd-kbd{padding:3px 8px;border-radius:6px;background:#f0ebf8;color:var(--purple-mid);font-size:.72em;font-weight:700;font-family:monospace}
+    body.dark .cmd-kbd{background:#2a2640;color:#a99fc5}
+    .cmd-results{flex:1;overflow-y:auto;padding:6px}
+    .cmd-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;cursor:pointer;transition:background .1s}
+    .cmd-item.active,.cmd-item:hover{background:var(--pink-pale)}
+    body.dark .cmd-item.active,body.dark .cmd-item:hover{background:#2a2640}
+    .cmd-item-img{width:36px;height:36px;border-radius:6px;background:#f0ebf8;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;font-size:1.1em}
+    .cmd-item-img img{width:100%;height:100%;object-fit:cover}
+    .cmd-item-info{flex:1;min-width:0}
+    .cmd-item-name{font-weight:600;font-size:.92em;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .cmd-item-meta{font-size:.74em;color:var(--purple-mid);margin-top:2px}
+    .cmd-item-action{padding:2px 8px;border-radius:8px;font-size:.7em;font-weight:700;background:#fef3c7;color:#92400e;flex-shrink:0}
+    .cmd-footer{display:flex;gap:14px;padding:8px 14px;border-top:1px solid var(--pink-light);background:#fafafa;font-size:.72em;color:var(--purple-mid);flex-wrap:wrap}
+    body.dark .cmd-footer{background:#16142a;border-top-color:#2a2640}
+    .cmd-empty{padding:30px 14px;text-align:center;color:var(--purple-mid);font-size:.88em}
+    @media(max-width:600px){
+      #cmd-palette{padding:40px 12px 12px}
+      .cmd-footer{font-size:.65em;gap:8px}
+    }
+
+    /* ── INTERNAL NOTE BADGE ── */
+    .product-note{
+      background:linear-gradient(90deg,#fef3c7,#fde68a);color:#7c2d12;
+      padding:10px 14px;border-radius:10px;margin:0 0 14px;
+      font-size:.88em;line-height:1.5;border:1px solid #f59e0b;
+    }
+    .product-note::before{content:'📝 โน้ตภายใน: ';font-weight:700}
+    body.dark .product-note{background:linear-gradient(90deg,#3a2c54,#5a4878);color:#fde68a;border-color:#7c3aed}
+
     /* ── SKELETON LOADING ── */
     .skeleton-grid{
       display:grid;
@@ -1523,6 +1562,22 @@
 
 <!-- SCROLL TO TOP -->
 <button id="scroll-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<!-- COMMAND PALETTE (Cmd+K) -->
+<div id="cmd-palette">
+  <div class="cmd-overlay" onclick="closeCmdPalette()"></div>
+  <div class="cmd-panel">
+    <div class="cmd-input-wrap">
+      <span class="cmd-icon">🔍</span>
+      <input id="cmd-input" type="text" placeholder="ค้นหาสินค้า, /sync, :SKU, #หมวด, &gt;ราคา ..." autocomplete="off" spellcheck="false">
+      <kbd class="cmd-kbd">ESC</kbd>
+    </div>
+    <div id="cmd-results" class="cmd-results"></div>
+    <div class="cmd-footer">
+      <span>↑↓ เลื่อน</span><span>↵ เลือก</span><span>/ commands</span><span>: SKU</span><span># หมวด</span>
+    </div>
+  </div>
+</div>
 
 <!-- FLOATING CART FAB -->
 <button id="cart-fab" onclick="openCartDrawer()" title="ตะกร้าออเดอร์ (Shift+T)" aria-label="เปิดตะกร้า">
@@ -1818,6 +1873,15 @@ async function initFirebase(){
   });
   // Subscribe promo config (live updates from admin)
   subscribePromo();
+  // Subscribe product notes (admin can attach internal notes)
+  subscribeProductNotes();
+  // Subscribe theme/branding
+  _customerDb.ref('_adminSettings/theme').on('value', snap => {
+    const v = snap.val() || {};
+    const r = document.documentElement.style;
+    if (v.pink) r.setProperty('--pink', v.pink);
+    if (v.purple) r.setProperty('--purple', v.purple);
+  });
   // Auto-sync on load if stale
   setTimeout(() => customerSyncFromPage365(true), 2500);
 }
@@ -1885,6 +1949,8 @@ async function customerSyncFromPage365(silent) {
     if (!silent) showSyncToast('⏳ กำลัง sync อยู่ — รอสักครู่', 'info');
     return;
   }
+  // First manual sync — opportunistically request notification permission
+  if (!silent) ensureNotifyPerm();
   if (silent) {
     const age = Date.now() - (customerLastSyncAt || 0);
     if (age < CUSTOMER_SYNC_STALE_MS) return; // fresh — skip auto only
@@ -1955,11 +2021,14 @@ async function customerSyncFromPage365(silent) {
 
           // Update existing variants: stock only — NEVER overwrite curated image
           let rowSU = 0, rowIU = 0;
+          const _justWentOut = []; // variants that newly went to 0
           curVariants = curVariants.map(v => {
             const pv = p365Vs.find(p => _custNormVName(p.name) === _custNormVName(v.name));
             if (pv) {
               const newStock = pv.in_stock ? (Number(pv.available)||0) : 0;
-              if (newStock !== (Number(v.stock)||0)) rowSU++;
+              const oldStock = Number(v.stock)||0;
+              if (newStock !== oldStock) rowSU++;
+              if (oldStock > 0 && newStock === 0) _justWentOut.push(v.name||v.sku||'');
               // Fill image only when missing (preserve user's curated photo per SKU)
               if (!v.image) {
                 const pvImg = _p365VariantPhoto(pv) || mainImg;
@@ -1969,6 +2038,10 @@ async function customerSyncFromPage365(silent) {
             }
             return v;
           });
+          // Notify about new sold-outs
+          if (_justWentOut.length && Notification?.permission === 'granted') {
+            _justWentOut.forEach(name => notifyStockOut(row[0]||'(unnamed)', name));
+          }
           // Add missing variants
           const existing = new Set(curVariants.map(v => _custNormVName(v.name)));
           p365Vs.forEach(pv => {
@@ -2253,6 +2326,7 @@ function generateCartMessage() {
   if (_promoConfig?.footer) msg += `\n${_promoConfig.footer}`;
   copyToClipboard(msg);
   showSyncToast(`📋 Copy ${items.length} รายการ • ${p.finalTotal.toLocaleString()}฿`, 'success');
+  logOrderHistory(items, p);
 }
 
 function copyToClipboard(text) {
@@ -2367,6 +2441,11 @@ const COPY_TEMPLATES = [
     label: '💰 ราคา',
     text: '{name} ราคา {price} ค่ะ'
   },
+  {
+    key: 'allcolors',
+    label: '🖼️ ส่งรูปทุกสี',
+    text: '{name} ราคา {price} ค่ะ\n\nรูปแต่ละสี:\n{colorImages}'
+  },
 ];
 
 function fillTemplate(tplText, row) {
@@ -2386,6 +2465,15 @@ function fillTemplate(tplText, row) {
   const availLines = inStock.length
     ? inStock.map(v => `${v.name}: ${v.stock}`).join(', ')
     : '(ไม่มีเหลือ)';
+  // Color image map (first variant image per color)
+  const colorImgs = {};
+  variants.forEach(v => {
+    const {color} = parseVariant(v.name);
+    if (color && !colorImgs[color] && v.image) colorImgs[color] = v.image;
+  });
+  const colorImageLines = Object.entries(colorImgs).length
+    ? Object.entries(colorImgs).map(([c, img]) => `• ${c}: ${img}`).join('\n')
+    : (row[4] ? `• รูปหลัก: ${row[4]}` : '(ไม่มีรูป)');
   return String(tplText||'')
     .replace(/\{name\}/g, row[0] || '')
     .replace(/\{price\}/g, row[2] || '')
@@ -2393,7 +2481,8 @@ function fillTemplate(tplText, row) {
     .replace(/\{sku\}/g, row[6] || '')
     .replace(/\{sizes\}/g, sizes.join(', '))
     .replace(/\{colors\}/g, colors.join(', '))
-    .replace(/\{avail\}/g, availLines);
+    .replace(/\{avail\}/g, availLines)
+    .replace(/\{colorImages\}/g, colorImageLines);
 }
 
 function copyWithTemplate(idx, key) {
@@ -2452,16 +2541,340 @@ function toggleTemplateMenu(idx, btn) {
 }
 
 // ═══════════════════════════════════════════════
+//  COMMAND PALETTE (Cmd+K / Ctrl+K)
+// ═══════════════════════════════════════════════
+let _cmdIndex = 0;
+let _cmdItems = [];
+
+const CMD_ACTIONS = [
+  { keys: ['/sync','sync','/365'], label: '🔄 Sync stock จาก Page365', run: () => customerSyncFromPage365(false) },
+  { keys: ['/cart','cart','ตะกร้า','/ตะกร้า'], label: '🛒 เปิดตะกร้า', run: openCartDrawer },
+  { keys: ['/dark','dark','/มืด'], label: '🌙 สลับ Dark mode', run: () => typeof toggleDark === 'function' && toggleDark() },
+  { keys: ['/back','back','/กลับ'], label: '‹ กลับ', run: () => typeof handleBack === 'function' && handleBack() },
+  { keys: ['/admin','admin'], label: '⚙️ เปิดแอดมิน', run: () => window.open('admin.html', '_blank') },
+  { keys: ['/fav','fav','/โปรด'], label: '⭐ ดูรายการโปรด', run: () => { typeof showFavorites === 'function' && showFavorites(); closeCmdPalette(); } },
+];
+
+function openCmdPalette() {
+  document.getElementById('cmd-palette').classList.add('open');
+  const input = document.getElementById('cmd-input');
+  input.value = '';
+  _cmdIndex = 0;
+  renderCmdResults('');
+  setTimeout(() => input.focus(), 50);
+}
+function closeCmdPalette() {
+  document.getElementById('cmd-palette').classList.remove('open');
+}
+
+// Smart search: supports >price, <price, =หมด, =เหลือน้อย, normal fuzzy
+function _smartSearchMatch(row, q) {
+  q = String(q||'').trim().toLowerCase();
+  if (!q) return true;
+  // > N → price > N
+  if (q.startsWith('>')) {
+    const n = parseInt(q.slice(1).replace(/[^0-9]/g,'')) || 0;
+    return (parseInt(String(row[2]||'').replace(/[^0-9]/g,''))||0) > n;
+  }
+  if (q.startsWith('<')) {
+    const n = parseInt(q.slice(1).replace(/[^0-9]/g,'')) || 0;
+    return (parseInt(String(row[2]||'').replace(/[^0-9]/g,''))||0) < n;
+  }
+  // Stock status filters
+  if (q === '=หมด' || q === 'sold') return isSoldOut(row);
+  if (q === '=น้อย' || q === '=เหลือน้อย' || q === 'low') return hasLowStock(row);
+  // Normal text match — try includes first, then fuzzy
+  const name = (row[0]||'').toLowerCase();
+  const type = (row[1]||'').toLowerCase();
+  const sku  = (row[6]||'').toLowerCase();
+  if (name.includes(q) || type.includes(q) || sku.includes(q)) return true;
+  return _fuzzyMatch(q, name) || _fuzzyMatch(q, type);
+}
+
+// Simple fuzzy: every char of query must appear in order in target
+function _fuzzyMatch(query, target) {
+  if (!query) return true;
+  const q = query.toLowerCase();
+  const t = String(target||'').toLowerCase();
+  if (t.includes(q)) return true;
+  let qi = 0;
+  for (let i = 0; i < t.length && qi < q.length; i++) {
+    if (t[i] === q[qi]) qi++;
+  }
+  return qi === q.length;
+}
+
+function renderCmdResults(query) {
+  const q = (query || '').trim();
+  const list = document.getElementById('cmd-results');
+  if (!list) return;
+  const items = [];
+
+  // 1. Action commands (only when query is empty OR starts with /)
+  if (q === '' || q.startsWith('/')) {
+    CMD_ACTIONS.forEach(a => {
+      if (q === '' || a.keys.some(k => _fuzzyMatch(q, k) || _fuzzyMatch(q, a.label))) {
+        items.push({ type: 'action', label: a.label, run: a.run });
+      }
+    });
+  }
+
+  // 2. SKU search (prefix :)
+  if (q.startsWith(':')) {
+    const skuQ = q.slice(1).toLowerCase();
+    productRows.forEach((r, i) => {
+      const sku = String(r[6]||'').toLowerCase();
+      if (sku.includes(skuQ)) {
+        items.push(_cmdProductItem(r, i));
+      }
+    });
+  }
+  // 3. Category filter (prefix #)
+  else if (q.startsWith('#')) {
+    const catQ = q.slice(1).toLowerCase();
+    const matchCats = [...new Set(productRows.map(r => r[1]).filter(Boolean))]
+      .filter(c => _fuzzyMatch(catQ, c));
+    matchCats.forEach(c => {
+      items.push({
+        type: 'action',
+        label: `📂 หมวด: ${c}`,
+        run: () => {
+          if (typeof selectedCat !== 'undefined') {
+            selectedCat = c;
+            window.renderProductGrid && window.renderProductGrid(productRows);
+            closeCmdPalette();
+          }
+        }
+      });
+    });
+  }
+  // 4. Price filter (prefix > or <)
+  else if (/^[<>]/.test(q)) {
+    const op = q[0];
+    const num = parseInt(q.slice(1).replace(/[^0-9]/g,'')) || 0;
+    productRows.forEach((r, i) => {
+      const price = parseInt(String(r[2]||'').replace(/[^0-9]/g,'')) || 0;
+      if ((op === '>' && price > num) || (op === '<' && price < num)) {
+        items.push(_cmdProductItem(r, i));
+      }
+    });
+  }
+  // 5. Free text — fuzzy match product name/type/sku
+  else if (q && !q.startsWith('/')) {
+    const scored = [];
+    productRows.forEach((r, i) => {
+      const name = String(r[0]||'').toLowerCase();
+      const type = String(r[1]||'').toLowerCase();
+      const sku  = String(r[6]||'').toLowerCase();
+      const qLow = q.toLowerCase();
+      let score = 0;
+      if (name.startsWith(qLow)) score = 100;
+      else if (name.includes(qLow)) score = 80;
+      else if (type.includes(qLow)) score = 50;
+      else if (sku.includes(qLow)) score = 40;
+      else if (_fuzzyMatch(qLow, name)) score = 20;
+      if (score > 0) scored.push({i, r, score});
+    });
+    scored.sort((a,b) => b.score - a.score);
+    scored.slice(0, 30).forEach(({r, i}) => items.push(_cmdProductItem(r, i)));
+  }
+  // Empty query — show top 8 actions + 8 recent products
+  else if (!q) {
+    productRows.slice(0, 8).forEach((r, i) => items.push(_cmdProductItem(r, i)));
+  }
+
+  _cmdItems = items.slice(0, 50);
+  if (!_cmdItems.length) {
+    list.innerHTML = '<div class="cmd-empty">— ไม่พบรายการ —<br><small>ลอง /sync · :B17 · #เสื้อ · &gt;500</small></div>';
+    return;
+  }
+  _cmdIndex = Math.min(_cmdIndex, _cmdItems.length - 1);
+  list.innerHTML = _cmdItems.map((it, i) => {
+    if (it.type === 'action') {
+      return `<div class="cmd-item${i===_cmdIndex?' active':''}" data-i="${i}" onclick="runCmdItem(${i})">
+        <div class="cmd-item-img">⚡</div>
+        <div class="cmd-item-info"><div class="cmd-item-name">${esc(it.label)}</div></div>
+        <span class="cmd-item-action">Action</span>
+      </div>`;
+    }
+    return `<div class="cmd-item${i===_cmdIndex?' active':''}" data-i="${i}" onclick="runCmdItem(${i})">
+      <div class="cmd-item-img">${it.img ? `<img src="${esc(it.img)}">` : '📦'}</div>
+      <div class="cmd-item-info">
+        <div class="cmd-item-name">${esc(it.label)}</div>
+        <div class="cmd-item-meta">${esc(it.meta || '')}</div>
+      </div>
+    </div>`;
+  }).join('');
+  // Scroll active into view
+  list.querySelector('.cmd-item.active')?.scrollIntoView({block:'nearest'});
+}
+
+function _cmdProductItem(r, i) {
+  return {
+    type: 'product',
+    label: r[0] || '(ไม่มีชื่อ)',
+    meta: `${r[1]||''} • ${r[2]||''}${r[6]?' • SKU '+r[6]:''}`,
+    img: r[4] || '',
+    run: () => { closeCmdPalette(); typeof showProductDetail === 'function' && showProductDetail(i); }
+  };
+}
+
+function runCmdItem(i) {
+  const it = _cmdItems[i];
+  if (!it) return;
+  try { it.run(); } catch(e) { console.warn(e); }
+  if (it.type === 'action') closeCmdPalette();
+}
+
+// ═══════════════════════════════════════════════
+//  ORDER HISTORY — log each generated cart message
+// ═══════════════════════════════════════════════
+function logOrderHistory(items, promo) {
+  if (!_customerDb || !items?.length) return;
+  try {
+    _customerDb.ref('_orderHistory').push({
+      ts: Date.now(),
+      user: localStorage.getItem('admin_user') || 'index-user',
+      itemCount: items.length,
+      totalQty: items.reduce((s,it) => s + (it.qty||1), 0),
+      subtotal: promo?.subtotal || 0,
+      finalTotal: promo?.finalTotal || 0,
+      discountPct: promo?.discountPct || 0,
+      items: items.map(it => ({
+        name: it.name, variant: it.variantName, qty: it.qty || 1,
+        price: parseInt(String(it.price||'').replace(/[^0-9]/g,'')) || 0
+      }))
+    });
+    // Rotate occasionally
+    if (Math.random() < 0.02) {
+      _customerDb.ref('_orderHistory').once('value').then(snap => {
+        const all = snap.val() || {};
+        const ids = Object.keys(all);
+        if (ids.length > 500) {
+          ids.sort((a,b) => (all[a]?.ts||0) - (all[b]?.ts||0));
+          const removeIds = ids.slice(0, ids.length - 500);
+          const removals = {};
+          removeIds.forEach(id => removals[`_orderHistory/${id}`] = null);
+          _customerDb.ref().update(removals).catch(()=>{});
+        }
+      });
+    }
+  } catch(e) { console.warn('order log:', e); }
+}
+
+// ═══════════════════════════════════════════════
+//  BROWSER NOTIFICATIONS (alert on stock=0 after sync)
+// ═══════════════════════════════════════════════
+let _notifyPermAsked = false;
+async function ensureNotifyPerm() {
+  if (!('Notification' in window)) return false;
+  if (Notification.permission === 'granted') return true;
+  if (Notification.permission === 'denied') return false;
+  if (_notifyPermAsked) return false;
+  _notifyPermAsked = true;
+  try { return (await Notification.requestPermission()) === 'granted'; }
+  catch { return false; }
+}
+function notifyStockOut(productName, variantName) {
+  if (Notification.permission !== 'granted') return;
+  try {
+    new Notification(`❌ หมดแล้ว: ${productName}`, {
+      body: variantName ? `Variant: ${variantName}` : 'ทุกตัวเลือกหมด',
+      icon: '/icon-192.png',
+      tag: 'stock-out-' + productName,
+    });
+  } catch {}
+}
+
+// ═══════════════════════════════════════════════
+//  INTERNAL NOTES per product (Firebase /_productNotes/<key>)
+// ═══════════════════════════════════════════════
+let _productNotes = {};
+function subscribeProductNotes() {
+  if (!_customerDb) return;
+  _customerDb.ref('_productNotes').on('value', snap => {
+    _productNotes = snap.val() || {};
+    // Re-render detail if open
+    if (typeof currentDetailIdx === 'number' && currentDetailIdx >= 0
+        && document.getElementById('product-details-view')?.style.display === 'block') {
+      showProductDetail(currentDetailIdx, false);
+    }
+  });
+}
+function getProductNote(idx) {
+  if (typeof idx !== 'number' || !productRows[idx]) return '';
+  // Need product key — but productRows is array. Look up by SKU instead
+  const sku = String(productRows[idx][6]||'').trim();
+  if (!sku) return '';
+  // Find note key by matching SKU
+  for (const [k, note] of Object.entries(_productNotes || {})) {
+    if (k === sku) return note || '';
+  }
+  return '';
+}
+
+// ═══════════════════════════════════════════════
+//  AI SUGGEST REPLY — heuristic keyword matching
+// ═══════════════════════════════════════════════
+const REPLY_HEURISTICS = [
+  { keywords: ['หมด','sold','out','ไม่มี','ของหมด'], template: 'out' },
+  { keywords: ['ราคาเท่าไหร่','เท่าไหร่','price','ราคา','กี่บาท'], template: 'price' },
+  { keywords: ['ไซส์','size','ใหญ่','เล็ก','พอดี','xs','s,','m,','l,','xl','xxl'], template: 'sizes' },
+  { keywords: ['สี','color','สีอะไร','มีสี'], template: 'colors' },
+  { keywords: ['ส่งฟรี','พร้อมส่ง','ของ','available','มีของไหม'], template: 'ready' },
+  { keywords: ['รูป','photo','image','ดูรูป','ส่งรูป'], template: 'allcolors' },
+];
+
+function suggestTemplate(customerMessage) {
+  const msg = String(customerMessage||'').toLowerCase();
+  if (!msg.trim()) return null;
+  let best = null, bestScore = 0;
+  REPLY_HEURISTICS.forEach(h => {
+    const hits = h.keywords.filter(k => msg.includes(k.toLowerCase())).length;
+    if (hits > bestScore) { bestScore = hits; best = h; }
+  });
+  return best?.template || 'info';
+}
+
+// ═══════════════════════════════════════════════
 //  KEYBOARD SHORTCUTS
 // ═══════════════════════════════════════════════
 document.addEventListener('keydown', e => {
+  // Cmd+K / Ctrl+K — open command palette from anywhere
+  if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+    e.preventDefault();
+    openCmdPalette();
+    return;
+  }
+  // Cmd palette navigation when open
+  const cmdOpen = document.getElementById('cmd-palette')?.classList.contains('open');
+  if (cmdOpen) {
+    if (e.key === 'Escape') { e.preventDefault(); closeCmdPalette(); return; }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      _cmdIndex = Math.min(_cmdItems.length - 1, _cmdIndex + 1);
+      renderCmdResults(document.getElementById('cmd-input').value);
+      return;
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      _cmdIndex = Math.max(0, _cmdIndex - 1);
+      renderCmdResults(document.getElementById('cmd-input').value);
+      return;
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      runCmdItem(_cmdIndex);
+      return;
+    }
+    return;
+  }
   const tag = e.target.tagName;
   const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable;
   if (isInput) {
     if (e.key === 'Escape') e.target.blur();
     return;
   }
-  // Skip if modal open
   const modalOpen = document.querySelector('#cart-drawer.open, #cart-picker.open, #lightbox[style*="block"]');
   if (e.key === 'Escape') {
     if (document.getElementById('cart-picker')?.classList.contains('open')) { closeCartPicker(); return; }
@@ -2483,6 +2896,12 @@ document.addEventListener('keydown', e => {
   } else if (e.key === 'b' && typeof currentDetailIdx === 'number' && currentDetailIdx >= 0) {
     handleBack();
   }
+});
+
+// Wire up cmd input
+document.addEventListener('DOMContentLoaded', () => {
+  const inp = document.getElementById('cmd-input');
+  if (inp) inp.addEventListener('input', e => { _cmdIndex = 0; renderCmdResults(e.target.value); });
 });
 
 // Initial cart badge update
@@ -2608,12 +3027,9 @@ function renderProductGrid(rows){
   // 1) filter by selected category
   const byCat = selectedCat==='ทั้งหมด' ? rows : rows.filter(r=>(r[1]||'ไม่ระบุ')===selectedCat);
 
-  // 2) filter by search
+  // 2) filter by search — supports prefix filters and fuzzy match
   const filtered = searchQuery
-    ? byCat.filter(r=>
-        (r[0]||'').toLowerCase().includes(searchQuery)
-     || (r[1]||'').toLowerCase().includes(searchQuery)
-     || (r[6]||'').toLowerCase().includes(searchQuery))
+    ? byCat.filter(r => _smartSearchMatch(r, searchQuery))
     : byCat;
 
   if (!filtered.length){
@@ -2799,6 +3215,7 @@ function showProductDetail(idx,push=true){
         </div>`:''}
       </div>
       <div class="detail-body">
+        ${getProductNote(idx) ? `<div class="product-note">${esc(getProductNote(idx))}</div>` : ''}
         <div class="detail-name">${esc(row[0])}${sold?' <span style="color:#d92626;font-size:.6em;background:rgba(217,38,38,.1);padding:3px 10px;border-radius:10px;vertical-align:middle">SOLD OUT</span>':''}</div>
         ${row[6]?`<div class="detail-sku">SKU: ${esc(row[6])}</div>`:''}
         <div class="detail-type">${esc(row[1])}</div>

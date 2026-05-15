@@ -94,6 +94,32 @@
     .un-current-badge:hover{background:var(--pink-light)}
     /* Editing badge in product table */
     .editing-badge{display:inline-flex;align-items:center;gap:4px;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:10px;font-size:.7em;font-weight:700;margin-left:6px}
+    /* Command palette */
+    #cmd-palette{display:none;position:fixed;inset:0;z-index:9500;align-items:flex-start;justify-content:center;padding:80px 20px 20px}
+    #cmd-palette.open{display:flex}
+    .cmd-overlay{position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px)}
+    .cmd-panel{position:relative;background:#fff;border-radius:14px;width:100%;max-width:640px;max-height:70vh;display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.3);overflow:hidden}
+    .cmd-input-wrap{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--pink-light)}
+    .cmd-icon{font-size:1.15em}
+    #cmd-input{flex:1;border:none;outline:none;font-size:1em;font-family:inherit;color:inherit;background:transparent}
+    .cmd-kbd{padding:3px 8px;border-radius:6px;background:#f0ebf8;color:var(--purple-mid);font-size:.72em;font-weight:700;font-family:monospace}
+    .cmd-results{flex:1;overflow-y:auto;padding:6px}
+    .cmd-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;cursor:pointer}
+    .cmd-item.active,.cmd-item:hover{background:var(--pink-pale)}
+    .cmd-item-img{width:36px;height:36px;border-radius:6px;background:#f0ebf8;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;font-size:1.1em}
+    .cmd-item-img img{width:100%;height:100%;object-fit:cover}
+    .cmd-item-info{flex:1;min-width:0}
+    .cmd-item-name{font-weight:600;font-size:.92em;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .cmd-item-meta{font-size:.74em;color:var(--purple-mid);margin-top:2px}
+    .cmd-item-action{padding:2px 8px;border-radius:8px;font-size:.7em;font-weight:700;background:#fef3c7;color:#92400e;flex-shrink:0}
+    .cmd-footer{display:flex;gap:14px;padding:8px 14px;border-top:1px solid var(--pink-light);background:#fafafa;font-size:.72em;color:var(--purple-mid);flex-wrap:wrap}
+    .cmd-empty{padding:30px 14px;text-align:center;color:var(--purple-mid);font-size:.88em}
+    /* Order history */
+    .order-row{display:flex;gap:10px;padding:8px 12px;background:#fafafa;border-radius:8px;align-items:center;font-size:.88em}
+    .order-time{font-family:monospace;font-size:.78em;color:var(--purple-mid);width:80px}
+    .order-info{flex:1}
+    .order-total{font-weight:700;color:var(--pink)}
+    body.dark .order-row{background:#2a2640;color:#e4dfff}
     .panel-title{font-size:1.15em;font-weight:700;color:var(--text);margin-bottom:18px;display:flex;align-items:center;gap:8px}
     .panel-title .badge{font-size:.7em;font-weight:600;background:var(--pink-pale);color:var(--pink);padding:2px 8px;border-radius:20px}
 
@@ -304,6 +330,65 @@
 </head>
 <body>
 
+<!-- ── COMMAND PALETTE (Cmd+K) ── -->
+<div id="cmd-palette">
+  <div class="cmd-overlay" onclick="closeCmdPalette()"></div>
+  <div class="cmd-panel">
+    <div class="cmd-input-wrap">
+      <span class="cmd-icon">🔍</span>
+      <input id="cmd-input" type="text" placeholder="ค้นหาสินค้า, /sync, :SKU, #หมวด, &gt;ราคา ..." autocomplete="off" spellcheck="false">
+      <kbd class="cmd-kbd">ESC</kbd>
+    </div>
+    <div id="cmd-results" class="cmd-results"></div>
+    <div class="cmd-footer">
+      <span>↑↓ เลื่อน</span><span>↵ เลือก</span><span>/ commands</span><span>: SKU</span><span># หมวด</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── QUICK STOCK ADJUST POPOVER ── -->
+<div id="quick-stock-popover" style="display:none;position:absolute;z-index:1500;background:#fff;border:1px solid var(--pink-light);border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.15);padding:14px;min-width:260px">
+  <div style="font-weight:700;margin-bottom:10px;font-size:.92em" id="qs-title">Quick Stock Adjust</div>
+  <div id="qs-variants" style="display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto"></div>
+  <div style="display:flex;gap:6px;margin-top:10px">
+    <button class="btn btn-ghost" style="flex:1;padding:6px 10px;font-size:.82em" onclick="closeQuickStockAdjust()">ปิด</button>
+    <button class="btn btn-pink" style="flex:1;padding:6px 10px;font-size:.82em" onclick="saveQuickStockAdjust()">💾 บันทึก</button>
+  </div>
+</div>
+
+<!-- ── BULK EDIT MODAL ── -->
+<div class="modal-overlay" id="bulk-edit-modal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title">✏️ Bulk Edit — <span id="bulk-edit-count">0</span> สินค้า</div>
+    <div style="display:flex;flex-direction:column;gap:14px;margin:14px 0">
+      <div>
+        <label style="font-weight:600;font-size:.88em">ฟิลด์ที่จะแก้</label>
+        <select id="bulk-field" onchange="onBulkFieldChange()" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--pink-light)">
+          <option value="">— เลือก —</option>
+          <option value="category">ประเภท / หมวดหมู่</option>
+          <option value="price-set">ราคา (ตั้งใหม่)</option>
+          <option value="price-mult">ราคา (คูณ % เช่น 1.1 = ขึ้น 10%)</option>
+          <option value="shopee">Link Shopee</option>
+          <option value="tiktok">Link TikTok</option>
+          <option value="lazada">Link Lazada</option>
+          <option value="page365">Link Page365</option>
+        </select>
+      </div>
+      <div id="bulk-value-wrap">
+        <label style="font-weight:600;font-size:.88em">ค่าใหม่</label>
+        <input id="bulk-value" type="text" placeholder="..." style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--pink-light)">
+      </div>
+      <div style="background:#fff3cd;padding:10px;border-radius:8px;font-size:.82em;color:#7d5413">
+        ⚠️ จะ apply กับสินค้าที่เลือก <strong id="bulk-edit-count2">0</strong> รายการ — backup อัตโนมัติก่อนเขียน
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('bulk-edit-modal')">ยกเลิก</button>
+      <button class="btn btn-pink" onclick="applyBulkEdit()">✓ Apply</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── USER NAME OVERLAY (first time / change) ── -->
 <div id="user-name-overlay">
   <div class="un-card">
@@ -425,6 +510,15 @@
         </div>
 
         <div class="panel">
+          <div class="panel-title">🧾 ประวัติออเดอร์ (Copy ข้อความ)
+            <span class="badge">20 ล่าสุด</span>
+          </div>
+          <div id="order-history-list" style="display:grid;gap:6px;max-height:320px;overflow-y:auto;font-size:.85em">
+            <div style="color:var(--purple-mid);padding:14px;text-align:center">— ยังไม่มีออเดอร์ —</div>
+          </div>
+        </div>
+
+        <div class="panel">
           <div class="panel-title">📜 Audit Log
             <span class="badge">20 ล่าสุด</span>
             <button class="btn btn-ghost" style="padding:4px 10px;font-size:.75em;margin-left:8px" onclick="exportAuditLog()">📥 Export</button>
@@ -520,9 +614,15 @@
             .filter-select:focus{outline:none;border-color:var(--pink)}
             body.dark .filter-select{background:#1e1c2e;border-color:#2a2640;color:#e4dfff}
           </style>
+          <div id="bulk-actions-bar" style="display:none;align-items:center;gap:10px;margin-bottom:10px;padding:10px 14px;background:var(--pink-pale);border-radius:10px">
+            <span id="bulk-count" style="font-weight:700;color:var(--pink)">0 รายการ</span>
+            <button class="btn btn-purple" style="padding:6px 12px;font-size:.82em" onclick="openBulkEditModal()">✏️ Bulk Edit</button>
+            <button class="btn btn-danger" style="padding:6px 12px;font-size:.82em" onclick="bulkDeleteSelected()">🗑️ ลบที่เลือก</button>
+            <button class="btn btn-ghost" style="padding:6px 12px;font-size:.82em;margin-left:auto" onclick="clearBulkSelection()">✕ ล้าง</button>
+          </div>
           <div class="table-wrap">
             <table id="product-table">
-              <thead><tr><th>รูป</th><th>ชื่อสินค้า</th><th>ประเภท</th><th>ราคา</th><th>SKU</th><th>Stock</th><th>Shopee</th><th>TikTok</th><th>จัดการ</th></tr></thead>
+              <thead><tr><th style="width:32px"><input type="checkbox" id="bulk-select-all" onclick="toggleBulkSelectAll(this)"></th><th>รูป</th><th>ชื่อสินค้า</th><th>ประเภท</th><th>ราคา</th><th>SKU</th><th>Stock</th><th>Shopee</th><th>TikTok</th><th>จัดการ</th></tr></thead>
               <tbody id="product-tbody"></tbody>
             </table>
           </div>
@@ -601,6 +701,26 @@
           </div>
         </div>
         <div class="panel">
+          <div class="panel-title">🎨 Theme & Branding</div>
+          <div class="form-row">
+            <div>
+              <label>สีหลัก (Pink)</label>
+              <input type="color" id="theme-pink" value="#FF6B9D" oninput="saveThemeDebounced()" style="width:100%;height:42px;padding:2px;border-radius:8px;border:1px solid var(--pink-light)">
+            </div>
+            <div>
+              <label>สีรอง (Purple)</label>
+              <input type="color" id="theme-purple" value="#9B7EBD" oninput="saveThemeDebounced()" style="width:100%;height:42px;padding:2px;border-radius:8px;border:1px solid var(--pink-light)">
+            </div>
+          </div>
+          <div class="form-row full">
+            <div>
+              <label>ชื่อร้าน (แสดงในข้อความ Copy)</label>
+              <input type="text" id="theme-shop-name" placeholder="LAMSANGSTORE" oninput="saveThemeDebounced()">
+            </div>
+          </div>
+          <button class="btn btn-ghost" style="padding:6px 12px;font-size:.82em" onclick="resetTheme()">↺ Reset เป็นค่าเริ่มต้น</button>
+        </div>
+        <div class="panel">
           <div class="panel-title">🔒 เปลี่ยนรหัสผ่าน Admin</div>
           <div class="form-row">
             <div><label>รหัสผ่านใหม่</label><input type="password" id="new-pw" placeholder="รหัสผ่านใหม่"></div>
@@ -639,6 +759,7 @@
     </div>
     <div class="form-row full">
       <div><label>รายละเอียด</label><textarea id="p-detail" placeholder="รายละเอียดสินค้า..."></textarea></div>
+      <div><label>📝 โน้ตภายใน <span style="color:var(--purple-mid);font-weight:400;font-size:.85em">(เฉพาะ admin เห็น — ไม่ส่งให้ลูกค้า)</span></label><textarea id="p-note" placeholder="เช่น: ระวังลายเลื่อนเล็กน้อย / ห้ามลดเกิน 15% / ลูกค้า A สั่งซ้ำ" rows="2" style="background:#fef3c7"></textarea></div>
     </div>
     <!-- Image 1 -->
     <div class="form-row">
@@ -1094,6 +1215,324 @@ function changePw() {
   toast('เปลี่ยนรหัสผ่านสำเร็จ','success');
   document.getElementById('new-pw').value = '';
   document.getElementById('new-pw2').value = '';
+}
+
+// ═══════════════════════════════════════════════
+//  COMMAND PALETTE (Cmd+K)
+// ═══════════════════════════════════════════════
+let _adminCmdIndex = 0, _adminCmdItems = [];
+const ADMIN_CMD_ACTIONS = [
+  { keys:['/sync','sync'], label:'🔀 Sync Merge (Sheet ↔ Firebase)', run:()=>typeof syncMerge==='function' && syncMerge() },
+  { keys:['/page365','/p365'], label:'🔄 Sync จาก Page365', run:()=>typeof openSyncAllModal==='function' && openSyncAllModal() },
+  { keys:['/backup'], label:'📸 Backup ตอนนี้', run:()=>typeof createManualBackup==='function' && createManualBackup() },
+  { keys:['/export'], label:'💾 Export Firebase JSON', run:()=>typeof exportFirebaseToJson==='function' && exportFirebaseToJson() },
+  { keys:['/import'], label:'🔧 Import JSON', run:()=>typeof openImportJsonModal==='function' && openImportJsonModal() },
+  { keys:['/dash','/dashboard'], label:'📊 Dashboard', run:()=>typeof showSection==='function' && showSection('dashboard') },
+  { keys:['/products','/สินค้า'], label:'📦 จัดการสินค้า', run:()=>typeof showSection==='function' && showSection('products') },
+  { keys:['/settings','/ตั้งค่า'], label:'⚙️ ตั้งค่า', run:()=>typeof showSection==='function' && showSection('settings') },
+  { keys:['/index','/ดู'], label:'👁️ เปิดหน้าลูกค้า', run:()=>window.open('index.html','_blank') },
+];
+function _afz(q,t){ if(!q) return true; const a=String(q).toLowerCase(),b=String(t||'').toLowerCase(); if(b.includes(a)) return true; let i=0; for(let k=0;k<b.length&&i<a.length;k++) if(b[k]===a[i]) i++; return i===a.length; }
+function openCmdPalette(){
+  const el = document.getElementById('cmd-palette');
+  if (!el) return;
+  el.classList.add('open');
+  const inp = document.getElementById('cmd-input');
+  inp.value=''; _adminCmdIndex=0; renderAdminCmdResults('');
+  setTimeout(()=>inp.focus(),50);
+}
+function closeCmdPalette(){ document.getElementById('cmd-palette')?.classList.remove('open'); }
+function renderAdminCmdResults(q){
+  const list = document.getElementById('cmd-results');
+  if (!list) return;
+  q = (q||'').trim();
+  const items = [];
+  if (q==='' || q.startsWith('/')) {
+    ADMIN_CMD_ACTIONS.forEach(a => {
+      if (q==='' || a.keys.some(k=>_afz(q,k)) || _afz(q,a.label)) items.push({type:'action',label:a.label,run:a.run});
+    });
+  }
+  if (q.startsWith(':')) {
+    const sk = q.slice(1).toLowerCase();
+    Object.entries(allProducts||{}).forEach(([key,r])=>{
+      if (String(r?.[6]||'').toLowerCase().includes(sk)) items.push({type:'product',label:r[0]||'(no name)',meta:`SKU ${r[6]||''} • ${r[2]||''}`,img:r[4]||'',run:()=>{closeCmdPalette();openProductModal(key);}});
+    });
+  } else if (q.startsWith('#')) {
+    const cq = q.slice(1).toLowerCase();
+    [...new Set(Object.values(allProducts||{}).map(r=>r?.[1]).filter(Boolean))]
+      .filter(c=>_afz(cq,c))
+      .forEach(c=>items.push({type:'action',label:`📂 หมวด: ${c}`,run:()=>{const sel=document.getElementById('filter-category');if(sel){sel.value=c;renderProductTable();}showSection('products');closeCmdPalette();}}));
+  } else if (q && !q.startsWith('/')) {
+    Object.entries(allProducts||{}).forEach(([key,r])=>{
+      const n=String(r?.[0]||'').toLowerCase(), s=String(r?.[6]||'').toLowerCase();
+      if (n.includes(q.toLowerCase()) || s.includes(q.toLowerCase()) || _afz(q,n))
+        items.push({type:'product',label:r[0]||'(no name)',meta:`${r[1]||''} • ${r[2]||''}`,img:r[4]||'',run:()=>{closeCmdPalette();openProductModal(key);}});
+    });
+  }
+  _adminCmdItems = items.slice(0,40);
+  if (!_adminCmdItems.length) { list.innerHTML='<div class="cmd-empty">— ไม่พบ —<br><small>ลอง /sync · :B17 · #เสื้อ</small></div>'; return; }
+  _adminCmdIndex = Math.min(_adminCmdIndex, _adminCmdItems.length-1);
+  list.innerHTML = _adminCmdItems.map((it,i)=>{
+    if (it.type==='action') return `<div class="cmd-item${i===_adminCmdIndex?' active':''}" onclick="runAdminCmd(${i})"><div class="cmd-item-img">⚡</div><div class="cmd-item-info"><div class="cmd-item-name">${esc(it.label)}</div></div><span class="cmd-item-action">Action</span></div>`;
+    return `<div class="cmd-item${i===_adminCmdIndex?' active':''}" onclick="runAdminCmd(${i})"><div class="cmd-item-img">${it.img?`<img src="${esc(it.img)}">`:'📦'}</div><div class="cmd-item-info"><div class="cmd-item-name">${esc(it.label)}</div><div class="cmd-item-meta">${esc(it.meta||'')}</div></div></div>`;
+  }).join('');
+}
+function runAdminCmd(i){ const it=_adminCmdItems[i]; if(!it) return; try{it.run();}catch(e){console.warn(e);} if(it.type==='action') closeCmdPalette(); }
+document.addEventListener('keydown', e=>{
+  if ((e.metaKey||e.ctrlKey) && (e.key==='k'||e.key==='K')) { e.preventDefault(); openCmdPalette(); return; }
+  if (!document.getElementById('cmd-palette')?.classList.contains('open')) return;
+  if (e.key==='Escape') { e.preventDefault(); closeCmdPalette(); }
+  else if (e.key==='ArrowDown') { e.preventDefault(); _adminCmdIndex=Math.min(_adminCmdItems.length-1,_adminCmdIndex+1); renderAdminCmdResults(document.getElementById('cmd-input').value); }
+  else if (e.key==='ArrowUp') { e.preventDefault(); _adminCmdIndex=Math.max(0,_adminCmdIndex-1); renderAdminCmdResults(document.getElementById('cmd-input').value); }
+  else if (e.key==='Enter') { e.preventDefault(); runAdminCmd(_adminCmdIndex); }
+});
+document.addEventListener('DOMContentLoaded', ()=>{
+  const inp=document.getElementById('cmd-input');
+  if (inp) inp.addEventListener('input', e=>{ _adminCmdIndex=0; renderAdminCmdResults(e.target.value); });
+});
+
+// ═══════════════════════════════════════════════
+//  QUICK STOCK ADJUST
+// ═══════════════════════════════════════════════
+let _qsKey = null;
+let _qsDraft = null;
+function openQuickStockAdjust(key, anchor) {
+  const row = allProducts[key];
+  if (!row) return;
+  const variants = Array.isArray(row[12]) ? row[12] : [];
+  if (!variants.length) { toast('สินค้านี้ไม่มี variants','warn'); return; }
+  _qsKey = key;
+  _qsDraft = variants.map(v => ({...v}));
+  const pop = document.getElementById('quick-stock-popover');
+  document.getElementById('qs-title').textContent = `📦 ${row[0]||'Stock'}`;
+  document.getElementById('qs-variants').innerHTML = _qsDraft.map((v,i) => `
+    <div style="display:flex;align-items:center;gap:6px">
+      <span style="flex:1;font-size:.85em">${esc(v.name||v.sku||'?')}</span>
+      <button onclick="qsAdj(${i},-1)" style="width:26px;height:26px;border-radius:50%;border:1px solid var(--pink-light);background:#fff;cursor:pointer;font-weight:700">−</button>
+      <input id="qs-${i}" type="number" value="${Number(v.stock)||0}" style="width:60px;padding:4px 8px;border-radius:6px;border:1px solid var(--pink-light);text-align:center" onchange="qsSet(${i},this.value)">
+      <button onclick="qsAdj(${i},1)" style="width:26px;height:26px;border-radius:50%;border:1px solid var(--pink-light);background:#fff;cursor:pointer;font-weight:700">+</button>
+      <button onclick="qsSet(${i},0)" style="padding:2px 8px;border-radius:6px;border:1px solid #fadbd8;background:#fadbd8;color:#7b241c;font-size:.7em;cursor:pointer">หมด</button>
+    </div>`).join('');
+  // Position
+  const r = anchor.getBoundingClientRect();
+  pop.style.display = 'block';
+  pop.style.left = Math.min(r.left + window.scrollX, window.innerWidth - 280) + 'px';
+  pop.style.top  = (r.bottom + window.scrollY + 6) + 'px';
+  setTimeout(() => {
+    const close = e => {
+      if (!pop.contains(e.target) && e.target !== anchor) {
+        closeQuickStockAdjust();
+        document.removeEventListener('click', close);
+      }
+    };
+    document.addEventListener('click', close);
+  }, 0);
+}
+function qsAdj(i, delta) {
+  if (!_qsDraft[i]) return;
+  const cur = Number(_qsDraft[i].stock) || 0;
+  _qsDraft[i].stock = Math.max(0, cur + delta);
+  document.getElementById('qs-' + i).value = _qsDraft[i].stock;
+}
+function qsSet(i, val) {
+  if (!_qsDraft[i]) return;
+  _qsDraft[i].stock = Math.max(0, Number(val) || 0);
+  document.getElementById('qs-' + i).value = _qsDraft[i].stock;
+}
+function closeQuickStockAdjust() {
+  document.getElementById('quick-stock-popover').style.display = 'none';
+  _qsKey = null; _qsDraft = null;
+}
+async function saveQuickStockAdjust() {
+  if (!_qsKey || !_qsDraft) return;
+  try {
+    const row = allProducts[_qsKey];
+    const newRow = [...row];
+    while (newRow.length < 13) newRow.push('');
+    newRow[12] = _qsDraft;
+    await db.ref(`products/${_qsKey}`).set(newRow);
+    toast('✓ อัพเดต stock สำเร็จ', 'success');
+    auditLog('Quick stock adjust', row[0]||'', _qsDraft.map(v=>`${v.name}:${v.stock}`).join(', '));
+    closeQuickStockAdjust();
+  } catch(e) { toast('Save ล้มเหลว: ' + e.message, 'error'); }
+}
+
+// ═══════════════════════════════════════════════
+//  BULK EDIT / BULK DELETE
+// ═══════════════════════════════════════════════
+let _bulkSelected = new Set();
+
+function toggleBulkRow(key, checked) {
+  if (checked) _bulkSelected.add(key);
+  else _bulkSelected.delete(key);
+  updateBulkBar();
+}
+function toggleBulkSelectAll(cb) {
+  document.querySelectorAll('.bulk-row-check').forEach(c => {
+    c.checked = cb.checked;
+    if (cb.checked) _bulkSelected.add(c.dataset.key);
+    else _bulkSelected.delete(c.dataset.key);
+  });
+  updateBulkBar();
+}
+function updateBulkBar() {
+  const bar = document.getElementById('bulk-actions-bar');
+  const count = _bulkSelected.size;
+  if (bar) {
+    bar.style.display = count > 0 ? 'flex' : 'none';
+    document.getElementById('bulk-count').textContent = `${count} รายการ`;
+  }
+}
+function clearBulkSelection() {
+  _bulkSelected.clear();
+  document.querySelectorAll('.bulk-row-check').forEach(c => c.checked = false);
+  const sa = document.getElementById('bulk-select-all');
+  if (sa) sa.checked = false;
+  updateBulkBar();
+}
+
+function openBulkEditModal() {
+  if (!_bulkSelected.size) { toast('เลือกสินค้าก่อน','warn'); return; }
+  document.getElementById('bulk-edit-count').textContent = _bulkSelected.size;
+  document.getElementById('bulk-edit-count2').textContent = _bulkSelected.size;
+  document.getElementById('bulk-field').value = '';
+  document.getElementById('bulk-value').value = '';
+  openModal('bulk-edit-modal');
+}
+function onBulkFieldChange() {
+  const f = document.getElementById('bulk-field').value;
+  const inp = document.getElementById('bulk-value');
+  if (f === 'price-mult') inp.placeholder = 'เช่น 1.10 = ขึ้น 10% • 0.9 = ลด 10%';
+  else if (f === 'price-set') inp.placeholder = 'ราคาใหม่';
+  else inp.placeholder = 'ค่าใหม่';
+}
+async function applyBulkEdit() {
+  const field = document.getElementById('bulk-field').value;
+  const value = document.getElementById('bulk-value').value.trim();
+  if (!field || !value) { toast('กรอกข้อมูลให้ครบ','warn'); return; }
+  const fieldMap = { category:1, 'price-set':2, shopee:7, tiktok:8, lazada:10, page365:11 };
+
+  try {
+    await _preSyncBackup(`ก่อน bulk edit ${_bulkSelected.size} สินค้า`);
+  } catch(e) { if (!confirm(`Backup ล้ม: ${e.message}\n\nต่อ?`)) return; }
+
+  const updates = {};
+  for (const key of _bulkSelected) {
+    const row = allProducts[key];
+    if (!row) continue;
+    const newRow = [...row];
+    while (newRow.length < 13) newRow.push('');
+    if (field === 'price-mult') {
+      const mult = Number(value) || 1;
+      const cur = parseInt(String(newRow[2]||'').replace(/[^0-9]/g,''))||0;
+      newRow[2] = String(Math.round(cur * mult));
+    } else if (field in fieldMap) {
+      newRow[fieldMap[field]] = value;
+    }
+    updates[`products/${key}`] = newRow;
+  }
+  try {
+    await db.ref().update(updates);
+    toast(`✓ Bulk edit สำเร็จ • ${_bulkSelected.size} สินค้า`,'success');
+    auditLog('Bulk edit', `${_bulkSelected.size} สินค้า`, `${field} = ${value}`);
+    clearBulkSelection();
+    closeModal('bulk-edit-modal');
+  } catch(e) { toast('Bulk edit ล้มเหลว: ' + e.message,'error'); }
+}
+async function bulkDeleteSelected() {
+  if (!_bulkSelected.size) return;
+  if (!confirm(`⚠️ ลบ ${_bulkSelected.size} สินค้าออกจาก Firebase?\n\nไม่สามารถ undo ได้ (แต่มี backup ก่อนลบ)`)) return;
+  try {
+    await _preSyncBackup(`ก่อน bulk delete ${_bulkSelected.size}`);
+  } catch(e) { if (!confirm(`Backup ล้ม: ${e.message}\n\nต่อ?`)) return; }
+  const removals = {};
+  _bulkSelected.forEach(key => removals[`products/${key}`] = null);
+  try {
+    await db.ref().update(removals);
+    toast(`✓ ลบ ${_bulkSelected.size} สินค้าสำเร็จ`,'success');
+    auditLog('Bulk delete', `${_bulkSelected.size} สินค้า`, '');
+    clearBulkSelection();
+  } catch(e) { toast('ลบล้มเหลว: ' + e.message, 'error'); }
+}
+
+// ═══════════════════════════════════════════════
+//  ORDER HISTORY view
+// ═══════════════════════════════════════════════
+function renderOrderHistory(all) {
+  const el = document.getElementById('order-history-list');
+  if (!el) return;
+  const ids = Object.keys(all || {});
+  if (!ids.length) { el.innerHTML = '<div style="color:var(--purple-mid);padding:14px;text-align:center">— ยังไม่มีออเดอร์ —</div>'; return; }
+  ids.sort((a,b) => (all[b]?.ts||0) - (all[a]?.ts||0));
+  const top = ids.slice(0, 20);
+  el.innerHTML = top.map(id => {
+    const o = all[id] || {};
+    const t = new Date(Number(o.ts)||0);
+    const time = t.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
+    const date = t.toLocaleDateString('th-TH',{day:'2-digit',month:'short'});
+    const items = Array.isArray(o.items) ? o.items : Object.values(o.items||{});
+    const preview = items.slice(0,3).map(it => `${it.name}${it.variant?' '+it.variant:''}×${it.qty||1}`).join(', ') + (items.length>3?` +${items.length-3}`:'');
+    return `<div class="order-row">
+      <div class="order-time">${date}<br>${time}</div>
+      <div class="order-info">
+        <div style="font-weight:600">${esc(o.user||'?')} • ${o.totalQty||0} ชิ้น</div>
+        <div style="font-size:.82em;color:var(--purple-mid);margin-top:2px">${esc(preview)}</div>
+      </div>
+      <div class="order-total">${(o.finalTotal||0).toLocaleString()}฿</div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════
+//  THEME / BRANDING
+// ═══════════════════════════════════════════════
+const DEFAULT_THEME = { pink:'#FF6B9D', purple:'#9B7EBD', shopName:'LAMSANGSTORE' };
+let _themeSaveTimer = null;
+let _themeApplying = false;
+
+function subscribeRemoteTheme() {
+  if (!db) return;
+  db.ref('_adminSettings/theme').on('value', snap => {
+    const v = snap.val() || {};
+    _themeApplying = true;
+    document.getElementById('theme-pink').value = v.pink || DEFAULT_THEME.pink;
+    document.getElementById('theme-purple').value = v.purple || DEFAULT_THEME.purple;
+    document.getElementById('theme-shop-name').value = v.shopName || '';
+    applyTheme(v);
+    _themeApplying = false;
+  });
+}
+function applyTheme(t) {
+  const r = document.documentElement.style;
+  if (t.pink) r.setProperty('--pink', t.pink);
+  if (t.purple) r.setProperty('--purple', t.purple);
+}
+function saveThemeDebounced() {
+  if (_themeApplying) return;
+  clearTimeout(_themeSaveTimer);
+  _themeSaveTimer = setTimeout(saveTheme, 400);
+  const t = {
+    pink: document.getElementById('theme-pink').value,
+    purple: document.getElementById('theme-purple').value,
+  };
+  applyTheme(t);
+}
+async function saveTheme() {
+  if (_themeApplying || !db) return;
+  try {
+    await db.ref('_adminSettings/theme').set({
+      pink: document.getElementById('theme-pink').value,
+      purple: document.getElementById('theme-purple').value,
+      shopName: document.getElementById('theme-shop-name').value.trim(),
+      _updatedAt: Date.now()
+    });
+  } catch(e) { console.warn('save theme:', e); }
+}
+function resetTheme() {
+  document.getElementById('theme-pink').value = DEFAULT_THEME.pink;
+  document.getElementById('theme-purple').value = DEFAULT_THEME.purple;
+  document.getElementById('theme-shop-name').value = DEFAULT_THEME.shopName;
+  saveTheme();
 }
 
 // ═══════════════════════════════════════════════
@@ -1561,6 +2000,10 @@ async function initApp() {
   subscribeRemoteSettings();
   // Sync promo config
   subscribeRemotePromo();
+  // Sync theme/branding
+  subscribeRemoteTheme();
+  // Order history live
+  db.ref('_orderHistory').on('value', snap => renderOrderHistory(snap.val() || {}));
   // Subscribe audit log for live updates
   db.ref('_auditLog').on('value', snap => renderAuditLog(snap.val() || {}));
   // Subscribe editing awareness
@@ -2231,7 +2674,7 @@ function renderProductTable() {
   const countEl = document.getElementById('filter-count');
   if (countEl) countEl.textContent = `${filtered.length} / ${rows.length} รายการ`;
 
-  if (!filtered.length) { tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--purple-mid)">ไม่พบข้อมูล</td></tr>`; return; }
+  if (!filtered.length) { tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--purple-mid)">ไม่พบข้อมูล</td></tr>`; return; }
   tbody.innerHTML = filtered.map(([key,row]) => {
     const variants = Array.isArray(row[12]) ? row[12] : [];
     const totalStock = variants.reduce((s,v)=>s+(Number(v.stock)||0),0);
@@ -2243,12 +2686,13 @@ function renderProductTable() {
     else stockBadge = `<span class="stock-badge ok">${totalStock} ชิ้น</span>`;
     return `
     <tr>
+      <td><input type="checkbox" class="bulk-row-check" data-key="${key}" ${_bulkSelected.has(key)?'checked':''} onclick="event.stopPropagation();toggleBulkRow('${key}', this.checked)"></td>
       <td style="position:relative">${row[4]?`<img class="td-img" src="${row[4]}" onerror="this.src='https://placehold.co/54x54/FFD1DC/E87A90?text=?'">`:'<div style="width:54px;height:54px;background:#f5f5f5;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.4em">📦</div>'}${allOut?'<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-15deg);background:rgba(231,76,60,.85);color:#fff;font-size:.55em;font-weight:800;padding:2px 6px;border-radius:4px;letter-spacing:.5px">SOLD OUT</div>':''}</td>
       <td class="td-name" title="${esc(row[0])}">${esc(row[0])}${_activeEditing[key] && _activeEditing[key].user !== getUserName() ? `<span class="editing-badge" title="กำลังแก้โดย ${esc(_activeEditing[key].user)}">✏️ ${esc(_activeEditing[key].user)}</span>` : ''}</td>
       <td><span style="background:var(--pink-pale);color:var(--pink);padding:3px 8px;border-radius:8px;font-size:.8em;font-weight:600">${esc(row[1]||'—')}</span></td>
       <td class="td-price">${esc(row[2]||'—')}</td>
       <td style="font-size:.75em;color:var(--purple-mid)">${esc(row[6]||'—')}</td>
-      <td style="text-align:center">${stockBadge}</td>
+      <td style="text-align:center;cursor:pointer" onclick="event.stopPropagation();openQuickStockAdjust('${key}', this)" title="คลิกเพื่อปรับ stock">${stockBadge}</td>
       <td style="text-align:center">${row[7]?`<a href="${row[7]}" target="_blank" style="font-size:.8em;color:#EE4D2D">🛒</a>`:'—'}</td>
       <td style="text-align:center">${row[8]?`<a href="${row[8]}" target="_blank" style="font-size:.8em;color:#010101">🎵</a>`:'—'}</td>
       <td><div class="td-actions">
@@ -2298,8 +2742,8 @@ function openProductModal(key = null) {
   editProductKey = key;
   if (key) markEditing(key);
   document.getElementById('product-modal-title').textContent = key ? '✏️ แก้ไขสินค้า' : '➕ เพิ่มสินค้า';
-  const fields = ['p-name','p-type','p-price','p-sku','p-shopee','p-tiktok','p-lazada','p-page365','p-link','p-img1','p-img2','p-detail'];
-  fields.forEach(id => document.getElementById(id).value = '');
+  const fields = ['p-name','p-type','p-price','p-sku','p-shopee','p-tiktok','p-lazada','p-page365','p-link','p-img1','p-img2','p-detail','p-note'];
+  fields.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   [1,2].forEach(n => { document.getElementById(`upload-preview-${n}`).style.display='none'; document.getElementById(`upload-status-${n}`).textContent=''; });
 
   if (key && allProducts[key]) {
@@ -2320,6 +2764,14 @@ function openProductModal(key = null) {
     document.getElementById('p-page365').value = r[11] || '';
     if (r[4]) { document.getElementById('upload-preview-1').style.display='block'; document.getElementById('preview-img-1').src=r[4]; }
     if (r[5]) { document.getElementById('upload-preview-2').style.display='block'; document.getElementById('preview-img-2').src=r[5]; }
+    // Load internal note (keyed by SKU for stable lookup)
+    const noteKey = String(r[6]||'').trim();
+    if (noteKey) {
+      db.ref(`_productNotes/${noteKey}`).once('value').then(s => {
+        const noteEl = document.getElementById('p-note');
+        if (noteEl) noteEl.value = s.val() || '';
+      }).catch(()=>{});
+    }
     loadVariants(Array.isArray(r[12]) ? r[12] : []);
   } else {
     loadVariants([]);
@@ -2510,6 +2962,12 @@ async function saveProduct() {
       await db.ref(`products/${editProductKey}`).set(row);
       auditLog('แก้สินค้า', name, `${variants.length} variants`);
       clearEditing(editProductKey);
+      // Save internal note keyed by SKU
+      const noteVal = (document.getElementById('p-note')?.value || '').trim();
+      if (sku) {
+        if (noteVal) db.ref(`_productNotes/${sku}`).set(noteVal).catch(()=>{});
+        else db.ref(`_productNotes/${sku}`).remove().catch(()=>{});
+      }
     } else {
       await db.ref('products').push(row);
       auditLog('เพิ่มสินค้า', name, `${variants.length} variants`);
