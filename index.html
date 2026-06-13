@@ -1495,6 +1495,7 @@
     #fab-wrap{
       position:fixed;bottom:80px;right:20px;z-index:600;
       display:flex;flex-direction:column;align-items:flex-end;gap:8px;
+      pointer-events:none;
     }
     #fab-menu{
       display:flex;flex-direction:column;gap:6px;
@@ -1511,7 +1512,9 @@
       color:#fff;font-size:.8em;font-weight:700;cursor:pointer;
       transition:background .15s,transform .15s;
       white-space:nowrap;
+      pointer-events:none;
     }
+    #fab-menu.open .fab-item{pointer-events:auto}
     .fab-item:hover{background:rgba(40,36,64,.95);transform:translateX(-3px)}
     #fab-main{
       width:48px;height:48px;border-radius:50%;
@@ -1521,6 +1524,7 @@
       font-size:1.3em;color:#fff;
       box-shadow:0 4px 16px rgba(255,59,107,.4);
       transition:transform .25s var(--ease),box-shadow .25s var(--ease);
+      pointer-events:auto;
     }
     #fab-main:hover{transform:scale(1.08);box-shadow:0 6px 22px rgba(255,59,107,.5)}
     #fab-main.open{transform:rotate(45deg)}
