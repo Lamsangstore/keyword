@@ -636,6 +636,14 @@
     .ci-btn-close{background:rgba(0,0,0,.06);color:var(--text)}
     .ci-btn-dl{background:#8FA8E0;color:#fff}
     .ci-btn-copy{background:var(--pink);color:#fff}
+    .ci-sale{margin-top:14px;border-top:1px dashed var(--border);padding-top:12px}
+    .ci-sale-head{font-size:.82em;font-weight:700;color:var(--muted);margin-bottom:8px}
+    .ci-sale-text{width:100%;box-sizing:border-box;min-height:128px;resize:vertical;
+      border:1.5px solid var(--border);border-radius:12px;padding:10px 12px;
+      font-family:'Prompt',sans-serif;font-size:.86em;line-height:1.45;color:var(--text);
+      background:var(--surface);outline:none;white-space:pre-wrap}
+    .ci-sale-copy{width:100%;margin-top:8px;min-height:42px}
+    body.dark .ci-sale-text{background:#13121f;border-color:#2a2640;color:#e4dfff}
     body.dark .ci-modal{background:#1a1a2e;color:#fff}
     body.dark .ci-tab{background:#262640;color:#fff;border-color:rgba(255,255,255,.1)}
     /* mini variant strip on product card */
@@ -1488,6 +1496,26 @@
     .freq-count{display:inline-block;margin-left:4px;background:#fff4e0;color:#c2680c;
       font-size:.92em;font-weight:700;padding:0 6px;border-radius:8px}
     body.dark .freq-count{background:#3a2c10;color:#ffcf8b}
+    /* hide-sold toggle */
+    .hide-sold-btn{padding:7px 14px;border-radius:30px;border:1.5px solid var(--border);
+      font-family:'Prompt',sans-serif;font-size:.8em;font-weight:700;color:var(--ink);
+      background:var(--surface);cursor:pointer;outline:none;transition:all .15s}
+    .hide-sold-btn:hover{border-color:var(--pink2)}
+    .hide-sold-btn.on{background:var(--pink);color:#fff;border-color:var(--pink)}
+    /* color filter chips */
+    .color-chip-bar{display:flex;gap:8px;margin-top:12px;overflow-x:auto;padding-bottom:4px;
+      -ms-overflow-style:none;scrollbar-width:none}
+    .color-chip-bar::-webkit-scrollbar{display:none}
+    .color-chip{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;flex-shrink:0;
+      padding:6px 12px;border-radius:30px;border:1.5px solid var(--border);background:var(--surface);
+      font-family:'Prompt',sans-serif;font-size:.8em;font-weight:700;color:var(--ink);cursor:pointer;transition:all .15s}
+    .color-chip:hover{border-color:var(--pink2)}
+    .color-chip.active{background:var(--pink);color:#fff;border-color:var(--pink)}
+    .color-sw{width:15px;height:15px;border-radius:50%;border:1.5px solid rgba(0,0,0,.18);flex-shrink:0}
+    .cc-count{font-size:.85em;opacity:.7;font-weight:600}
+    .color-chip.active .cc-count{opacity:.95}
+    body.dark .color-chip,body.dark .hide-sold-btn{background:#1e1c2e;border-color:#2a2640;color:#e4dfff}
+    body.dark .color-chip.active,body.dark .hide-sold-btn.on{background:var(--pink);border-color:var(--pink);color:#fff}
 
     /* ── FAVORITE BUTTON ── */
     .fav-btn{
@@ -1752,7 +1780,9 @@
               <option value="price_asc">ราคา น้อย→มาก</option>
               <option value="price_desc">ราคา มาก→น้อย</option>
             </select>
+            <button id="hideSoldBtn" class="hide-sold-btn" onclick="toggleHideSold(this)">🙈 ซ่อนของหมด</button>
           </div>
+          <div id="color-chip-bar" class="color-chip-bar" style="display:none"></div>
         </div>
         <!-- FAVORITE TAB PILL -->
         <div class="fav-tab-pill" id="fav-tab-pill" onclick="toggleFavTab()">⭐ รายการโปรด <span id="fav-count">0</span></div>
@@ -1793,6 +1823,8 @@ let productRows=[], generalRows=[];
 let currentSort='name_asc', currentTab='product';
 let searchQuery='';
 let selectedCat='ทั้งหมด'; // active category pill
+let hideSoldOut = localStorage.getItem('hide_sold_v1')==='1'; // ซ่อนสินค้าหมด
+let selectedColor = null; // null = ทุกสี
 // Order matters — most specific keys FIRST (first match wins via .includes())
 const CAT_ICONS = {
   // === เสื้อ — top wear (specific cuts first) ===
@@ -1841,6 +1873,65 @@ function counterWord(row) {
     if (keys.some(k => hay.includes(k.toLowerCase()))) return word;
   }
   return 'ชิ้น';
+}
+
+// ── COLOR FILTER — จัดสีของ variant เป็นกลุ่มสีหลัก ──
+const COLOR_GROUPS = [
+  { label:'ดำ',      sw:'#222222', keys:['ดำ','black'] },
+  { label:'ขาว',     sw:'#ffffff', keys:['ขาว','white','ออฟไวท์','off white'] },
+  { label:'ครีม',    sw:'#efe3c8', keys:['ครีม','เบจ','beige','cream','ไข่ไก่'] },
+  { label:'เทา',     sw:'#9aa0a6', keys:['เทา','gray','grey'] },
+  { label:'น้ำตาล',  sw:'#7a4a2b', keys:['น้ำตาล','brown','โกโก้','กาแฟ','coffee','tan','ตาล'] },
+  { label:'กากี',    sw:'#b6a06a', keys:['กากี','khaki'] },
+  { label:'แดง',     sw:'#d83a3a', keys:['แดง','red','เลือดหมู'] },
+  { label:'ชมพู',    sw:'#f48fb1', keys:['ชมพู','pink','โอรส','โรส'] },
+  { label:'ส้ม',     sw:'#f08a3c', keys:['ส้ม','orange','อิฐ'] },
+  { label:'เหลือง',  sw:'#f2c64b', keys:['เหลือง','yellow','มัสตาร์ด','mustard'] },
+  { label:'เขียว',   sw:'#5a9e57', keys:['เขียว','green','โอลีฟ','olive','ขี้ม้า','มินต์','mint'] },
+  { label:'ฟ้า',     sw:'#5fb0e5', keys:['ฟ้า','sky'] },
+  { label:'น้ำเงิน', sw:'#2c4a87', keys:['น้ำเงิน','navy','กรม','blue','denim','ยีน'] },
+  { label:'ม่วง',    sw:'#9b6bc9', keys:['ม่วง','purple','violet','ลาเวนเดอร์','lavender'] },
+  { label:'ลาย',     sw:'linear-gradient(45deg,#bbb 25%,#eee 25%,#eee 50%,#bbb 50%,#bbb 75%,#eee 75%)', keys:['ลาย','print','พิมพ์','สกรีน'] },
+];
+function productColorGroups(row){
+  const out = new Set();
+  getVariants(row).forEach(v => {
+    const c = (parseVariant(v.name).color||'').toLowerCase();
+    if (!c) return;
+    for (const g of COLOR_GROUPS) if (g.keys.some(k => c.includes(k.toLowerCase()))) out.add(g.label);
+  });
+  return out;
+}
+function toggleHideSold(btn){
+  hideSoldOut = !hideSoldOut;
+  localStorage.setItem('hide_sold_v1', hideSoldOut ? '1' : '0');
+  updateHideSoldBtn(btn);
+  window.renderProductGrid(productRows);
+}
+function updateHideSoldBtn(btn){
+  btn = btn || document.getElementById('hideSoldBtn');
+  if (!btn) return;
+  btn.textContent = hideSoldOut ? '👁 แสดงของหมด' : '🙈 ซ่อนของหมด';
+  btn.classList.toggle('on', hideSoldOut);
+}
+function buildColorChips(rows){
+  const bar = document.getElementById('color-chip-bar');
+  if (!bar) return;
+  const present = new Map();
+  (rows||[]).forEach(r => productColorGroups(r).forEach(lbl => present.set(lbl, (present.get(lbl)||0)+1)));
+  const groups = COLOR_GROUPS.filter(g => present.has(g.label));
+  if (groups.length < 2) { bar.style.display='none'; bar.innerHTML=''; return; }
+  bar.style.display = 'flex';
+  bar.innerHTML =
+    `<button class="color-chip${!selectedColor?' active':''}" onclick="selectColorChip(null)">🎨 ทุกสี</button>` +
+    groups.map(g => `<button class="color-chip${selectedColor===g.label?' active':''}" onclick="selectColorChip('${g.label}')">
+      <span class="color-sw" style="background:${g.sw}"></span>${g.label}<span class="cc-count">${present.get(g.label)}</span>
+    </button>`).join('');
+}
+function selectColorChip(label){
+  selectedColor = label;
+  buildColorChips(productRows);
+  window.renderProductGrid(productRows);
 }
 
 function handleSearch(q) {
@@ -1942,6 +2033,8 @@ async function initFirebase(){
       return r;
     });
     buildCatPills(productRows);
+    buildColorChips(productRows);
+    updateHideSoldBtn();
     if (currentTab==='product') window.renderProductGrid(productRows);
     renderRecentRow();
     renderFreqRow();
@@ -3197,29 +3290,36 @@ function renderProductGrid(rows){
   const byCat = selectedCat==='ทั้งหมด' ? rows : rows.filter(r=>(r[1]||'ไม่ระบุ')===selectedCat);
 
   // 2) filter by search — supports prefix filters and fuzzy match
-  const filtered = searchQuery
+  let list = searchQuery
     ? byCat.filter(r => _smartSearchMatch(r, searchQuery))
     : byCat;
+  // 3) filter by color group
+  if (selectedColor) list = list.filter(r => productColorGroups(r).has(selectedColor));
+  // 4) hide sold-out (optional)
+  if (hideSoldOut) list = list.filter(r => !isSoldOut(r));
 
-  if (!filtered.length){
-    el.innerHTML=`<div class="loading-state" style="padding:60px 20px">🔍 ไม่พบ "${searchQuery||selectedCat}"</div>`; return
+  if (!list.length){
+    const what = selectedColor ? `สี${selectedColor}` : (searchQuery||selectedCat);
+    el.innerHTML=`<div class="loading-state" style="padding:60px 20px">🔍 ไม่พบ "${esc(what)}"${hideSoldOut?'<br><small style="opacity:.6">(ซ่อนของหมดอยู่)</small>':''}</div>`; return
   }
 
   // ถ้ากรองเฉพาะ 1 ประเภท → ไม่ต้องแสดง cat-head ซ้ำ
   const showCatHead = selectedCat==='ทั้งหมด';
 
   const map = {};
-  filtered.forEach(r => {
+  list.forEach(r => {
     const i = productRows.indexOf(r);
     const t = r[1]||'ไม่ระบุ';
     if (!map[t]) map[t]=[];
-    map[t].push({i, name:r[0], type:r[1], price:r[2], priceNum:parsePrice(r[2]), img:r[4], sku:r[6]});
+    map[t].push({i, name:r[0], type:r[1], price:r[2], priceNum:parsePrice(r[2]), img:r[4], sku:r[6], sold:isSoldOut(r)});
   });
-  Object.values(map).forEach(arr=>arr.sort((a,b)=>
-    currentSort==='name_asc'? a.name.localeCompare(b.name,'th')
-    :currentSort==='price_asc'? a.priceNum-b.priceNum
-    : b.priceNum-a.priceNum
-  ));
+  // in-stock first, then the chosen sort → sold-out items sink to the bottom
+  Object.values(map).forEach(arr=>arr.sort((a,b)=>{
+    if (a.sold !== b.sold) return a.sold ? 1 : -1;
+    return currentSort==='name_asc'? a.name.localeCompare(b.name,'th')
+      : currentSort==='price_asc'? a.priceNum-b.priceNum
+      : b.priceNum-a.priceNum;
+  }));
 
   let html='';
   let delay=0;
@@ -3627,6 +3727,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   initScrollTop();
   renderRecentRow();
   renderFreqRow();
+  updateHideSoldBtn();
   updateFavPill();
   updatePillBarVisibility();
 });
@@ -3833,10 +3934,14 @@ window.renderProductGrid = function(rows){
     if(!el) return;
     const favKeys = getFavs();
     // map favKeys กลับเป็น index ใน productRows
-    const favIdxs = productRows.reduce((acc,r,i)=>{
+    let favIdxs = productRows.reduce((acc,r,i)=>{
       if(favKeys.includes(`${r[0]}__${r[1]}`)) acc.push(i);
       return acc;
     },[]);
+    // apply color + hide-sold filters, sink sold-out to bottom
+    if(selectedColor) favIdxs = favIdxs.filter(i=>productColorGroups(productRows[i]).has(selectedColor));
+    if(hideSoldOut) favIdxs = favIdxs.filter(i=>!isSoldOut(productRows[i]));
+    favIdxs.sort((a,b)=>{ const sa=isSoldOut(productRows[a]), sb=isSoldOut(productRows[b]); return sa===sb?0:(sa?1:-1); });
     if(!favIdxs.length){
       el.innerHTML='<div class="loading-state" style="padding:60px 20px">⭐ ยังไม่มีรายการโปรด<br><small style="opacity:.5;font-size:.8em">กดดาว ☆ บนการ์ดเพื่อบันทึก</small></div>';
       return;
@@ -4144,9 +4249,30 @@ async function switchCiGroup(idx) {
   await renderCiGroup(idx);
 }
 
+// Build the "ปิดการขาย" message for a product (image modal + Copy button share this)
+function buildCloseSaleText(row){
+  const tpl = COPY_TEMPLATES.find(t => t.key === 'close') || COPY_TEMPLATES[0];
+  return fillTemplate(tpl.text, row).replace(/\n{3,}/g, '\n\n').trim();
+}
+function copyCloseSaleText(btn){
+  const t = document.getElementById('ci-sale-text')?.value || '';
+  if (!t) return;
+  copyToClipboard(t);
+  showSyncToast('📋 Copy ข้อความปิดการขายแล้ว', 'success');
+  if (typeof currentDetailIdx === 'number' && currentDetailIdx >= 0) bumpCopyFreq(currentDetailIdx);
+}
+
 async function renderCiGroup(idx) {
   const g = ciGroups[idx];
   const r = g._row;
+  // populate the ready-to-send close-sale text (same for all size tabs)
+  const saleBox = document.getElementById('ci-sale');
+  const saleTxt = document.getElementById('ci-sale-text');
+  if (saleBox && saleTxt) {
+    const txt = buildCloseSaleText(r);
+    saleTxt.value = txt;
+    saleBox.style.display = txt ? 'block' : 'none';
+  }
   const info = document.getElementById('ci-info');
   info.textContent = `กำลังสร้างภาพ ${idx+1}/${ciGroups.length}...`;
   await _ciDrawToCanvas(document.getElementById('ci-canvas'), g, r);
@@ -4630,14 +4756,19 @@ async function downloadAllCi() {
 <!-- COMPOSITE IMAGE MODAL -->
 <div class="ci-modal-overlay" id="ci-modal-overlay" onclick="if(event.target===this)closeCompositeImage()">
   <div class="ci-modal">
-    <div class="ci-modal-title">📷 รูปการตลาด (รวมทุกสี)</div>
+    <div class="ci-modal-title">🚀 ชุดส่งลูกค้า — รูป + ข้อความ</div>
     <div class="ci-nav" id="ci-nav" style="display:none"></div>
     <canvas id="ci-canvas" width="1080" height="1080"></canvas>
     <div class="ci-info" id="ci-info">กำลังสร้างภาพ...</div>
     <div class="ci-actions">
       <button class="ci-btn-close" onclick="closeCompositeImage()">ปิด</button>
       <button class="ci-btn-dl" onclick="downloadCiImage()">⬇️ Download</button>
-      <button class="ci-btn-copy" onclick="copyCiImage()">📋 Copy</button>
+      <button class="ci-btn-copy" onclick="copyCiImage()">📋 Copy รูป</button>
+    </div>
+    <div class="ci-sale" id="ci-sale" style="display:none">
+      <div class="ci-sale-head">📝 ข้อความปิดการขาย — ก๊อปแปะส่งต่อได้เลย</div>
+      <textarea id="ci-sale-text" class="ci-sale-text" readonly></textarea>
+      <button class="ci-btn-copy ci-sale-copy" onclick="copyCloseSaleText(this)">📋 Copy ข้อความ</button>
     </div>
   </div>
 </div>
