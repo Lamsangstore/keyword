@@ -903,6 +903,44 @@
       font-size:1.6em;font-weight:800;
       color:var(--pink);margin-bottom:14px;
     }
+    /* tiered price breakdown (1/2/3 ชิ้น + ส่วนลด) */
+    .tier-pricing{
+      background:linear-gradient(135deg,rgba(255,59,107,.06),rgba(184,148,216,.08));
+      border:1px solid var(--pink-light);border-radius:14px;
+      padding:12px 14px;margin:0 0 16px;
+    }
+    .tier-pricing-head{
+      display:flex;align-items:center;justify-content:space-between;gap:8px;
+      font-weight:800;color:var(--pink);font-size:.95em;margin-bottom:8px;
+    }
+    .tier-copy-btn{
+      border:none;background:var(--pink);color:#fff;font-family:inherit;font-weight:700;
+      font-size:.78em;padding:6px 12px;border-radius:9px;cursor:pointer;
+      display:inline-flex;align-items:center;gap:4px;transition:all .15s;flex-shrink:0;
+    }
+    .tier-copy-btn:hover{filter:brightness(1.05);transform:translateY(-1px)}
+    .tier-copy-btn:disabled{opacity:.6;cursor:wait;transform:none}
+    .tier-row{
+      display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+      padding:6px 0;border-top:1px dashed var(--pink-light);font-size:.92em;
+    }
+    .tier-row:first-of-type{border-top:none}
+    .tier-qty{
+      font-weight:800;color:var(--text);background:#fff;border:1px solid var(--pink-light);
+      border-radius:8px;padding:2px 10px;flex-shrink:0;min-width:54px;text-align:center;
+    }
+    .tier-detail{color:var(--text)}
+    .tier-detail strong{color:var(--pink);font-size:1.08em}
+    .tier-sub{color:var(--muted);font-size:.9em}
+    .tier-old{color:var(--muted);text-decoration:line-through;font-size:.88em;margin-left:4px}
+    .tier-badge{
+      margin-left:auto;background:#16a34a;color:#fff;font-weight:700;
+      font-size:.78em;padding:2px 9px;border-radius:20px;flex-shrink:0;
+    }
+    body.dark .tier-pricing{background:linear-gradient(135deg,#2a1c2e,#231d36);border-color:#3a2c54}
+    body.dark .tier-qty{background:#1e1c2e;border-color:#3a2c54;color:#e4dfff}
+    body.dark .tier-detail{color:#e4dfff}
+    body.dark .tier-badge{background:#15803d}
     .detail-color-stock{
       display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px;
     }
@@ -2209,6 +2247,68 @@ function computePromo(items) {
   };
 }
 
+// Build per-quantity pricing from the configured promo tiers.
+// Returns [{qty, pct, subtotal, total, avg}] sorted by qty, or [] if N/A.
+function buildTierPricing(priceStr) {
+  const unit = parseInt(String(priceStr||'').replace(/[^0-9]/g,'')) || 0;
+  const p = _promoConfig || DEFAULT_PROMO;
+  if (!unit || !p.enabled || !p.tiers?.length) return [];
+  const sorted = [...p.tiers].sort((a,b) => (Number(a.qty)||0) - (Number(b.qty)||0));
+  const out = [];
+  const seen = new Set();
+  for (const t of sorted) {
+    const qty = Number(t.qty)||0;
+    if (qty <= 0 || seen.has(qty)) continue;
+    seen.add(qty);
+    const pct = Number(t.discount)||0;
+    const subtotal = unit * qty;
+    const discountAmt = Math.round(subtotal * pct / 100);
+    const total = subtotal - discountAmt;
+    out.push({ qty, pct, subtotal, total, avg: Math.round(total/qty) });
+  }
+  return out;
+}
+
+// Plain-text version for sending to customers (Copy)
+function tierPricingText(row) {
+  const tiers = buildTierPricing(row?.[2]);
+  if (!tiers.length) return '';
+  const lines = tiers.map(t => t.qty === 1
+    ? `${t.qty} ชิ้น ราคา ${t.total.toLocaleString()}฿${t.pct>0?` (ลด ${t.pct}%)`:''}`
+    : `${t.qty} ชิ้น ราคาเฉลี่ยชิ้นละ ${t.avg.toLocaleString()}฿ (รวม ${t.total.toLocaleString()}฿${t.pct>0?` ลด ${t.pct}%`:''})`
+  );
+  return '💰 ยิ่งซื้อเยอะ ยิ่งคุ้ม:\n' + lines.join('\n');
+}
+
+// HTML block shown in the product detail page
+function buildTierPricingHtml(row, idx) {
+  const tiers = buildTierPricing(row?.[2]);
+  if (!tiers.length) return '';
+  const rowsHtml = tiers.map(t => {
+    const detail = t.qty === 1
+      ? `ราคา <strong>${t.total.toLocaleString()}฿</strong>${(t.pct>0 && t.total<t.subtotal)?`<span class="tier-old">${t.subtotal.toLocaleString()}฿</span>`:''}`
+      : `เฉลี่ยชิ้นละ <strong>${t.avg.toLocaleString()}฿</strong> <span class="tier-sub">(รวม ${t.total.toLocaleString()}฿)</span>`;
+    const badge = t.pct>0 ? `<span class="tier-badge">ลด ${t.pct}%</span>` : '';
+    return `<div class="tier-row"><span class="tier-qty">${t.qty} ชิ้น</span><span class="tier-detail">${detail}</span>${badge}</div>`;
+  }).join('');
+  return `<div class="tier-pricing">
+    <div class="tier-pricing-head"><span>💰 ยิ่งซื้อเยอะ ยิ่งคุ้ม</span>
+      <button class="tier-copy-btn" onclick="copyTierPricing(${idx},this)">📋 Copy แจ้งลูกค้า</button>
+    </div>
+    ${rowsHtml}
+  </div>`;
+}
+
+function copyTierPricing(idx, btn) {
+  const row = productRows[idx];
+  if (!row) return;
+  const txt = tierPricingText(row);
+  if (!txt) { showSyncToast('สินค้านี้ไม่มีราคาหลายชิ้น', 'error'); return; }
+  copyToClipboard(`${row[0]||''}\n${txt}`);
+  showSyncToast('📋 Copy ราคาหลายชิ้นแล้ว', 'success');
+  _customerAudit('copy-tier-pricing', row[0]||'', '');
+}
+
 // ═══════════════════════════════════════════════
 //  CART (ตะกร้าออเดอร์สำหรับคุยลูกค้า)
 // ═══════════════════════════════════════════════
@@ -2467,6 +2567,11 @@ const COPY_TEMPLATES = [
     text: '{name} ราคา {price} ค่ะ'
   },
   {
+    key: 'bulk',
+    label: '🧮 ราคาหลายชิ้น',
+    text: '{name}\n{tierPricing}'
+  },
+  {
     key: 'allcolors',
     label: '🖼️ ส่งรูปทุกสี',
     text: '{name} ราคา {price} ค่ะ\n\nรูปแต่ละสี:\n{colorImages}'
@@ -2507,6 +2612,7 @@ function fillTemplate(tplText, row) {
     .replace(/\{sizes\}/g, sizes.join(', '))
     .replace(/\{colors\}/g, colors.join(', '))
     .replace(/\{avail\}/g, availLines)
+    .replace(/\{tierPricing\}/g, tierPricingText(row))
     .replace(/\{colorImages\}/g, colorImageLines);
 }
 
@@ -3267,6 +3373,7 @@ function showProductDetail(idx,push=true){
         ${row[6]?`<div class="detail-sku">SKU: ${esc(row[6])}</div>`:''}
         <div class="detail-type">${esc(row[1])}</div>
         <div class="detail-price">${esc(row[2])}</div>
+        ${buildTierPricingHtml(row, idx)}
         ${variants.length ? `<div id="detail-color-stock-area"></div>` : ''}
         ${variants.length ? `<div class="inline-comp-wrap" id="inline-comp-area"></div>` : ''}
         <div class="detail-action-row">
