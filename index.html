@@ -971,6 +971,27 @@
     }
     .size-img.loaded{opacity:1}
 
+    /* per-color images with copy button (below size chart) */
+    .color-img-section{margin-top:18px}
+    .color-img-grid{
+      display:grid;grid-template-columns:repeat(auto-fill,minmax(116px,1fr));gap:12px;
+    }
+    .color-img-card{
+      display:flex;flex-direction:column;gap:8px;
+      background:#fff;border:1px solid var(--pink-light);border-radius:14px;padding:10px;
+    }
+    .color-img-thumb{
+      width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;
+      border:1px solid var(--border);cursor:zoom-in;background:#f0ebf8;
+    }
+    .color-img-name{
+      font-weight:700;font-size:.85em;color:var(--text);text-align:center;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+    .color-img-card .img-action-btn{height:38px;min-height:38px;font-size:.82em;padding:0 10px}
+    body.dark .color-img-card{background:#1e1c2e;border-color:#2a2640}
+    body.dark .color-img-name{color:#e4dfff}
+
     /* ── TABLET 600px: side-by-side ── */
     @media(min-width:600px){
       .detail-layout{
@@ -3132,6 +3153,27 @@ function showProductDetail(idx,push=true){
     ? `<div class="detail-img-wrap" style="position:relative">${sold?soldStampHTML():''}<img src="${row[4]}" onload="onImgLoad(this)" loading="lazy" onclick="openLightbox('${row[4]}','ภาพสินค้า: ${esc(row[0])}')" ${sold?'style="filter:grayscale(.6) brightness(.85)"':''}></div>${heroActions}`
     : `<div class="detail-img-wrap" style="position:relative">${sold?soldStampHTML():''}<div class="detail-img-none">📦</div></div>`;
 
+  // Per-color images (one representative image per color) with a Copy button each
+  const _jsq = s => String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  const colorImageMap = {};
+  variants.forEach(v => {
+    const {color} = parseVariant(v.name);
+    if (color && !colorImageMap[color] && v.image) colorImageMap[color] = v.image;
+  });
+  const colorImgEntries = Object.entries(colorImageMap);
+  const colorImagesHtml = colorImgEntries.length ? `
+    <div class="color-img-section">
+      <div class="size-section-title">🎨 รูปภาพแยกสี</div>
+      <div class="color-img-grid">
+        ${colorImgEntries.map(([c, img]) => `
+          <div class="color-img-card">
+            <img class="color-img-thumb" src="${esc(img)}" loading="lazy" onerror="this.style.display='none'" onclick="openLightbox('${_jsq(img)}','${_jsq(c)} - ${_jsq(row[0]||'')}')">
+            <div class="color-img-name">${esc(c)}</div>
+            <button class="img-action-btn copy" onclick="copyImageFromUrl('${_jsq(img)}',this)">📋 Copy</button>
+          </div>`).join('')}
+      </div>
+    </div>` : '';
+
   let variantsHtml = '';
   if (variants.length) {
     if (hasSizeDimension(variants)) {
@@ -3209,13 +3251,14 @@ function showProductDetail(idx,push=true){
     <div class="detail-page">
       <div class="detail-layout">
         ${imgHtml}
-        ${row[5]?`<div class="size-section">
-          <div class="size-section-title">📏 ตารางไซส์</div>
+        ${(row[5]||colorImagesHtml)?`<div class="size-section">
+          ${row[5]?`<div class="size-section-title">📏 ตารางไซส์</div>
           <img class="size-img" src="${row[5]}" onload="onImgLoad(this)" loading="lazy" onclick="openLightbox('${row[5]}','ตารางไซส์: ${esc(row[0])}')">
           <div class="img-actions-row">
             <button class="img-action-btn copy" onclick="copyImageFromUrl('${row[5]}',this)">📋 Copy</button>
             <button class="img-action-btn dl" onclick="downloadImageFromUrl('${row[5]}','${baseFn}_size.png',this)">⬇️ Download</button>
-          </div>
+          </div>`:''}
+          ${colorImagesHtml}
         </div>`:''}
       </div>
       <div class="detail-body">
