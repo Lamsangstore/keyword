@@ -1485,6 +1485,9 @@
     .recent-chip-info{min-width:0}
     .recent-chip-name{font-size:.78em;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px}
     .recent-chip-price{font-size:.68em;font-weight:700;color:var(--pink)}
+    .freq-count{display:inline-block;margin-left:4px;background:#fff4e0;color:#c2680c;
+      font-size:.92em;font-weight:700;padding:0 6px;border-radius:8px}
+    body.dark .freq-count{background:#3a2c10;color:#ffcf8b}
 
     /* ── FAVORITE BUTTON ── */
     .fav-btn{
@@ -1753,6 +1756,11 @@
         </div>
         <!-- FAVORITE TAB PILL -->
         <div class="fav-tab-pill" id="fav-tab-pill" onclick="toggleFavTab()">⭐ รายการโปรด <span id="fav-count">0</span></div>
+        <!-- FREQUENTLY COPIED -->
+        <div class="recent-section" id="freq-section" style="display:none">
+          <div class="recent-title">🔥 ก๊อปบ่อย</div>
+          <div class="recent-row" id="freq-row"></div>
+        </div>
         <!-- RECENT ITEMS -->
         <div class="recent-section" id="recent-section" style="display:none">
           <div class="recent-title">🕐 เปิดดูล่าสุด</div>
@@ -1816,6 +1824,23 @@ const CAT_ICONS = {
 function catIcon(t) {
   for (const k in CAT_ICONS) if (t.toLowerCase().includes(k.toLowerCase())) return CAT_ICONS[k];
   return '🏷️';
+}
+
+// ── ลักษณนาม (counter word) ตามหมวดสินค้า ──
+// belts→เส้น, shoes→คู่, bags/hats→ใบ, clothing→ตัว, อื่นๆ→ชิ้น
+const COUNTER_WORDS = [
+  [['เข็มขัด','belt','สายคาด','สายนาฬิกา'], 'เส้น'],
+  [['รองเท้า','shoe','sandal','sneaker','ถุงเท้า','ถุงน่อง'], 'คู่'],
+  [['กระเป๋า','หมวก','bag','cap','hat'], 'ใบ'],
+  [['เสื้อ','กางเกง','ยีนส์','jean','กระบอก','ขาสั้น','ขายาว','ขาม้า',
+    'กระโปรง','เดรส','dress','ชุด','ครอป','crop','เชิ้ต','shirt','แขน','จัมพ์'], 'ตัว'],
+];
+function counterWord(row) {
+  const hay = `${row?.[1]||''} ${row?.[0]||''}`.toLowerCase();
+  for (const [keys, word] of COUNTER_WORDS) {
+    if (keys.some(k => hay.includes(k.toLowerCase()))) return word;
+  }
+  return 'ชิ้น';
 }
 
 function handleSearch(q) {
@@ -1918,6 +1943,8 @@ async function initFirebase(){
     });
     buildCatPills(productRows);
     if (currentTab==='product') window.renderProductGrid(productRows);
+    renderRecentRow();
+    renderFreqRow();
     // Refresh detail page if currently viewing — keeps detail in sync with grid
     const detailView = document.getElementById('product-details-view');
     if (typeof currentDetailIdx === 'number' && currentDetailIdx >= 0
@@ -2273,9 +2300,10 @@ function buildTierPricing(priceStr) {
 function tierPricingText(row) {
   const tiers = buildTierPricing(row?.[2]);
   if (!tiers.length) return '';
+  const u = counterWord(row);
   const lines = tiers.map(t => t.qty === 1
-    ? `${t.qty} ชิ้น ราคา ${t.total.toLocaleString()}฿${t.pct>0?` (ลด ${t.pct}%)`:''}`
-    : `${t.qty} ชิ้น ราคาเฉลี่ยชิ้นละ ${t.avg.toLocaleString()}฿ (รวม ${t.total.toLocaleString()}฿${t.pct>0?` ลด ${t.pct}%`:''})`
+    ? `${t.qty} ${u} ราคา ${t.total.toLocaleString()}฿${t.pct>0?` (ลด ${t.pct}%)`:''}`
+    : `${t.qty} ${u} ราคาเฉลี่ย${u}ละ ${t.avg.toLocaleString()}฿ (รวม ${t.total.toLocaleString()}฿${t.pct>0?` ลด ${t.pct}%`:''})`
   );
   return '💰 ยิ่งซื้อเยอะ ยิ่งคุ้ม:\n' + lines.join('\n');
 }
@@ -2284,12 +2312,13 @@ function tierPricingText(row) {
 function buildTierPricingHtml(row, idx) {
   const tiers = buildTierPricing(row?.[2]);
   if (!tiers.length) return '';
+  const u = counterWord(row);
   const rowsHtml = tiers.map(t => {
     const detail = t.qty === 1
       ? `ราคา <strong>${t.total.toLocaleString()}฿</strong>${(t.pct>0 && t.total<t.subtotal)?`<span class="tier-old">${t.subtotal.toLocaleString()}฿</span>`:''}`
-      : `เฉลี่ยชิ้นละ <strong>${t.avg.toLocaleString()}฿</strong> <span class="tier-sub">(รวม ${t.total.toLocaleString()}฿)</span>`;
+      : `เฉลี่ย${u}ละ <strong>${t.avg.toLocaleString()}฿</strong> <span class="tier-sub">(รวม ${t.total.toLocaleString()}฿)</span>`;
     const badge = t.pct>0 ? `<span class="tier-badge">ลด ${t.pct}%</span>` : '';
-    return `<div class="tier-row"><span class="tier-qty">${t.qty} ชิ้น</span><span class="tier-detail">${detail}</span>${badge}</div>`;
+    return `<div class="tier-row"><span class="tier-qty">${t.qty} ${u}</span><span class="tier-detail">${detail}</span>${badge}</div>`;
   }).join('');
   return `<div class="tier-pricing">
     <div class="tier-pricing-head"><span>💰 ยิ่งซื้อเยอะ ยิ่งคุ้ม</span>
@@ -2306,6 +2335,7 @@ function copyTierPricing(idx, btn) {
   if (!txt) { showSyncToast('สินค้านี้ไม่มีราคาหลายชิ้น', 'error'); return; }
   copyToClipboard(`${row[0]||''}\n${txt}`);
   showSyncToast('📋 Copy ราคาหลายชิ้นแล้ว', 'success');
+  bumpCopyFreq(idx);
   _customerAudit('copy-tier-pricing', row[0]||'', '');
 }
 
@@ -2572,6 +2602,11 @@ const COPY_TEMPLATES = [
     text: '{name}\n{tierPricing}'
   },
   {
+    key: 'close',
+    label: '🎯 ปิดการขาย (ครบจบ)',
+    text: '{name}\nราคาปกติ {price}\n\n{tierPricing}\n\n{shipping}\n{footer}'
+  },
+  {
     key: 'allcolors',
     label: '🖼️ ส่งรูปทุกสี',
     text: '{name} ราคา {price} ค่ะ\n\nรูปแต่ละสี:\n{colorImages}'
@@ -2613,6 +2648,8 @@ function fillTemplate(tplText, row) {
     .replace(/\{colors\}/g, colors.join(', '))
     .replace(/\{avail\}/g, availLines)
     .replace(/\{tierPricing\}/g, tierPricingText(row))
+    .replace(/\{shipping\}/g, (_promoConfig?.shipping) || '')
+    .replace(/\{footer\}/g, (_promoConfig?.footer) || '')
     .replace(/\{colorImages\}/g, colorImageLines);
 }
 
@@ -2620,9 +2657,10 @@ function copyWithTemplate(idx, key) {
   const row = productRows[idx];
   if (!row) return;
   const tpl = COPY_TEMPLATES.find(t => t.key === key) || COPY_TEMPLATES[0];
-  const text = fillTemplate(tpl.text, row).trim();
+  const text = fillTemplate(tpl.text, row).replace(/\n{3,}/g, '\n\n').trim();
   copyToClipboard(text);
   showSyncToast(`📋 Copy ${tpl.label}`, 'success');
+  bumpCopyFreq(idx);
   _customerAudit('copy-template', row[0]||'', tpl.label);
 }
 
@@ -3227,6 +3265,7 @@ function renderProductGrid(rows){
 function copyProductInfo(idx,btn){
   const r=productRows[idx]; if(!r) return;
   copyText(`ชื่อสินค้า: ${r[0]}\nประเภท: ${r[1]}\nราคา: ${r[2]}\nรายละเอียด: ${r[3]}`,btn);
+  bumpCopyFreq(idx);
 }
 
 function showProductDetail(idx,push=true){
@@ -3587,6 +3626,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   initFirebase();
   initScrollTop();
   renderRecentRow();
+  renderFreqRow();
   updateFavPill();
   updatePillBarVisibility();
 });
@@ -3700,6 +3740,42 @@ function renderRecentRow(){
       <div class="recent-chip-info">
         <div class="recent-chip-name">${esc(r[0])}</div>
         <div class="recent-chip-price">${esc(r[2])}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── FREQUENTLY COPIED — keyed by name+type so it survives data reloads ──
+function _prodKey(idx){ const r=productRows[idx]; return r?`${r[0]}__${r[1]}`:''; }
+function getCopyFreq(){ try{ return JSON.parse(localStorage.getItem('copyfreq_v1')||'{}'); }catch(e){ return {}; } }
+function bumpCopyFreq(idx){
+  const k=_prodKey(idx); if(!k) return;
+  const m=getCopyFreq(); m[k]=(m[k]||0)+1;
+  localStorage.setItem('copyfreq_v1', JSON.stringify(m));
+  renderFreqRow();
+}
+function renderFreqRow(){
+  const sec=document.getElementById('freq-section');
+  const row=document.getElementById('freq-row');
+  if(!sec||!row) return;
+  const m=getCopyFreq();
+  // map current product key → idx (first match wins)
+  const idxByKey={};
+  productRows.forEach((r,i)=>{ const k=`${r[0]}__${r[1]}`; if(!(k in idxByKey)) idxByKey[k]=i; });
+  const items=Object.entries(m)
+    .filter(([k,c])=> c>=2 && (k in idxByKey))
+    .sort((a,b)=> b[1]-a[1])
+    .slice(0,6)
+    .map(([k,c])=>({i:idxByKey[k], c}));
+  if(!items.length){ sec.style.display='none'; return; }
+  sec.style.display='block';
+  row.innerHTML=items.map(({i,c})=>{
+    const r=productRows[i];
+    return `<div class="recent-chip" onclick="showProductDetail(${i})">
+      ${r[4]?`<img class="recent-chip-img" src="${r[4]}" onerror="this.style.display='none'">`:'<div class="recent-chip-img" style="display:flex;align-items:center;justify-content:center;font-size:1.2em">📦</div>'}
+      <div class="recent-chip-info">
+        <div class="recent-chip-name">${esc(r[0])}</div>
+        <div class="recent-chip-price">${esc(r[2])} <span class="freq-count">ก๊อป ${c}×</span></div>
       </div>
     </div>`;
   }).join('');
@@ -4145,100 +4221,176 @@ async function _ciDrawToCanvas(canvas, g, r) {
     headerBottom = 100;
   }
 
-  // Variant chip grid — maximize image area
+  // rounded-rect path helper
+  const rr = (x,y,w,h,rad) => { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x,y,w,h,rad); else ctx.rect(x,y,w,h); };
+
+  // ── Variant cards — neat catalog grid, every row centered ──
   const variants = g.variants;
   const count = variants.length;
   const cols = count <= 2 ? 2 : count <= 4 ? 2 : 3;
   const rows = Math.ceil(count / cols);
-  const gap = 16;
+  const gap = 18;
   const sideMargin = 30;
   const usableW = W - sideMargin*2;
   const cellW = (usableW - gap*(cols-1)) / cols;
-  const footerHeight = 44;
+  // Promo band at the bottom shows per-quantity pricing baked into the image
+  const ciTiers = buildTierPricing(r[2]);
+  const ciUnit = counterWord(r);
+  const footerHeight = ciTiers.length ? 96 + ciTiers.length * 44 : 44;
   const gridTop = headerBottom;
-  const gridBottom = H - footerHeight;
+  const gridBottom = H - footerHeight - 8;
   const cellH = (gridBottom - gridTop - gap*(rows-1)) / rows;
-  // Two-pass: compute tentative image size → font sizes that scale with image → labelArea → final image size
-  let imgSize = Math.max(80, Math.min(cellW - 4, cellH * 0.82));
-  const nameFont = Math.max(15, Math.min(36, Math.round(imgSize * 0.085)));
-  const statusFont = Math.max(11, Math.min(22, Math.round(imgSize * 0.055)));
-  const labelArea = nameFont + statusFont + 16;
-  imgSize = Math.max(80, Math.min(cellW - 4, cellH - labelArea));
+  // card internal metrics
+  const pad = Math.max(10, Math.round(cellW * 0.06));
+  const nameFont = Math.max(16, Math.min(34, Math.round(cellW * 0.10)));
+  const statusFont = Math.max(12, Math.min(22, Math.round(cellW * 0.062)));
+  const labelArea = nameFont + statusFont + 20;
+  const imgSize = Math.max(80, Math.min(cellW - pad*2, cellH - pad*2 - labelArea));
 
   const vImgs = await Promise.all(variants.map(v => ciLoadImage(v.image || r[4])));
 
   for (let i = 0; i < count; i++) {
     const v = variants[i];
-    const col = i % cols, rowIdx = Math.floor(i / cols);
-    const cx = sideMargin + col * (cellW + gap);
-    const cy = gridTop + rowIdx * (cellH + gap);
+    const rowIdx = Math.floor(i / cols);
+    const col = i % cols;
+    const itemsInRow = Math.min(cols, count - rowIdx*cols);
+    const rowW = itemsInRow*cellW + (itemsInRow-1)*gap;
+    const rowStartX = (W - rowW) / 2;            // center every row
+    const cardX = rowStartX + col*(cellW + gap);
+    const cardY = gridTop + rowIdx*(cellH + gap);
+    const cxC = cardX + cellW/2;
+    const sold = (Number(v.stock)||0) <= 0;
 
-    const ix = cx + (cellW - imgSize) / 2;
-    const iy = cy;
+    // card background + soft shadow
+    ctx.save();
+    ctx.shadowColor = 'rgba(90,50,100,0.10)';
+    ctx.shadowBlur = 16; ctx.shadowOffsetY = 5;
+    ctx.fillStyle = sold ? '#f7f4f8' : '#ffffff';
+    rr(cardX, cardY, cellW, cellH, 22); ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle = '#efe4f1'; ctx.lineWidth = 1.5;
+    rr(cardX, cardY, cellW, cellH, 22); ctx.stroke();
+
+    // image well
+    const ix = cardX + (cellW - imgSize)/2;
+    const iy = cardY + pad;
     ctx.fillStyle = '#f3eef8';
-    if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(ix, iy, imgSize, imgSize, 18); ctx.fill(); }
-    else ctx.fillRect(ix, iy, imgSize, imgSize);
-
+    rr(ix, iy, imgSize, imgSize, 16); ctx.fill();
     const vi = vImgs[i];
     if (vi) {
       ctx.save();
-      if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(ix, iy, imgSize, imgSize, 18); ctx.clip(); }
-      const ratio = Math.min(imgSize / vi.width, imgSize / vi.height);
-      const dw = vi.width * ratio, dh = vi.height * ratio;
+      rr(ix, iy, imgSize, imgSize, 16); ctx.clip();
+      const ratio = Math.min(imgSize/vi.width, imgSize/vi.height);
+      const dw = vi.width*ratio, dh = vi.height*ratio;
       ctx.drawImage(vi, ix + (imgSize-dw)/2, iy + (imgSize-dh)/2, dw, dh);
       ctx.restore();
     }
+    if (sold) ciDrawSoldStamp(ctx, ix + imgSize/2, iy + imgSize/2, imgSize*0.86);
 
-    const sold = (Number(v.stock)||0) <= 0;
-    if (sold) ciDrawSoldStamp(ctx, ix + imgSize/2, iy + imgSize/2, imgSize * 0.88);
-
-    // Color name — font scales with imgSize (computed outer)
+    // color name
     const colorName = v._color || v.name || '';
     ctx.fillStyle = sold ? '#aaa' : '#352F44';
     ctx.font = `800 ${nameFont}px 'Prompt', Arial, sans-serif`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-    const nameY = iy + imgSize + 8;
+    const nameY = iy + imgSize + 10;
+    ctx.fillText(colorName, cxC, nameY);
     if (sold) {
       const tw = ctx.measureText(colorName).width;
-      ctx.fillText(colorName, cx + cellW/2, nameY);
-      ctx.strokeStyle = '#aaa'; ctx.lineWidth = Math.max(1.5, nameFont*0.08);
+      ctx.strokeStyle = '#bbb'; ctx.lineWidth = Math.max(1.5, nameFont*0.07);
       ctx.beginPath();
-      ctx.moveTo(cx + cellW/2 - tw/2, nameY + nameFont/2);
-      ctx.lineTo(cx + cellW/2 + tw/2, nameY + nameFont/2);
+      ctx.moveTo(cxC - tw/2, nameY + nameFont/2);
+      ctx.lineTo(cxC + tw/2, nameY + nameFont/2);
       ctx.stroke();
-    } else {
-      ctx.fillText(colorName, cx + cellW/2, nameY);
     }
 
-    // Stock status (NO count number)
+    // stock status
     const stockN = Number(v.stock)||0;
     const isLow = !sold && stockN <= 3;
     ctx.font = `700 ${statusFont}px 'Prompt', Arial, sans-serif`;
-    const statusY = nameY + nameFont + 4;
-    if (sold) {
-      ctx.fillStyle = '#d92626';
-      ctx.fillText('● หมด', cx + cellW/2, statusY);
-    } else if (isLow) {
-      ctx.fillStyle = '#d68910';
-      ctx.fillText('⚠ เหลือน้อย', cx + cellW/2, statusY);
-    } else {
-      ctx.fillStyle = '#1a6e3f';
-      ctx.fillText('● พร้อมส่ง', cx + cellW/2, statusY);
-    }
+    const statusY = nameY + nameFont + 6;
+    if (sold) { ctx.fillStyle = '#d92626'; ctx.fillText('● หมด', cxC, statusY); }
+    else if (isLow) { ctx.fillStyle = '#d68910'; ctx.fillText('⚠ เหลือน้อย', cxC, statusY); }
+    else { ctx.fillStyle = '#1a6e3f'; ctx.fillText('● พร้อมส่ง', cxC, statusY); }
   }
 
-  // Footer: price + SKU (compact)
-  if (r[2]) {
-    ctx.fillStyle = '#E87A90';
-    ctx.font = "800 24px 'Prompt', Arial, sans-serif";
-    ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
-    ctx.fillText(String(r[2]) + '.-', 30, H - 14);
-  }
-  if (r[6]) {
-    ctx.fillStyle = '#999';
-    ctx.font = "500 13px 'Prompt', Arial, sans-serif";
-    ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
-    ctx.fillText('SKU: ' + String(r[6]).slice(-20), W - 30, H - 14);
+  // Footer
+  if (ciTiers.length) {
+    // ── Promo band: per-quantity pricing baked into the image ──
+    const bandTop = H - footerHeight + 4;
+    const bandH = footerHeight - 12;        // leave room for accent bar
+    const padX = 30;
+    const innerX = padX + 28;
+    // soft gradient background + border
+    const bg = ctx.createLinearGradient(0, bandTop, 0, bandTop + bandH);
+    bg.addColorStop(0, '#FDEAF0'); bg.addColorStop(1, '#FBDCE6');
+    ctx.fillStyle = bg;
+    rr(padX, bandTop, W - padX*2, bandH, 24); ctx.fill();
+    ctx.strokeStyle = '#F4C7D6'; ctx.lineWidth = 2;
+    rr(padX, bandTop, W - padX*2, bandH, 24); ctx.stroke();
+
+    // Title
+    ctx.fillStyle = '#C63D60';
+    ctx.font = "800 27px 'Prompt', Arial, sans-serif";
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText('★ ดีลพิเศษเฉพาะในแชท · ยิ่งซื้อยิ่งคุ้ม', innerX, bandTop + 36);
+
+    // Tier rows — aligned columns: [qty pill] [price] ............ [discount]
+    const pillW = 104, pillH = 36;
+    const pillX = innerX;
+    const priceX = pillX + pillW + 22;
+    const badgeRight = W - padX - 28;
+    ciTiers.forEach((t, i) => {
+      const ly = bandTop + 86 + i*44;
+      // qty pill
+      ctx.fillStyle = '#E87A90';
+      rr(pillX, ly - pillH/2, pillW, pillH, pillH/2); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = "800 22px 'Prompt', Arial, sans-serif";
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(`${t.qty} ${ciUnit}`, pillX + pillW/2, ly + 1);
+      // price text
+      ctx.textAlign = 'left';
+      if (t.qty === 1) {
+        ctx.fillStyle = '#352F44';
+        ctx.font = "800 27px 'Prompt', Arial, sans-serif";
+        ctx.fillText(`${t.total.toLocaleString()}.-`, priceX, ly);
+      } else {
+        ctx.fillStyle = '#352F44';
+        ctx.font = "800 26px 'Prompt', Arial, sans-serif";
+        const avgTxt = `เฉลี่ย ${t.avg.toLocaleString()}.-/${ciUnit}`;
+        ctx.fillText(avgTxt, priceX, ly);
+        const aw = ctx.measureText(avgTxt).width;
+        ctx.fillStyle = '#9c8aa3';
+        ctx.font = "600 21px 'Prompt', Arial, sans-serif";
+        ctx.fillText(`(รวม ${t.total.toLocaleString()}.-)`, priceX + aw + 14, ly + 1);
+      }
+      // discount badge — right-aligned column
+      if (t.pct > 0) {
+        const bt = `ลด ${t.pct}%`;
+        ctx.font = "800 21px 'Prompt', Arial, sans-serif";
+        const bw = ctx.measureText(bt).width + 26;
+        const bx = badgeRight - bw;
+        ctx.fillStyle = '#1a8f4f';
+        rr(bx, ly - 17, bw, 34, 17); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(bt, bx + bw/2, ly + 1);
+      }
+    });
+  } else {
+    // Compact footer: price + SKU
+    if (r[2]) {
+      ctx.fillStyle = '#E87A90';
+      ctx.font = "800 24px 'Prompt', Arial, sans-serif";
+      ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+      ctx.fillText(String(r[2]) + '.-', 30, H - 14);
+    }
+    if (r[6]) {
+      ctx.fillStyle = '#999';
+      ctx.font = "500 13px 'Prompt', Arial, sans-serif";
+      ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+      ctx.fillText('SKU: ' + String(r[6]).slice(-20), W - 30, H - 14);
+    }
   }
   // bottom accent bar
   ctx.fillStyle = '#E87A90';
