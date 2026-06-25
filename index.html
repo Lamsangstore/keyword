@@ -934,6 +934,15 @@
       font-size:1.6em;font-weight:800;
       color:var(--pink);margin-bottom:14px;
     }
+    /* stock auto-sync indicator on the detail page */
+    .stock-sync-status{
+      align-items:center;gap:6px;margin:0 0 12px;
+      font-size:.82em;font-weight:700;color:#8a6d2f;
+      background:#fff4e0;border:1px solid #f3d79a;border-radius:20px;padding:5px 12px;
+    }
+    .stock-sync-status.ok{color:#1a7e44;background:#eafaf0;border-color:#a7e3c0}
+    body.dark .stock-sync-status{background:#3a2c10;color:#ffcf8b;border-color:#5a4418}
+    body.dark .stock-sync-status.ok{background:#11301f;color:#7be09f;border-color:#1f5a38}
     /* tiered price breakdown (1/2/3 ชิ้น + ส่วนลด) */
     .tier-pricing{
       background:linear-gradient(135deg,rgba(255,59,107,.06),rgba(184,148,216,.08));
@@ -3532,6 +3541,14 @@ async function _custP365List(){
   _p365ListSession = { ts: Date.now(), list };
   return list;
 }
+function _setStockSyncStatus(text, ok){
+  const el = document.getElementById('stock-sync-status');
+  if (!el) return;
+  if (!text){ el.style.display='none'; el.textContent=''; el.classList.remove('ok'); return; }
+  el.style.display='inline-flex';
+  el.textContent = text;
+  el.classList.toggle('ok', !!ok);
+}
 async function autoSyncProductStock(idx){
   try{
     const row = productRows[idx]; const key = productKeys[idx];
@@ -3550,6 +3567,7 @@ async function autoSyncProductStock(idx){
         || list.find(p => { const n=_custNormName(p.name); return n && (n.includes(norm)||norm.includes(n)); });
     }
     if (!p365) return; // ไม่เจอใน Page365 — ปล่อยตามเดิม
+    _setStockSyncStatus('🔄 กำลังอัปเดตสต๊อกล่าสุด...');
     const detail = await _customerFetch(`https://${shop}.page365.net/products/${p365.id}.json`);
     const p365Vs = detail.variants || [];
     let cur = Array.isArray(row[12]) ? [...row[12]] : [];
@@ -3565,9 +3583,13 @@ async function autoSyncProductStock(idx){
       const newRow = [...row]; while (newRow.length<13) newRow.push(''); newRow[12] = cur;
       productRows[idx] = newRow;
       await _customerDb.ref('products/'+key).set(newRow); // listener จะ refresh หน้า detail ให้เอง
-      showSyncToast('🔄 อัปเดตสต๊อกล่าสุดแล้ว', 'success');
+      _setStockSyncStatus('✓ อัปเดตสต๊อกล่าสุดแล้ว', true);
+      setTimeout(() => _setStockSyncStatus(''), 2500);
+    } else {
+      _setStockSyncStatus('✓ สต๊อกเป็นปัจจุบัน', true);
+      setTimeout(() => _setStockSyncStatus(''), 1800);
     }
-  }catch(e){ /* เงียบ — ไม่รบกวนการเปิดดูสินค้า */ }
+  }catch(e){ _setStockSyncStatus(''); /* เงียบ — ไม่รบกวนการเปิดดูสินค้า */ }
 }
 
 function showProductDetail(idx,push=true){
@@ -3716,6 +3738,7 @@ function showProductDetail(idx,push=true){
         <div class="detail-type">${esc(row[1])}</div>
         <div class="detail-price">${esc(row[2])}</div>
         ${buildTierPricingHtml(row, idx)}
+        <div id="stock-sync-status" class="stock-sync-status" style="display:none"></div>
         ${variants.length ? `<div id="detail-color-stock-area"></div>` : ''}
         ${variants.length ? `<div class="inline-comp-wrap" id="inline-comp-area"></div>` : ''}
         <div class="detail-action-row">
