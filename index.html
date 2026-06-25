@@ -1812,7 +1812,7 @@
         <div class="fav-tab-pill" id="fav-tab-pill" onclick="toggleFavTab()">⭐ รายการโปรด <span id="fav-count">0</span></div>
         <!-- FREQUENTLY COPIED -->
         <div class="recent-section" id="freq-section" style="display:none">
-          <div class="recent-title">🔥 ก๊อปบ่อย</div>
+          <div class="recent-title">🔥 เข้าบ่อยสุด</div>
           <div class="recent-row" id="freq-row"></div>
         </div>
         <!-- RECENT ITEMS -->
@@ -1843,7 +1843,7 @@
 
 <script>
 // ── STATE ────────────────────────────────────────────────────
-let productRows=[], generalRows=[];
+let productRows=[], generalRows=[], productKeys=[];
 let currentSort='name_asc', currentTab='product';
 let searchQuery='';
 let selectedCat='ทั้งหมด'; // active category pill
@@ -2063,7 +2063,9 @@ async function initFirebase(){
   db.ref('products').on('value', snap => {
     const raw = snap.val() || {};
     // Normalize: Firebase may return arrays as numeric-keyed objects
-    productRows = Object.values(raw).map(row => {
+    const _entries = Object.entries(raw);
+    productKeys = _entries.map(([k]) => k);
+    productRows = _entries.map(([k, row]) => {
       let r = row;
       if (r && typeof r === 'object' && !Array.isArray(r)) {
         const keys = Object.keys(r);
@@ -2559,7 +2561,6 @@ function copyTierPricing(idx, btn) {
   if (!txt) { showSyncToast('สินค้านี้ไม่มีราคาหลายชิ้น', 'error'); return; }
   copyToClipboard(`${row[0]||''}\n${txt}`);
   showSyncToast('📋 Copy ราคาหลายชิ้นแล้ว', 'success');
-  bumpCopyFreq(idx);
   _customerAudit('copy-tier-pricing', row[0]||'', '');
 }
 
@@ -2884,7 +2885,6 @@ function copyWithTemplate(idx, key) {
   const text = fillTemplate(tpl.text, row).replace(/\n{3,}/g, '\n\n').trim();
   copyToClipboard(text);
   showSyncToast(`📋 Copy ${tpl.label}`, 'success');
-  bumpCopyFreq(idx);
   _customerAudit('copy-template', row[0]||'', tpl.label);
 }
 
@@ -3514,7 +3514,60 @@ function renderProductGrid(rows){
 function copyProductInfo(idx,btn){
   const r=productRows[idx]; if(!r) return;
   copyText(`ชื่อสินค้า: ${r[0]}\nประเภท: ${r[1]}\nราคา: ${r[2]}\nรายละเอียด: ${r[3]}`,btn);
-  bumpCopyFreq(idx);
+}
+
+// ── AUTO-SYNC STOCK เมื่อเปิดการ์ดสินค้า ──
+let _autoSyncedAt = {};        // productKey -> ts (throttle)
+let _p365ListSession = null;   // cached Page365 list for name/sku resolve
+async function _custP365List(){
+  if (_p365ListSession && (Date.now() - _p365ListSession.ts < 5*60*1000)) return _p365ListSession.list;
+  const shop = 'lamsangstores';
+  const seen = new Set(); const list = [];
+  for (let page=1; page<=20; page++){
+    const d = await _customerFetch(`https://${shop}.page365.net/products.json?page=${page}`);
+    if (!d.items?.length) break;
+    let added=0; for (const it of d.items){ if(!seen.has(it.id)){seen.add(it.id);list.push(it);added++;} }
+    if (!added) break; if (d.count && list.length>=d.count) break;
+  }
+  _p365ListSession = { ts: Date.now(), list };
+  return list;
+}
+async function autoSyncProductStock(idx){
+  try{
+    const row = productRows[idx]; const key = productKeys[idx];
+    if (!row || !key || !_customerDb) return;
+    if (_autoSyncedAt[key] && Date.now()-_autoSyncedAt[key] < 15000) return; // กันยิงซ้ำถี่ๆ
+    _autoSyncedAt[key] = Date.now();
+    const shop = 'lamsangstores';
+    // resolve Page365 product: manual map → SKU → name
+    const manual = _customerP365Map[key];
+    let p365 = (manual && manual.id) ? { id: manual.id } : null;
+    if (!p365){
+      const list = await _custP365List();
+      const sku = String(row[6]||'').trim(); const norm = _custNormName(row[0]||'');
+      if (sku) p365 = list.find(p => String(p.parent_sku||p.sku||p.merchant_sku||'').trim() === sku) || null;
+      if (!p365 && norm) p365 = list.find(p => _custNormName(p.name)===norm)
+        || list.find(p => { const n=_custNormName(p.name); return n && (n.includes(norm)||norm.includes(n)); });
+    }
+    if (!p365) return; // ไม่เจอใน Page365 — ปล่อยตามเดิม
+    const detail = await _customerFetch(`https://${shop}.page365.net/products/${p365.id}.json`);
+    const p365Vs = detail.variants || [];
+    let cur = Array.isArray(row[12]) ? [...row[12]] : [];
+    let changed = 0;
+    cur = cur.map(v => {
+      let pv; const ov = manual?.variants?.[v.name];
+      if (ov !== undefined){ if (ov==='') return v; pv = p365Vs.find(p=>p.name===ov) || p365Vs.find(p=>_custNormVName(p.name)===_custNormVName(ov)); }
+      else pv = p365Vs.find(p=>_custNormVName(p.name)===_custNormVName(v.name));
+      if (pv){ const ns = pv.in_stock ? (Number(pv.available)||0) : 0; if (ns !== (Number(v.stock)||0)){ changed++; return {...v, stock: ns}; } }
+      return v;
+    });
+    if (changed){
+      const newRow = [...row]; while (newRow.length<13) newRow.push(''); newRow[12] = cur;
+      productRows[idx] = newRow;
+      await _customerDb.ref('products/'+key).set(newRow); // listener จะ refresh หน้า detail ให้เอง
+      showSyncToast('🔄 อัปเดตสต๊อกล่าสุดแล้ว', 'success');
+    }
+  }catch(e){ /* เงียบ — ไม่รบกวนการเปิดดูสินค้า */ }
 }
 
 function showProductDetail(idx,push=true){
@@ -3685,6 +3738,7 @@ function showProductDetail(idx,push=true){
   currentDetailIdx=idx; currentDetailRow=row;
   document.getElementById('fab-wrap').style.display='flex';
   addRecent(idx);
+  if (push) bumpViewFreq(idx);   // นับ "เข้าบ่อยสุด" เฉพาะตอนกดเข้าจริง
   window.scrollTo(0,0);
   // Reset size filter for each new product
   _detailSelectedSize = null;
@@ -3693,6 +3747,8 @@ function showProductDetail(idx,push=true){
   // Build inline composite gallery (async)
   const compArea = document.getElementById('inline-comp-area');
   if (compArea) embedComposites(idx, compArea);
+  // Auto-sync this product's stock from Page365 on a genuine card open
+  if (push) autoSyncProductStock(idx);
 }
 
 // Currently selected size in detail page (null = ทุกไซส์)
@@ -3996,20 +4052,20 @@ function renderRecentRow(){
   }).join('');
 }
 
-// ── FREQUENTLY COPIED — keyed by name+type so it survives data reloads ──
+// ── เข้าบ่อยสุด — นับครั้งที่เปิดดูสินค้า (key = ชื่อ+ประเภท เพื่อรอดเมื่อ reload) ──
 function _prodKey(idx){ const r=productRows[idx]; return r?`${r[0]}__${r[1]}`:''; }
-function getCopyFreq(){ try{ return JSON.parse(localStorage.getItem('copyfreq_v1')||'{}'); }catch(e){ return {}; } }
-function bumpCopyFreq(idx){
+function getViewFreq(){ try{ return JSON.parse(localStorage.getItem('viewfreq_v1')||'{}'); }catch(e){ return {}; } }
+function bumpViewFreq(idx){
   const k=_prodKey(idx); if(!k) return;
-  const m=getCopyFreq(); m[k]=(m[k]||0)+1;
-  localStorage.setItem('copyfreq_v1', JSON.stringify(m));
+  const m=getViewFreq(); m[k]=(m[k]||0)+1;
+  localStorage.setItem('viewfreq_v1', JSON.stringify(m));
   renderFreqRow();
 }
 function renderFreqRow(){
   const sec=document.getElementById('freq-section');
   const row=document.getElementById('freq-row');
   if(!sec||!row) return;
-  const m=getCopyFreq();
+  const m=getViewFreq();
   // map current product key → idx (first match wins)
   const idxByKey={};
   productRows.forEach((r,i)=>{ const k=`${r[0]}__${r[1]}`; if(!(k in idxByKey)) idxByKey[k]=i; });
@@ -4026,7 +4082,7 @@ function renderFreqRow(){
       ${r[4]?`<img class="recent-chip-img" src="${r[4]}" onerror="this.style.display='none'">`:'<div class="recent-chip-img" style="display:flex;align-items:center;justify-content:center;font-size:1.2em">📦</div>'}
       <div class="recent-chip-info">
         <div class="recent-chip-name">${esc(r[0])}</div>
-        <div class="recent-chip-price">${esc(r[2])} <span class="freq-count">ก๊อป ${c}×</span></div>
+        <div class="recent-chip-price">${esc(r[2])} <span class="freq-count">เข้า ${c}×</span></div>
       </div>
     </div>`;
   }).join('');
@@ -4424,7 +4480,6 @@ function copyCloseSaleText(btn){
   if (!t) return;
   copyToClipboard(t);
   showSyncToast('📋 Copy ข้อความปิดการขายแล้ว', 'success');
-  if (typeof currentDetailIdx === 'number' && currentDetailIdx >= 0) bumpCopyFreq(currentDetailIdx);
 }
 
 async function renderCiGroup(idx) {
@@ -4527,7 +4582,8 @@ async function _ciDrawToCanvas(canvas, g, r) {
   // Promo band at the bottom shows per-quantity pricing baked into the image
   const ciTiers = buildTierPricing(r[2]);
   const ciUnit = counterWord(r);
-  const footerHeight = ciTiers.length ? 96 + ciTiers.length * 44 : 44;
+  const ciUnitPrice = parseInt(String(r[2]||'').replace(/[^0-9]/g,'')) || 0;  // ราคาปกติ
+  const footerHeight = ciTiers.length ? 96 + ciTiers.length * 44 + 36 : 44;
   const gridTop = headerBottom;
   const gridBottom = H - footerHeight - 8;
   const cellH = (gridBottom - gridTop - gap*(rows-1)) / rows;
@@ -4644,7 +4700,22 @@ async function _ciDrawToCanvas(canvas, g, r) {
       if (t.qty === 1) {
         ctx.fillStyle = '#352F44';
         ctx.font = "800 27px 'Prompt', Arial, sans-serif";
-        ctx.fillText(`${t.total.toLocaleString()}.-`, priceX, ly);
+        const disc = `${t.total.toLocaleString()}.-`;
+        ctx.fillText(disc, priceX, ly);
+        // ราคาปกติ (ขีดฆ่า) ต่อท้าย
+        if (ciUnitPrice > t.total) {
+          const dw = ctx.measureText(disc).width;
+          let ox = priceX + dw + 16;
+          ctx.fillStyle = '#9c8aa3';
+          ctx.font = "600 22px 'Prompt', Arial, sans-serif";
+          ctx.fillText('ปกติ ', ox, ly + 1);
+          ox += ctx.measureText('ปกติ ').width;
+          const origStr = `${ciUnitPrice.toLocaleString()}.-`;
+          ctx.fillText(origStr, ox, ly + 1);
+          const ow = ctx.measureText(origStr).width;
+          ctx.strokeStyle = '#c98ba0'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(ox, ly + 1); ctx.lineTo(ox + ow, ly + 1); ctx.stroke();
+        }
       } else {
         ctx.fillStyle = '#352F44';
         ctx.font = "800 26px 'Prompt', Arial, sans-serif";
@@ -4668,6 +4739,12 @@ async function _ciDrawToCanvas(canvas, g, r) {
         ctx.fillText(bt, bx + bw/2, ly + 1);
       }
     });
+    // ── ส่งฟรี + เก็บปลายทาง ──
+    const codY = bandTop + 86 + ciTiers.length * 44 + 2;
+    ctx.fillStyle = '#7a5c68';
+    ctx.font = "700 22px 'Prompt', Arial, sans-serif";
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('ส่งฟรีทั่วไทย · เก็บปลายทาง +20 บาท', W/2, codY);
   } else {
     // Compact footer: price + SKU
     if (r[2]) {
