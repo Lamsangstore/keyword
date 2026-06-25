@@ -276,6 +276,44 @@
     .p365-assign-menu button:hover{background:var(--pink-pale);color:var(--pink);border-color:var(--pink)}
     .p365-assign-menu button.divider{border-top:1px dashed var(--purple-pale);margin-top:4px;padding-top:6px;font-weight:700;color:var(--pink)}
 
+    /* ── PAGE365 PRODUCT MATCHING ── */
+    #match-modal .modal{max-width:980px}
+    .match-toolbar{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+    .match-toolbar input{flex:1;min-width:180px;padding:9px 12px;border:2px solid var(--purple-pale);border-radius:10px;font-family:'Prompt',sans-serif;font-size:.9em}
+    .match-toolbar select{padding:9px 12px;border:2px solid var(--purple-pale);border-radius:10px;font-family:'Prompt',sans-serif;font-size:.85em}
+    .match-status{font-size:.8em;color:var(--purple-mid);margin-bottom:8px;min-height:16px}
+    .match-list{display:flex;flex-direction:column;gap:8px;max-height:62vh;overflow-y:auto;padding:2px}
+    .match-card{border:1.5px solid var(--purple-pale);border-radius:12px;padding:10px 12px;background:#fff}
+    .match-card.is-manual{border-color:var(--green);background:#f3fbf5}
+    .match-card.is-none{border-color:#f3c6d5;background:#fff7fa}
+    .match-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .match-head .mh-name{font-weight:700;font-size:.92em;color:var(--text);flex:1;min-width:140px}
+    .match-chip{font-size:.7em;font-weight:700;padding:2px 9px;border-radius:20px;white-space:nowrap}
+    .match-chip.manual{background:var(--green);color:#fff}
+    .match-chip.auto{background:#dbe9ff;color:#1d4ed8}
+    .match-chip.none{background:#fde0e7;color:#d92626}
+    .match-paired{font-size:.82em;color:var(--purple-mid);margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+    .match-paired b{color:var(--text)}
+    .match-btn{border:1px solid var(--purple-pale);background:#fff;color:var(--text);font-family:'Prompt',sans-serif;font-weight:700;font-size:.76em;padding:5px 11px;border-radius:8px;cursor:pointer;transition:all .15s}
+    .match-btn:hover{border-color:var(--pink);color:var(--pink)}
+    .match-btn.danger:hover{border-color:var(--red);color:var(--red)}
+    .match-search-box{margin-top:8px}
+    .match-search-box input{width:100%;box-sizing:border-box;padding:8px 11px;border:2px solid var(--purple-pale);border-radius:9px;font-family:'Prompt',sans-serif;font-size:.85em}
+    .match-results{display:flex;flex-direction:column;gap:4px;max-height:240px;overflow-y:auto;margin-top:6px}
+    .match-result{display:flex;gap:9px;align-items:center;padding:6px 8px;border-radius:8px;cursor:pointer;background:var(--pink-pale);transition:background .12s}
+    .match-result:hover{background:var(--pink-light)}
+    .match-result img{width:38px;height:38px;border-radius:6px;object-fit:cover;background:#fff;flex-shrink:0}
+    .match-result .mr-info{min-width:0}
+    .match-result .mr-info b{display:block;font-size:.84em;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .match-result .mr-info span{font-size:.72em;color:var(--purple-mid)}
+    .match-vtable{margin-top:10px;border-top:1px dashed var(--purple-pale);padding-top:8px}
+    .match-vrow{display:grid;grid-template-columns:1fr auto 1.2fr;gap:8px;align-items:center;padding:4px 0;font-size:.82em}
+    .match-vrow .mv-our{font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .match-vrow .mv-arrow{color:var(--purple-mid)}
+    .match-vrow select{padding:6px 8px;border:1.5px solid var(--purple-pale);border-radius:7px;font-family:'Prompt',sans-serif;font-size:.82em;max-width:100%}
+    .match-vrow select.unset{border-color:#f3c6d5;color:#d92626}
+    .mv-head{font-size:.74em;color:var(--purple-mid);font-weight:700;display:grid;grid-template-columns:1fr auto 1.2fr;gap:8px;margin-bottom:4px}
+
     /* ── DRAG-DROP IMPORT ── */
     .import-drop{border:2px dashed var(--orange);background:#fff8eb;border-radius:14px;padding:18px;margin-bottom:16px;display:flex;align-items:center;gap:16px;transition:all .2s;cursor:pointer;position:relative}
     .import-drop:hover,.import-drop.drag{background:#fdebd0;border-color:#d68910;transform:translateY(-1px)}
@@ -541,6 +579,15 @@
             <div class="sa-text">
               <div class="sa-title">Sync Stock จาก Page365 (ทั้งหมด)</div>
               <div class="sa-sub">ดึงข้อมูล stock ของทุกสินค้าจาก Page365 อัตโนมัติ — ไม่ต้อง export Excel</div>
+            </div>
+            <div style="font-size:1.6em;flex-shrink:0">→</div>
+          </button>
+
+          <button type="button" class="sync-all-banner" id="match-btn" onclick="openMatchModal()" style="background:linear-gradient(135deg,#eaf3ff,#dbe9ff)">
+            <div class="sa-icon">🔗</div>
+            <div class="sa-text">
+              <div class="sa-title">จับคู่สินค้ากับ Page365 (เลือกเอง)</div>
+              <div class="sa-sub">สำหรับรุ่นที่ชื่อไม่ตรง — จับคู่ระดับรุ่น แล้ว variant จับคู่ให้อัตโนมัติ (แก้เองได้)</div>
             </div>
             <div style="font-size:1.6em;flex-shrink:0">→</div>
           </button>
@@ -974,6 +1021,27 @@
 </div>
 
 <!-- ── PAGE365 PHOTO PICKER MODAL ── -->
+<div class="modal-overlay" id="match-modal">
+  <div class="modal">
+    <div class="modal-title">🔗 จับคู่สินค้ากับ Page365</div>
+    <div class="match-toolbar">
+      <input type="text" id="match-search" placeholder="🔍 ค้นหาสินค้าในระบบ" oninput="renderMatchList()">
+      <select id="match-filter" onchange="renderMatchList()">
+        <option value="all">ทั้งหมด</option>
+        <option value="none">ยังไม่จับคู่</option>
+        <option value="manual">จับคู่เอง</option>
+        <option value="auto">auto (ชื่อตรง)</option>
+      </select>
+      <button type="button" class="btn btn-orange" style="padding:8px 14px;font-size:.85em" onclick="reloadMatchP365(true).then(renderMatchList)">🔄 รีโหลด Page365</button>
+    </div>
+    <div class="match-status" id="match-status">กำลังโหลด...</div>
+    <div class="match-list" id="match-list"></div>
+    <div class="modal-actions" style="margin-top:12px">
+      <button type="button" class="btn btn-ghost" onclick="closeModal('match-modal')">ปิด</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="p365-picker-modal">
   <div class="modal">
     <div class="modal-title">🎨 ดึงรูปจาก Page365</div>
@@ -1052,6 +1120,7 @@ let editProductKey = null; // Firebase key for editing
 let editGeneralKey = null;
 let allProducts = {};
 let allGeneral  = {};
+let _p365Map    = {};   // { productKey: { id, name, variants:{ourVarName:p365VarName} } }
 
 // ─── SETTINGS (Firebase + localStorage cache) ───────────────────
 // Settings are stored at /_adminSettings in Firebase so every device shares them.
@@ -1995,6 +2064,11 @@ async function initApp() {
   // Live-refresh backup list when /_backups changes
   db.ref('_backups').on('value', snap => {
     renderBackupList(snap.val() || {});
+  });
+  // Manual Page365 product↔product mapping (stored under _adminSettings — writable path)
+  db.ref('_adminSettings/p365Map').on('value', snap => {
+    _p365Map = snap.val() || {};
+    if (document.getElementById('match-modal')?.classList.contains('open')) renderMatchList();
   });
   // Sync shared admin settings across devices
   subscribeRemoteSettings();
@@ -4027,17 +4101,22 @@ async function runSyncAll() {
     document.getElementById('sp-status').textContent = `กำลังประมวล 0/${localEntries.length}`;
 
     const updates = {};
-    let matchCount=0, unmatchedCount=0, stockUpdates=0, varsAdded=0, skuMatchCount=0;
+    let matchCount=0, unmatchedCount=0, stockUpdates=0, varsAdded=0, skuMatchCount=0, manualMatchCount=0;
 
     for (let i = 0; i < localEntries.length; i++) {
       const [key, row] = localEntries[i];
       const localName = row[0] || '';
       const localSku  = String(row[6] || '').trim();
       const norm = normalizeProdName(localName);
-      // Try SKU match first (most reliable), fall back to name
-      let p365 = localSku ? p365BySku[localSku] : null;
-      if (p365) skuMatchCount++;
-      else if (norm) {
+      // Manual mapping wins (จับคู่เองใน admin), then SKU, then name
+      const manual = _p365Map[key];
+      let p365 = null;
+      if (manual && manual.id) {
+        p365 = p365Cache.list.find(p => p.id === manual.id) || { id: manual.id, name: manual.name || ('#'+manual.id) };
+        manualMatchCount++;
+      }
+      if (!p365 && localSku) { p365 = p365BySku[localSku]; if (p365) skuMatchCount++; }
+      if (!p365 && norm) {
         p365 = p365ByName[norm] || p365Cache.list.find(p => normalizeProdName(p.name).includes(norm) || norm.includes(normalizeProdName(p.name)));
       }
 
@@ -4060,10 +4139,17 @@ async function runSyncAll() {
         let curVariants = Array.isArray(row[12]) ? [...row[12]] : [];
         const mainImgFromP365 = detail.photos?.[0]?.normal || '';
 
-        // sync stock for existing variants by name match
+        // sync stock — honor manual variant overrides, else match by name
         let rowStockUpdates = 0;
         curVariants = curVariants.map(v => {
-          const pv = p365Vs.find(p => normalizeVName(p.name) === normalizeVName(v.name));
+          let pv;
+          const ov = manual?.variants?.[v.name];
+          if (ov !== undefined) {
+            if (ov === '') return v;   // ผู้ใช้เลือก "ข้าม"
+            pv = p365Vs.find(p => p.name === ov) || p365Vs.find(p => normalizeVName(p.name) === normalizeVName(ov));
+          } else {
+            pv = p365Vs.find(p => normalizeVName(p.name) === normalizeVName(v.name));
+          }
           if (pv) {
             const newStock = pv.in_stock ? (Number(pv.available)||0) : 0;
             if (newStock !== (Number(v.stock)||0)) rowStockUpdates++;
@@ -4105,7 +4191,7 @@ async function runSyncAll() {
       }
     }
 
-    spLog('info', `📊 Match — by SKU: ${skuMatchCount}, by name: ${matchCount - skuMatchCount}, ไม่ match: ${unmatchedCount}`);
+    spLog('info', `📊 Match — จับคู่เอง: ${manualMatchCount}, by SKU: ${skuMatchCount}, by name: ${matchCount - skuMatchCount - manualMatchCount}, ไม่ match: ${unmatchedCount}`);
 
     // 4) Batch update
     document.getElementById('sp-status').textContent = '💾 กำลังบันทึก...';
@@ -4129,6 +4215,190 @@ async function runSyncAll() {
   } finally {
     banner.classList.remove('syncing'); banner.disabled = false;
   }
+}
+
+// ═══════════════════════════════════════════════
+//  MANUAL PAGE365 PRODUCT MATCHING
+// ═══════════════════════════════════════════════
+let _matchEntries = [];   // filtered [[key,row],...]
+let _matchOpenIdx = -1;   // expanded card index
+function _mvVars(row){ return Array.isArray(row?.[12]) ? row[12] : []; }
+
+async function openMatchModal(){
+  openModal('match-modal');
+  _matchOpenIdx = -1;
+  const s=document.getElementById('match-search'); if(s) s.value='';
+  const f=document.getElementById('match-filter'); if(f) f.value='all';
+  await reloadMatchP365(false);
+  renderMatchList();
+}
+function setMatchStatus(m,err){ const el=document.getElementById('match-status'); if(el){el.textContent=m; el.style.color=err?'var(--red)':'var(--purple-mid)';} }
+
+async function reloadMatchP365(force){
+  const shop = (JSON.parse(localStorage.getItem('admin_settings')||'{}').p365Shop)
+    || document.getElementById('p365-shop')?.value?.trim() || 'lamsangstores';
+  setMatchStatus('⏳ โหลดสินค้าจาก Page365...');
+  try{
+    if(force || p365Cache.shop!==shop || !p365Cache.list.length){
+      const seen=new Set(); const all=[];
+      for(let page=1;page<=20;page++){
+        const data=await p365Fetch(`https://${shop}.page365.net/products.json?page=${page}`);
+        if(!data.items?.length) break;
+        let added=0; for(const it of data.items){ if(!seen.has(it.id)){seen.add(it.id);all.push(it);added++;} }
+        if(!added) break;
+        if(data.count && all.length>=data.count) break;
+      }
+      p365Cache = {shop, list: all, detail: (p365Cache.shop===shop?p365Cache.detail:{})||{}};
+    }
+  }catch(e){ setMatchStatus('❌ โหลด Page365 ไม่ได้: '+e.message, true); }
+}
+
+function matchAutoFind(row){
+  const norm=normalizeProdName(row[0]||''); if(!norm) return null;
+  return p365Cache.list.find(p=>normalizeProdName(p.name)===norm)
+      || p365Cache.list.find(p=>{const n=normalizeProdName(p.name); return n && (n.includes(norm)||norm.includes(n));})
+      || null;
+}
+function matchStatusOf(key,row){
+  const m=_p365Map[key];
+  if(m&&m.id) return {type:'manual', id:m.id, name:m.name||('#'+m.id)};
+  const p=matchAutoFind(row);
+  if(p) return {type:'auto', id:p.id, name:p.name};
+  return {type:'none'};
+}
+
+function renderMatchList(){
+  const wrap=document.getElementById('match-list'); if(!wrap) return;
+  const q=(document.getElementById('match-search').value||'').trim().toLowerCase();
+  const filter=document.getElementById('match-filter').value;
+  const ord={none:0,auto:1,manual:2};
+  _matchEntries = Object.entries(allProducts).filter(([k,r])=>{
+    if(q && !String(r[0]||'').toLowerCase().includes(q)) return false;
+    const t=matchStatusOf(k,r).type;
+    return filter==='all' ? true : filter===t;
+  }).sort((a,b)=> ord[matchStatusOf(a[0],a[1]).type]-ord[matchStatusOf(b[0],b[1]).type]);
+  const counts={none:0,auto:0,manual:0};
+  Object.entries(allProducts).forEach(([k,r])=>counts[matchStatusOf(k,r).type]++);
+  setMatchStatus(`Page365 ${p365Cache.list.length} รุ่น • จับคู่เอง ${counts.manual} • auto ${counts.auto} • ⚠️ ยังไม่จับคู่ ${counts.none}`);
+  if(!_matchEntries.length){ wrap.innerHTML='<div style="padding:24px;text-align:center;color:var(--purple-mid)">ไม่พบสินค้า</div>'; return; }
+  wrap.innerHTML=_matchEntries.map(([k,r],i)=>matchCardHTML(k,r,i)).join('');
+  if(_matchOpenIdx>=0 && _matchOpenIdx<_matchEntries.length){ renderMatchResults(); renderVariantBlock(); }
+}
+
+function matchCardHTML(key,row,i){
+  const st=matchStatusOf(key,row);
+  const open=i===_matchOpenIdx;
+  const cls=st.type==='manual'?'is-manual':st.type==='none'?'is-none':'';
+  const chip=st.type==='manual'?'<span class="match-chip manual">จับคู่เอง</span>'
+           :st.type==='auto'?'<span class="match-chip auto">auto ชื่อตรง</span>'
+           :'<span class="match-chip none">ยังไม่จับคู่</span>';
+  const paired = st.type==='none'
+    ? '<span style="color:#d92626">— ไม่เจอใน Page365 —</span>'
+    : `Page365: <b>${esc(st.name)}</b>${st.type==='auto'?' <span style="color:var(--purple-mid)">(เดาจากชื่อ)</span>':''}`;
+  let expand='';
+  if(open){
+    expand=`<div class="match-search-box">
+        <input type="text" id="match-pick-input" placeholder="🔍 ค้นหารุ่นใน Page365 เพื่อจับคู่" oninput="renderMatchResults()" value="${esc(row[0]||'')}">
+        <div class="match-results" id="match-results"></div>
+      </div>
+      <div id="match-vtable-host"></div>`;
+  }
+  return `<div class="match-card ${cls}">
+    <div class="match-head">
+      <div class="mh-name">${esc(row[0]||'(ไม่มีชื่อ)')} <span style="color:var(--purple-mid);font-weight:500;font-size:.85em">${esc(row[1]||'')}</span></div>
+      ${chip}
+      <button type="button" class="match-btn" onclick="toggleMatchCard(${i})">${open?'▲ ปิด':(st.type==='manual'?'✏️ แก้':'🔗 จับคู่')}</button>
+      ${st.type==='manual'?`<button type="button" class="match-btn danger" onclick="clearMatch(${i})">ล้าง</button>`:''}
+    </div>
+    <div class="match-paired">${paired}</div>
+    ${expand}
+  </div>`;
+}
+
+function toggleMatchCard(i){ _matchOpenIdx = (_matchOpenIdx===i?-1:i); renderMatchList(); }
+
+function renderMatchResults(){
+  const host=document.getElementById('match-results'); if(!host) return;
+  const q=(document.getElementById('match-pick-input')?.value||'').trim().toLowerCase();
+  let list=p365Cache.list;
+  if(q){
+    list=list.filter(p=>(p.name||'').toLowerCase().includes(q));
+    if(!list.length){
+      const tokens=q.split(/[\s\-_\.\(\)]+/).filter(t=>t.length>=2);
+      for(const t of tokens){ const f=p365Cache.list.filter(p=>(p.name||'').toLowerCase().includes(t)); if(f.length){list=f;break;} }
+    }
+  }
+  if(!list.length){ host.innerHTML='<div style="padding:10px;color:var(--purple-mid);font-size:.82em">ไม่พบ — ลองพิมพ์โค้ดรุ่น เช่น B08</div>'; return; }
+  host.innerHTML=list.slice(0,40).map(p=>{
+    const thumb=p.photo?.small||p.photo?.normal||'';
+    return `<div class="match-result" onclick="pickMatch(${_matchOpenIdx}, ${p.id})">
+      ${thumb?`<img src="${esc(thumb)}" onerror="this.style.display='none'">`:'<div style="width:38px;height:38px;background:#f0eef8;border-radius:6px;flex-shrink:0"></div>'}
+      <div class="mr-info"><b>${esc(p.name)}</b><span>ID ${p.id} • ฿${p.price||'-'}</span></div>
+    </div>`;
+  }).join('');
+}
+
+async function pickMatch(i, p365Id){
+  const entry=_matchEntries[i]; if(!entry) return;
+  const key=entry[0];
+  const p=p365Cache.list.find(x=>x.id===p365Id); if(!p) return;
+  _p365Map[key]={ id:p365Id, name:p.name, ts:Date.now(), variants:(_p365Map[key]?.variants)||{} };
+  await persistMatch(key);
+  toast('จับคู่กับ '+p.name+' ✓','success');
+  renderMatchList();
+}
+async function clearMatch(i){
+  const entry=_matchEntries[i]; if(!entry) return;
+  const key=entry[0];
+  delete _p365Map[key];
+  try{ await db.ref('_adminSettings/p365Map/'+key).remove(); }catch(e){ toast('ล้างไม่สำเร็จ: '+e.message,'error'); return; }
+  toast('ล้างการจับคู่แล้ว','success');
+  renderMatchList();
+}
+async function persistMatch(key){
+  try{ await db.ref('_adminSettings/p365Map/'+key).set(_p365Map[key]); }
+  catch(e){ toast('บันทึกไม่สำเร็จ: '+e.message,'error'); }
+}
+
+async function renderVariantBlock(){
+  const host=document.getElementById('match-vtable-host'); if(!host) return;
+  const entry=_matchEntries[_matchOpenIdx]; if(!entry){ host.innerHTML=''; return; }
+  const [key,row]=entry;
+  const m=_p365Map[key];
+  if(!m||!m.id){ host.innerHTML='<div style="font-size:.8em;color:var(--purple-mid);margin-top:8px">↑ เลือกรุ่นใน Page365 ด้านบนก่อน แล้ว variant จะจับคู่ให้อัตโนมัติ</div>'; return; }
+  host.innerHTML='<div style="font-size:.8em;color:var(--purple-mid);margin-top:8px">⏳ โหลด variants จาก Page365...</div>';
+  let detail=p365Cache.detail[m.id];
+  try{
+    if(!detail){ detail=await p365Fetch(`https://${p365Cache.shop}.page365.net/products/${m.id}.json`); p365Cache.detail[m.id]=detail; }
+  }catch(e){ host.innerHTML='<div style="color:var(--red);font-size:.8em">โหลด variants ไม่ได้: '+e.message+'</div>'; return; }
+  const ourVars=_mvVars(row);
+  const p365Vs=detail.variants||[];
+  if(!ourVars.length){ host.innerHTML='<div style="font-size:.8em;color:var(--purple-mid);margin-top:8px">รุ่นนี้ยังไม่มี variant ในระบบ — ตอน Sync จะดึงสีจาก Page365 มาให้</div>'; return; }
+  host.innerHTML=`<div class="match-vtable">
+    <div style="font-size:.8em;font-weight:700;color:var(--text);margin-bottom:6px">🎨 จับคู่ variant (auto ตามชื่อ — เปลี่ยนได้)</div>
+    <div class="mv-head"><span>ของเรา</span><span></span><span>Page365 (stock)</span></div>
+    ${ourVars.map((v,vi)=>{
+      const override=m.variants?.[v.name];
+      const auto=p365Vs.find(pv=>normalizeVName(pv.name)===normalizeVName(v.name))?.name || '';
+      const cur = override!==undefined ? override : auto;
+      return `<div class="match-vrow">
+        <span class="mv-our" title="${esc(v.name||'')}">${esc(v.name||v.sku||'?')}</span>
+        <span class="mv-arrow">→</span>
+        <select class="${cur?'':'unset'}" onchange="onVariantSelect(${vi}, this.value)">${
+          ['<option value="">— ข้าม —</option>'].concat(p365Vs.map(pv=>`<option value="${esc(pv.name)}" ${pv.name===cur?'selected':''}>${esc(pv.name)} • ${pv.in_stock?'เหลือ '+pv.available:'หมด'}</option>`)).join('')
+        }</select>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+function onVariantSelect(vi, p365VarName){
+  const entry=_matchEntries[_matchOpenIdx]; if(!entry) return;
+  const [key,row]=entry;
+  const ourVar=_mvVars(row)[vi]; if(!ourVar) return;
+  if(!_p365Map[key]) return;
+  if(!_p365Map[key].variants) _p365Map[key].variants={};
+  _p365Map[key].variants[ourVar.name]=p365VarName;   // '' = ข้าม
+  persistMatch(key);
 }
 
 async function syncStockFromPage365() {

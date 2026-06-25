@@ -644,6 +644,19 @@
       background:var(--surface);outline:none;white-space:pre-wrap}
     .ci-sale-copy{width:100%;margin-top:8px;min-height:42px}
     body.dark .ci-sale-text{background:#13121f;border-color:#2a2640;color:#e4dfff}
+    /* unmatched (sync ไม่ได้) report */
+    .um-list{max-height:58vh;overflow-y:auto;margin:6px 0 2px;display:flex;flex-direction:column;gap:6px}
+    .um-row{display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--border);
+      border-radius:10px;cursor:pointer;transition:all .12s;background:var(--surface)}
+    .um-row:hover{border-color:var(--pink);background:rgba(255,59,107,.05)}
+    .um-num{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:rgba(217,38,38,.1);
+      color:#d92626;font-weight:800;font-size:.78em;display:flex;align-items:center;justify-content:center}
+    .um-main{min-width:0;flex:1}
+    .um-name{font-weight:700;font-size:.9em;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .um-meta{font-size:.74em;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .um-sold{background:rgba(217,38,38,.12);color:#d92626;font-size:.78em;padding:1px 6px;border-radius:6px;margin-left:4px}
+    body.dark .um-row{background:#1e1c2e;border-color:#2a2640}
+    body.dark .um-name{color:#e4dfff}
     body.dark .ci-modal{background:#1a1a2e;color:#fff}
     body.dark .ci-tab{background:#262640;color:#fff;border-color:rgba(255,255,255,.1)}
     /* mini variant strip on product card */
@@ -707,6 +720,16 @@
     }
     .fav-btn:hover{background:rgba(255,59,107,.12);border-color:rgba(255,59,107,.3);transform:scale(1.1)}
     .fav-btn.faved{background:rgba(255,59,107,.15);border-color:rgba(255,59,107,.4)}
+    /* selected-color badge on card (when color filter is active) */
+    .pcard-color-badge{
+      position:absolute;top:7px;right:7px;z-index:5;
+      background:rgba(255,255,255,.92);backdrop-filter:blur(8px);
+      border:1px solid rgba(0,0,0,.08);border-radius:20px;
+      padding:3px 10px;font-size:.72em;font-weight:800;color:var(--pink);
+      box-shadow:0 2px 8px rgba(0,0,0,.12);max-width:72%;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+    body.dark .pcard-color-badge{background:rgba(30,28,46,.92);color:#ffb3c7;border-color:rgba(255,255,255,.12)}
 
     /* ── ปุ่มใต้ — ต่อเนื่องจาก overlay ── */
     .pcard-actions{
@@ -1781,6 +1804,7 @@
               <option value="price_desc">ราคา มาก→น้อย</option>
             </select>
             <button id="hideSoldBtn" class="hide-sold-btn" onclick="toggleHideSold(this)">🙈 ซ่อนของหมด</button>
+            <button class="hide-sold-btn" onclick="openUnmatchedReport()" title="เช็กรุ่นที่จับคู่ Page365 ไม่ได้ (สต๊อกไม่อัปเดต)">⚠️ เช็ก Sync</button>
           </div>
           <div id="color-chip-bar" class="color-chip-bar" style="display:none"></div>
         </div>
@@ -1902,6 +1926,27 @@ function productColorGroups(row){
   });
   return out;
 }
+// All distinct shades within a color group for a product (e.g. น้ำตาล →
+// [น้ำตาลเข้ม, น้ำตาลอ่อน]). Stock is summed across sizes of the same shade.
+function variantsForColor(row, colorLabel){
+  const g = COLOR_GROUPS.find(x => x.label === colorLabel);
+  if (!g) return [];
+  const byShade = new Map(); // exact color name -> {name, img, count}
+  for (const v of getVariants(row)){
+    const cname = parseVariant(v.name).color || '';
+    const c = cname.toLowerCase();
+    if (!c || !g.keys.some(k => c.includes(k.toLowerCase()))) continue;
+    const s = vStock(v);
+    let ex = byShade.get(cname);
+    if (!ex){ ex = { name: cname, img: '', count: 0 }; byShade.set(cname, ex); }
+    if (s > 0) ex.count += s;   // นับเฉพาะจำนวนบวก (ติดลบ/0 = หมด)
+    if (!ex.img && v.image) ex.img = v.image;
+  }
+  // stock = รวมจำนวนที่มีของ • avail = มีของ (count > 0)
+  return [...byShade.values()].map(o => ({
+    name: o.name, img: o.img, stock: o.count, avail: o.count > 0,
+  }));
+}
 function toggleHideSold(btn){
   hideSoldOut = !hideSoldOut;
   localStorage.setItem('hide_sold_v1', hideSoldOut ? '1' : '0');
@@ -2002,10 +2047,12 @@ function selectCatPill(cat, el) {
 
 // ── FIREBASE ────────────────────────────────────────────────
 let _customerDb = null;
+let _customerP365Map = {};   // manual Page365 product↔product mapping (set in admin)
 async function initFirebase(){
   firebase.initializeApp(window.FIREBASE_CONFIG);
   const db = firebase.database();
   _customerDb = db;
+  db.ref('_adminSettings/p365Map').on('value', s => { _customerP365Map = s.val() || {}; });
   // Sign in anonymously so writes pass security rules
   try {
     await firebase.auth().signInAnonymously();
@@ -2188,10 +2235,13 @@ async function customerSyncFromPage365(silent) {
       while (cursor < entries.length) {
         const i = cursor++;
         const [key, row] = entries[i];
-        // Match by SKU first (most reliable), fall back to name matching
+        // Manual mapping (จับคู่เองใน admin) wins, then SKU, then name
+        const manual = _customerP365Map[key];
         const sku = String(row[6] || '').trim();
         const norm = _custNormName(row[0]||'');
-        let p365 = sku ? bySku[sku] : null;
+        let p365 = null;
+        if (manual && manual.id) p365 = list.find(p => p.id === manual.id) || { id: manual.id, name: manual.name || ('#'+manual.id) };
+        if (!p365 && sku) p365 = bySku[sku];
         if (!p365 && norm) {
           p365 = byName[norm] || list.find(p => _custNormName(p.name).includes(norm) || norm.includes(_custNormName(p.name)));
         }
@@ -2206,7 +2256,14 @@ async function customerSyncFromPage365(silent) {
           let rowSU = 0, rowIU = 0;
           const _justWentOut = []; // variants that newly went to 0
           curVariants = curVariants.map(v => {
-            const pv = p365Vs.find(p => _custNormVName(p.name) === _custNormVName(v.name));
+            let pv;
+            const ov = manual?.variants?.[v.name];
+            if (ov !== undefined) {
+              if (ov === '') return v;   // ผู้ใช้เลือก "ข้าม" ใน admin
+              pv = p365Vs.find(p => p.name === ov) || p365Vs.find(p => _custNormVName(p.name) === _custNormVName(ov));
+            } else {
+              pv = p365Vs.find(p => _custNormVName(p.name) === _custNormVName(v.name));
+            }
             if (pv) {
               const newStock = pv.in_stock ? (Number(pv.available)||0) : 0;
               const oldStock = Number(v.stock)||0;
@@ -2295,6 +2352,80 @@ async function customerSyncFromPage365(silent) {
     btns.forEach(b => { b.classList.remove('syncing'); b.disabled = false; });
     updateSyncBtnLabel();
   }
+}
+
+// ── SYNC AUDIT: รุ่นที่จับคู่ Page365 ไม่ได้ (sync ไม่ได้) ──
+let _umResult = null;
+async function auditPage365Match() {
+  const shop = 'lamsangstores';
+  const seen = new Set(); const list = [];
+  for (let page=1; page<=20; page++) {
+    const d = await _customerFetch(`https://${shop}.page365.net/products.json?page=${page}`);
+    if (!d.items?.length) break;
+    let added = 0;
+    for (const it of d.items) if (!seen.has(it.id)) { seen.add(it.id); list.push(it); added++; }
+    if (added===0) break;
+    if (d.count && list.length>=d.count) break;
+  }
+  const byName = {}, bySku = {};
+  list.forEach(p => {
+    byName[_custNormName(p.name)] = p;
+    const sku = String(p.parent_sku || p.sku || p.merchant_sku || '').trim();
+    if (sku) bySku[sku] = p;
+  });
+  const unmatched = [];
+  productRows.forEach((row, idx) => {
+    const sku = String(row[6]||'').trim();
+    const norm = _custNormName(row[0]||'');
+    let p = sku ? bySku[sku] : null;
+    if (!p && norm) p = byName[norm] || list.find(x => _custNormName(x.name).includes(norm) || norm.includes(_custNormName(x.name)));
+    if (!p) unmatched.push({ idx, name: row[0]||'(ไม่มีชื่อ)', sku, type: row[1]||'', sold: isSoldOut(row), reason: sku ? 'SKU & ชื่อไม่ตรงกับ Page365' : 'ไม่มี SKU + ชื่อไม่ตรง' });
+  });
+  return { page365Count: list.length, appCount: productRows.length, matched: productRows.length - unmatched.length, unmatched };
+}
+
+function openUnmatchedReport() {
+  if (typeof closeCmdPalette === 'function') closeCmdPalette();
+  const ov = document.getElementById('um-modal-overlay');
+  if (!ov) return;
+  ov.classList.add('open');
+  document.getElementById('um-info').textContent = '⏳ กำลังตรวจรายการกับ Page365...';
+  document.getElementById('um-list').innerHTML = '';
+  auditPage365Match().then(res => {
+    _umResult = res;
+    document.getElementById('um-info').innerHTML =
+      `Page365 มี <strong>${res.page365Count}</strong> รุ่น • แอปมี <strong>${res.appCount}</strong> รุ่น • ` +
+      `จับคู่ได้ <strong style="color:#1a8f4f">${res.matched}</strong> • <strong style="color:#d92626">sync ไม่ได้ ${res.unmatched.length}</strong>`;
+    if (!res.unmatched.length) {
+      document.getElementById('um-list').innerHTML = '<div style="padding:30px;text-align:center;color:#1a8f4f;font-weight:700">🎉 ทุกรุ่นจับคู่ Page365 ได้หมดแล้ว</div>';
+      return;
+    }
+    document.getElementById('um-list').innerHTML = res.unmatched.map((u,i) => `
+      <div class="um-row" onclick="closeUnmatched();showProductDetail(${u.idx})">
+        <div class="um-num">${i+1}</div>
+        <div class="um-main">
+          <div class="um-name">${esc(u.name)} ${u.sold?'<span class="um-sold">หมด</span>':''}</div>
+          <div class="um-meta">${u.sku?`SKU: ${esc(u.sku)}`:'<span style="color:#d92626">ไม่มี SKU</span>'} • ${esc(u.type)}</div>
+        </div>
+      </div>`).join('');
+  }).catch(e => {
+    document.getElementById('um-info').textContent = '❌ ตรวจไม่สำเร็จ: ' + (e.message||'โหลด Page365 ไม่ได้');
+  });
+}
+function closeUnmatched(){ document.getElementById('um-modal-overlay')?.classList.remove('open'); }
+function copyUnmatchedList(){
+  if (!_umResult?.unmatched?.length) return;
+  const txt = `รุ่นที่ sync ไม่ได้ (${_umResult.unmatched.length} รุ่น) — เพิ่ม/แก้ชื่อหรือ SKU ใน Page365:\n` +
+    _umResult.unmatched.map((u,i) => `${i+1}. ${u.name}${u.sku?` [SKU: ${u.sku}]`:' [ไม่มี SKU]'}`).join('\n');
+  copyToClipboard(txt);
+  showSyncToast('📋 Copy รายชื่อแล้ว', 'success');
+}
+function copyUnmatchedSkus(){
+  if (!_umResult?.unmatched?.length) return;
+  const skus = _umResult.unmatched.map(u=>u.sku).filter(Boolean);
+  if (!skus.length) { showSyncToast('ไม่มี SKU ให้ก๊อป', 'error'); return; }
+  copyToClipboard(skus.join('\n'));
+  showSyncToast(`📋 Copy ${skus.length} SKU แล้ว`, 'success');
 }
 
 // ═══════════════════════════════════════════════
@@ -2623,8 +2754,8 @@ function openAddToCartPicker(idx) {
       </div>
       <div class="cpv-grid">
         ${g.items.map(v => {
-          const stock = Number(v.stock) || 0;
-          const out = stock <= 0;
+          const stock = vStock(v);
+          const out = !vAvail(v);
           const {size} = parseVariant(v.name);
           const label = size || v.name;
           return `<button class="cpv-btn" ${out?'disabled':''} onclick="cartAddVariant(${idx}, ${v._vi})">
@@ -2708,7 +2839,7 @@ const COPY_TEMPLATES = [
 
 function fillTemplate(tplText, row) {
   const variants = getVariants(row);
-  const inStock = variants.filter(v => (Number(v.stock)||0) > 0);
+  const inStock = variants.filter(v => vAvail(v));
   const sizes = [...new Set(variants.map(v => parseVariant(v.name).size).filter(Boolean))];
   const sizeOrder = ['XS','S','M','L','XL','XXL','XXXL','3XL','4XL','5XL','FREE'];
   sizes.sort((a,b) => {
@@ -2721,7 +2852,7 @@ function fillTemplate(tplText, row) {
   });
   const colors = [...new Set(variants.map(v => parseVariant(v.name).color).filter(Boolean))];
   const availLines = inStock.length
-    ? inStock.map(v => `${v.name}: ${v.stock}`).join(', ')
+    ? inStock.map(v => `${v.name}: ${vStock(v)}`).join(', ')
     : '(ไม่มีเหลือ)';
   // Color image map (first variant image per color)
   const colorImgs = {};
@@ -2810,6 +2941,7 @@ let _cmdItems = [];
 
 const CMD_ACTIONS = [
   { keys: ['/sync','sync','/365'], label: '🔄 Sync stock จาก Page365', run: () => customerSyncFromPage365(false) },
+  { keys: ['/check','sync ไม่ได้','unmatched','ตรวจ stock','รุ่นที่ sync ไม่ได้'], label: '⚠️ ตรวจรุ่นที่ Sync ไม่ได้', run: () => openUnmatchedReport() },
   { keys: ['/cart','cart','ตะกร้า','/ตะกร้า'], label: '🛒 เปิดตะกร้า', run: openCartDrawer },
   { keys: ['/dark','dark','/มืด'], label: '🌙 สลับ Dark mode', run: () => typeof toggleDark === 'function' && toggleDark() },
   { keys: ['/back','back','/กลับ'], label: '‹ กลับ', run: () => typeof handleBack === 'function' && handleBack() },
@@ -3215,18 +3347,21 @@ function getVariants(row){
   }
   return [];
 }
+// ── STOCK SEMANTICS ──
+// stock > 0 = จำนวนคงเหลือ • stock <= 0 (รวมค่าติดลบ เช่น -1) = หมด
+function vStock(v){ const s = Number(v?.stock); return Number.isFinite(s) ? s : 0; }
+function vAvail(v){ return vStock(v) > 0; }            // มีของเฉพาะจำนวนเป็นบวก
+function stockText(v){ const s = vStock(v); return s > 0 ? 'เหลือ ' + s : 'หมด'; }
 function isSoldOut(row){
   const vs = getVariants(row);
   if (!vs.length) return false;
-  return vs.every(v => (Number(v?.stock)||0) <= 0);
+  return vs.every(v => !vAvail(v));
 }
 function soldStampHTML(){ return '<div class="sold-stamp">SOLD OUT</div>'; }
 function hasLowStock(row){
   const vs = getVariants(row);
-  if (!vs.length) return false;
-  // any variant with 0 < stock <= 3 AND not all sold out
-  if (isSoldOut(row)) return false;
-  return vs.some(v => { const s = Number(v?.stock)||0; return s > 0 && s <= 3; });
+  if (!vs.length || isSoldOut(row)) return false;
+  return vs.some(v => { const s = vStock(v); return s > 0 && s <= 3; });
 }
 function lowStockBadgeHTML(){ return '<div class="low-stock-badge">⚠️ เหลือน้อย</div>'; }
 
@@ -3271,9 +3406,9 @@ function variantStripHTML(row, max=6){
   const rest = vs.length - show.length;
   return `<div class="pcard-variants" onclick="event.stopPropagation()">${
     show.map(v => {
-      const sold = (Number(v.stock)||0) <= 0;
+      const sold = !vAvail(v);
       const label = esc(v.name || v.sku || '');
-      const tip = sold ? `${label} • หมด` : `${label} • เหลือ ${Number(v.stock)||0}`;
+      const tip = `${label} • ${stockText(v)}`;
       return `<div class="pcard-var${sold?' sold':''}">${
         v.image ? `<img src="${esc(v.image)}" loading="lazy" onerror="this.style.display='none'">` : `<div class="v-fallback">${label.slice(0,2)||'?'}</div>`
       }<div class="pcard-var-tip">${tip}</div></div>`;
@@ -3311,7 +3446,17 @@ function renderProductGrid(rows){
     const i = productRows.indexOf(r);
     const t = r[1]||'ไม่ระบุ';
     if (!map[t]) map[t]=[];
-    map[t].push({i, name:r[0], type:r[1], price:r[2], priceNum:parsePrice(r[2]), img:r[4], sku:r[6], sold:isSoldOut(r)});
+    const base = {i, name:r[0], type:r[1], price:r[2], priceNum:parsePrice(r[2]), sku:r[6]};
+    // color filter active → one card per matching shade (with that shade's image)
+    const shades = selectedColor ? variantsForColor(r, selectedColor) : [];
+    if (selectedColor && shades.length) {
+      shades.forEach(vc => {
+        if (hideSoldOut && !vc.avail) return;
+        map[t].push({...base, img: vc.img||r[4], colorName: vc.name, colorStock: vc.stock, sold: !vc.avail});
+      });
+    } else {
+      map[t].push({...base, img:r[4], colorName:'', sold:isSoldOut(r)});
+    }
   });
   // in-stock first, then the chosen sort → sold-out items sink to the bottom
   Object.values(map).forEach(arr=>arr.sort((a,b)=>{
@@ -3334,14 +3479,18 @@ function renderProductGrid(rows){
       const hasPikad=!!productRows[item.i]?.[9];
       const faved=isFav(item.i);
       const _r = productRows[item.i];
-      const sold=isSoldOut(_r);
-      const low=hasLowStock(_r);
+      const sold=item.sold;
+      const low=item.colorName ? (!sold && item.colorStock>0 && item.colorStock<=3) : hasLowStock(_r);
+      const copyBtn = item.img
+        ? `<button class="btn btn-info" onclick="event.stopPropagation();copyImageFromUrl('${item.img.replace(/'/g,"\\'")}',this)">🖼️ Copy รูป</button>`
+        : `<button class="btn btn-info" onclick="event.stopPropagation();copyProductInfo(${item.i},this)">📋 Copy</button>`;
       html+=`<div class="pcard${sold?' sold-out':''}" style="animation-delay:${d}ms" onclick="showProductDetail(${item.i})">
         <div class="pcard-img-wrap">
           <div class="pcard-img">
             ${img?`<img src="${img}" loading="lazy" onload="onImgLoad(this)">`:'<div class="no-img">📦</div>'}
           </div>
           ${sold?soldStampHTML():low?lowStockBadgeHTML():''}
+          ${item.colorName?`<div class="pcard-color-badge">🎨 ${esc(item.colorName)}</div>`:''}
           <button class="fav-btn ${faved?'faved':''}" onclick="event.stopPropagation();toggleFav(${item.i},this)">${faved?'⭐':'☆'}</button>
           <div class="pcard-overlay">
             <span class="pcard-type">${esc(item.type||'')}</span>
@@ -3350,7 +3499,7 @@ function renderProductGrid(rows){
           </div>
         </div>
         <div class="pcard-actions">
-          <button class="btn btn-info" onclick="event.stopPropagation();copyProductInfo(${item.i},this)">📋 Copy</button>
+          ${copyBtn}
           <button class="btn btn-cart" onclick="event.stopPropagation();openAddToCartPicker(${item.i})" title="เพิ่มลงตะกร้า">🛒</button>
           ${hasPikad?`<button class="btn btn-loc" onclick="event.stopPropagation();copyText(productRows[${item.i}][9],this)">📍 พิกัด</button>`:''}
         </div>
@@ -3439,8 +3588,8 @@ function showProductDetail(idx,push=true){
           ${sizes.map(size => {
             const items = colors.map(color => ({color, v: grid[color]?.[size]})).filter(x => x.v);
             if (!items.length) return '';
-            const totalStock = items.reduce((s,x) => s + (Math.max(0, Number(x.v.stock)||0)), 0);
-            const availCount = items.filter(x => (Number(x.v.stock)||0) > 0).length;
+            const totalStock = items.reduce((s,x) => s + Math.max(0, vStock(x.v)), 0);
+            const availCount = items.filter(x => vAvail(x.v)).length;
             const allSold = availCount === 0;
             return `
               <div class="size-group">
@@ -3453,8 +3602,8 @@ function showProductDetail(idx,push=true){
                 </div>
                 <div class="size-group-chips">
                   ${items.map(({color, v}) => {
-                    const stock = Number(v.stock)||0;
-                    const sold = stock <= 0;
+                    const stock = vStock(v);
+                    const sold = !vAvail(v);
                     const img = v.image || colorImg[color] || '';
                     return `<div class="sg-chip${sold?' sold':''}" title="${esc(v.sku||'')}">
                       <div class="img-wrap">
@@ -3474,14 +3623,15 @@ function showProductDetail(idx,push=true){
       variantsHtml = `
         <div class="variant-chips">
           ${variants.map(v => {
-            const vSold = (Number(v.stock)||0) <= 0;
+            const vSold = !vAvail(v);
+            const s = vStock(v);
             return `<div class="variant-chip${vSold?' sold':''}" title="${esc(v.sku||'')}">
               <div style="position:relative">
                 ${v.image?`<img class="variant-chip-img" src="${esc(v.image)}" onerror="this.style.display='none'">`:'<div class="variant-chip-img" style="display:flex;align-items:center;justify-content:center">🎨</div>'}
                 ${vSold?soldStampHTML():''}
               </div>
               <div class="variant-chip-name">${esc(v.name||v.sku||'—')}</div>
-              <div class="variant-chip-stock">${vSold?'หมด':'เหลือ '+(Number(v.stock)||0)}</div>
+              <div class="variant-chip-stock">${vSold?'หมด':'เหลือ '+s}</div>
             </div>`;
           }).join('')}
         </div>`;
@@ -3564,10 +3714,10 @@ function renderDetailColorChips(variants, selectedSize) {
   filtered.forEach(v => {
     const {color} = parseVariant(v.name);
     const c = color || '—';
-    if (!byColor[c]) byColor[c] = { total: 0, items: 0, sold: 0, img: '' };
-    byColor[c].total += Number(v.stock) || 0;
+    if (!byColor[c]) byColor[c] = { total: 0, items: 0, img: '' };
+    const s = vStock(v);
     byColor[c].items++;
-    if ((Number(v.stock)||0) <= 0) byColor[c].sold++;
+    if (s > 0) byColor[c].total += s;   // นับเฉพาะจำนวนบวก
     if (!byColor[c].img && v.image) byColor[c].img = v.image;
   });
   const colors = Object.keys(byColor);
@@ -3579,7 +3729,7 @@ function renderDetailColorChips(variants, selectedSize) {
   area.innerHTML = subline + `<div class="detail-color-stock">
     ${colors.map(c => {
       const g = byColor[c];
-      const allOut = g.sold === g.items;
+      const allOut = g.total === 0;   // ไม่มีจำนวนบวก = หมด
       const note = selectedSize ? '' : `<span class="dcs-sizes">• ${g.items} ไซส์</span>`;
       return `<div class="dcs-chip${allOut?' out':''}">
         ${g.img ? `<img src="${esc(g.img)}" onerror="this.style.display='none'">` : `<div class="dcs-fallback">${esc(c).slice(0,1)}</div>`}
@@ -3941,21 +4091,36 @@ window.renderProductGrid = function(rows){
     // apply color + hide-sold filters, sink sold-out to bottom
     if(selectedColor) favIdxs = favIdxs.filter(i=>productColorGroups(productRows[i]).has(selectedColor));
     if(hideSoldOut) favIdxs = favIdxs.filter(i=>!isSoldOut(productRows[i]));
-    favIdxs.sort((a,b)=>{ const sa=isSoldOut(productRows[a]), sb=isSoldOut(productRows[b]); return sa===sb?0:(sa?1:-1); });
-    if(!favIdxs.length){
+    // expand to one card per matching shade when a color filter is active
+    const favCards=[];
+    favIdxs.forEach(i=>{
+      const row=productRows[i];
+      const shades = selectedColor ? variantsForColor(row, selectedColor) : [];
+      if(selectedColor && shades.length){
+        shades.forEach(vc=>{ if(hideSoldOut&&!vc.avail)return; favCards.push({i, img:vc.img||row[4]||'', colorName:vc.name, colorStock:vc.stock, sold:!vc.avail}); });
+      } else {
+        favCards.push({i, img:row[4]||'', colorName:'', sold:isSoldOut(row)});
+      }
+    });
+    favCards.sort((a,b)=> a.sold===b.sold?0:(a.sold?1:-1));
+    if(!favCards.length){
       el.innerHTML='<div class="loading-state" style="padding:60px 20px">⭐ ยังไม่มีรายการโปรด<br><small style="opacity:.5;font-size:.8em">กดดาว ☆ บนการ์ดเพื่อบันทึก</small></div>';
       return;
     }
     let html='<div class="product-grid">';
     let delay=0;
-    favIdxs.forEach(i=>{
-      const row=productRows[i], img=row[4]||'', d=(delay%8)*60, hasPikad=!!row[9];
-      const sold=isSoldOut(row);
-      const low=hasLowStock(row);
+    favCards.forEach(item=>{
+      const i=item.i, row=productRows[i], d=(delay%8)*60, hasPikad=!!row[9];
+      const img=item.img, colorName=item.colorName, sold=item.sold;
+      const low=colorName ? (!sold && item.colorStock>0 && item.colorStock<=3) : hasLowStock(row);
+      const copyBtn = img
+        ? `<button class="btn btn-info" onclick="event.stopPropagation();copyImageFromUrl('${img.replace(/'/g,"\\'")}',this)">🖼️ Copy รูป</button>`
+        : `<button class="btn btn-info" onclick="event.stopPropagation();copyProductInfo(${i},this)">📋 Copy</button>`;
       html+=`<div class="pcard${sold?' sold-out':''}" style="animation-delay:${d}ms" onclick="showProductDetail(${i})">
         <div class="pcard-img-wrap">
           <div class="pcard-img">${img?`<img src="${img}" loading="lazy" onload="onImgLoad(this)">`:'<div class="no-img">📦</div>'}</div>
           ${sold?soldStampHTML():low?lowStockBadgeHTML():''}
+          ${colorName?`<div class="pcard-color-badge">🎨 ${esc(colorName)}</div>`:''}
           <button class="fav-btn faved" onclick="event.stopPropagation();toggleFav(${i},this)">⭐</button>
           <div class="pcard-overlay">
             <span class="pcard-type">${esc(row[1]||'')}</span>
@@ -3964,7 +4129,7 @@ window.renderProductGrid = function(rows){
           </div>
         </div>
         <div class="pcard-actions">
-          <button class="btn btn-info" onclick="event.stopPropagation();copyProductInfo(${i},this)">📋 Copy</button>
+          ${copyBtn}
           <button class="btn btn-cart" onclick="event.stopPropagation();openAddToCartPicker(${i})" title="เพิ่มลงตะกร้า">🛒</button>
           ${hasPikad?`<button class="btn btn-loc" onclick="event.stopPropagation();copyText(productRows[${i}][9],this)">📍 พิกัด</button>`:''}
         </div>
@@ -4385,7 +4550,7 @@ async function _ciDrawToCanvas(canvas, g, r) {
     const cardX = rowStartX + col*(cellW + gap);
     const cardY = gridTop + rowIdx*(cellH + gap);
     const cxC = cardX + cellW/2;
-    const sold = (Number(v.stock)||0) <= 0;
+    const sold = !vAvail(v);
 
     // card background + soft shadow
     ctx.save();
@@ -4430,8 +4595,8 @@ async function _ciDrawToCanvas(canvas, g, r) {
     }
 
     // stock status
-    const stockN = Number(v.stock)||0;
-    const isLow = !sold && stockN <= 3;
+    const stockN = vStock(v);
+    const isLow = !sold && stockN > 0 && stockN <= 3;
     ctx.font = `700 ${statusFont}px 'Prompt', Arial, sans-serif`;
     const statusY = nameY + nameFont + 6;
     if (sold) { ctx.fillStyle = '#d92626'; ctx.fillText('● หมด', cxC, statusY); }
@@ -4769,6 +4934,19 @@ async function downloadAllCi() {
       <div class="ci-sale-head">📝 ข้อความปิดการขาย — ก๊อปแปะส่งต่อได้เลย</div>
       <textarea id="ci-sale-text" class="ci-sale-text" readonly></textarea>
       <button class="ci-btn-copy ci-sale-copy" onclick="copyCloseSaleText(this)">📋 Copy ข้อความ</button>
+    </div>
+  </div>
+</div>
+
+<div class="ci-modal-overlay" id="um-modal-overlay" onclick="if(event.target===this)closeUnmatched()">
+  <div class="ci-modal" style="max-width:600px">
+    <div class="ci-modal-title">⚠️ รุ่นที่ Sync ไม่ได้ (ไม่เจอใน Page365)</div>
+    <div class="ci-info" id="um-info">กำลังตรวจ...</div>
+    <div id="um-list" class="um-list"></div>
+    <div class="ci-actions">
+      <button class="ci-btn-close" onclick="closeUnmatched()">ปิด</button>
+      <button class="ci-btn-dl" onclick="copyUnmatchedSkus()">📋 Copy SKU</button>
+      <button class="ci-btn-copy" onclick="copyUnmatchedList()">📋 Copy รายชื่อ</button>
     </div>
   </div>
 </div>
