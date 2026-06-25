@@ -4548,23 +4548,23 @@ async function _ciDrawToCanvas(canvas, g, r) {
   ctx.fillText(String(g.title).slice(0, 40), W/2, 38);
 
   // Size badge (or "ทุกสี" label) — compact
-  let headerBottom = 95;
+  let headerBottom = 86;
   if (g.sizeLabel) {
     const txt = `ไซส์ ${g.sizeLabel}`;
     ctx.font = "700 24px 'Prompt', Arial, sans-serif";
     const bw = ctx.measureText(txt).width + 36;
-    const by = 90;
+    const by = 84;
     const bx = (W - bw) / 2;
     ctx.fillStyle = '#E87A90';
     ctx.beginPath();
-    if (ctx.roundRect) ctx.roundRect(bx, by, bw, 36, 18); else ctx.rect(bx, by, bw, 36);
+    if (ctx.roundRect) ctx.roundRect(bx, by, bw, 34, 17); else ctx.rect(bx, by, bw, 34);
     ctx.fill();
     ctx.fillStyle = '#fff';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(txt, W/2, by + 18);
-    headerBottom = by + 36 + 14;
+    ctx.fillText(txt, W/2, by + 17);
+    headerBottom = by + 34 + 10;
   } else {
-    headerBottom = 100;
+    headerBottom = 86;
   }
 
   // rounded-rect path helper
@@ -4575,24 +4575,29 @@ async function _ciDrawToCanvas(canvas, g, r) {
   const count = variants.length;
   const cols = count <= 2 ? 2 : count <= 4 ? 2 : 3;
   const rows = Math.ceil(count / cols);
-  const gap = 18;
-  const sideMargin = 30;
+  const gap = 14;
+  const sideMargin = 26;
   const usableW = W - sideMargin*2;
   const cellW = (usableW - gap*(cols-1)) / cols;
   // Promo band at the bottom shows per-quantity pricing baked into the image
   const ciTiers = buildTierPricing(r[2]);
   const ciUnit = counterWord(r);
   const ciUnitPrice = parseInt(String(r[2]||'').replace(/[^0-9]/g,'')) || 0;  // ราคาปกติ
-  const footerHeight = ciTiers.length ? 96 + ciTiers.length * 44 + 36 : 44;
+  const footerHeight = ciTiers.length ? 84 + ciTiers.length * 40 + 32 : 44;
   const gridTop = headerBottom;
-  const gridBottom = H - footerHeight - 8;
+  const gridBottom = H - footerHeight - 4;
   const cellH = (gridBottom - gridTop - gap*(rows-1)) / rows;
-  // card internal metrics
-  const pad = Math.max(10, Math.round(cellW * 0.06));
-  const nameFont = Math.max(16, Math.min(34, Math.round(cellW * 0.10)));
-  const statusFont = Math.max(12, Math.min(22, Math.round(cellW * 0.062)));
-  const labelArea = nameFont + statusFont + 20;
-  const imgSize = Math.max(80, Math.min(cellW - pad*2, cellH - pad*2 - labelArea));
+  // card internal metrics — keep overhead minimal so the product image is as large as possible
+  const pad = Math.max(8, Math.round(cellW * 0.035));
+  const nameFont = Math.max(15, Math.min(30, Math.round(cellW * 0.092)));
+  const statusFont = Math.max(12, Math.min(19, Math.round(cellW * 0.052)));
+  const labelArea = nameFont + statusFont + 12;
+  // เข็มขัด/สายคาด (นับเป็น "เส้น") → กรอบแนวนอนเต็มกว้าง + crop ขอบขาวบน-ล่าง ให้สินค้าเต็มกรอบ
+  const fillCrop = counterWord(r) === 'เส้น';
+  const availW = cellW - pad*2;
+  const availH = cellH - pad*2 - labelArea;
+  const wellH = Math.max(60, availH);
+  const wellW = fillCrop ? availW : Math.min(availW, availH);
 
   const vImgs = await Promise.all(variants.map(v => ciLoadImage(v.image || r[4])));
 
@@ -4619,27 +4624,28 @@ async function _ciDrawToCanvas(canvas, g, r) {
     rr(cardX, cardY, cellW, cellH, 22); ctx.stroke();
 
     // image well
-    const ix = cardX + (cellW - imgSize)/2;
+    const ix = cardX + (cellW - wellW)/2;
     const iy = cardY + pad;
     ctx.fillStyle = '#f3eef8';
-    rr(ix, iy, imgSize, imgSize, 16); ctx.fill();
+    rr(ix, iy, wellW, wellH, 16); ctx.fill();
     const vi = vImgs[i];
     if (vi) {
       ctx.save();
-      rr(ix, iy, imgSize, imgSize, 16); ctx.clip();
-      const ratio = Math.min(imgSize/vi.width, imgSize/vi.height);
+      rr(ix, iy, wellW, wellH, 16); ctx.clip();
+      // belts: cover (crop ขอบ) ให้เต็มกรอบ • อื่นๆ: contain (เห็นทั้งรูป)
+      const ratio = fillCrop ? Math.max(wellW/vi.width, wellH/vi.height) : Math.min(wellW/vi.width, wellH/vi.height);
       const dw = vi.width*ratio, dh = vi.height*ratio;
-      ctx.drawImage(vi, ix + (imgSize-dw)/2, iy + (imgSize-dh)/2, dw, dh);
+      ctx.drawImage(vi, ix + (wellW-dw)/2, iy + (wellH-dh)/2, dw, dh);
       ctx.restore();
     }
-    if (sold) ciDrawSoldStamp(ctx, ix + imgSize/2, iy + imgSize/2, imgSize*0.86);
+    if (sold) ciDrawSoldStamp(ctx, ix + wellW/2, iy + wellH/2, Math.min(wellW,wellH)*0.86);
 
     // color name
     const colorName = v._color || v.name || '';
     ctx.fillStyle = sold ? '#aaa' : '#352F44';
     ctx.font = `800 ${nameFont}px 'Prompt', Arial, sans-serif`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-    const nameY = iy + imgSize + 10;
+    const nameY = iy + wellH + 8;
     ctx.fillText(colorName, cxC, nameY);
     if (sold) {
       const tw = ctx.measureText(colorName).width;
@@ -4654,7 +4660,7 @@ async function _ciDrawToCanvas(canvas, g, r) {
     const stockN = vStock(v);
     const isLow = !sold && stockN > 0 && stockN <= 3;
     ctx.font = `700 ${statusFont}px 'Prompt', Arial, sans-serif`;
-    const statusY = nameY + nameFont + 6;
+    const statusY = nameY + nameFont + 4;
     if (sold) { ctx.fillStyle = '#d92626'; ctx.fillText('● หมด', cxC, statusY); }
     else if (isLow) { ctx.fillStyle = '#d68910'; ctx.fillText('⚠ เหลือน้อย', cxC, statusY); }
     else { ctx.fillStyle = '#1a6e3f'; ctx.fillText('● พร้อมส่ง', cxC, statusY); }
@@ -4679,7 +4685,7 @@ async function _ciDrawToCanvas(canvas, g, r) {
     ctx.fillStyle = '#C63D60';
     ctx.font = "800 27px 'Prompt', Arial, sans-serif";
     ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    ctx.fillText('★ ดีลพิเศษเฉพาะในแชท · ยิ่งซื้อยิ่งคุ้ม', innerX, bandTop + 36);
+    ctx.fillText('★ ดีลพิเศษเฉพาะในแชท · ยิ่งซื้อยิ่งคุ้ม', innerX, bandTop + 30);
 
     // Tier rows — aligned columns: [qty pill] [price] ............ [discount]
     const pillW = 104, pillH = 36;
@@ -4687,7 +4693,7 @@ async function _ciDrawToCanvas(canvas, g, r) {
     const priceX = pillX + pillW + 22;
     const badgeRight = W - padX - 28;
     ciTiers.forEach((t, i) => {
-      const ly = bandTop + 86 + i*44;
+      const ly = bandTop + 72 + i*40;
       // qty pill
       ctx.fillStyle = '#E87A90';
       rr(pillX, ly - pillH/2, pillW, pillH, pillH/2); ctx.fill();
@@ -4740,7 +4746,7 @@ async function _ciDrawToCanvas(canvas, g, r) {
       }
     });
     // ── ส่งฟรี + เก็บปลายทาง ──
-    const codY = bandTop + 86 + ciTiers.length * 44 + 2;
+    const codY = bandTop + 72 + ciTiers.length * 40 + 6;
     ctx.fillStyle = '#7a5c68';
     ctx.font = "700 22px 'Prompt', Arial, sans-serif";
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
