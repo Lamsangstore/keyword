@@ -2140,6 +2140,8 @@ let customerLastSyncAt = 0;
 let customerSyncing = false;
 
 async function _customerFetch(url) {
+  // bust upstream cache for Page365 so CORS proxies don't serve stale stock
+  if (/page365\.net/i.test(url)) url += (url.includes('?') ? '&' : '?') + '_cb=' + Date.now();
   let lastErr;
   for (const proxy of CUSTOMER_P365_PROXIES) {
     try {
@@ -3217,29 +3219,6 @@ function getProductNote(idx) {
 }
 
 // ═══════════════════════════════════════════════
-//  AI SUGGEST REPLY — heuristic keyword matching
-// ═══════════════════════════════════════════════
-const REPLY_HEURISTICS = [
-  { keywords: ['หมด','sold','out','ไม่มี','ของหมด'], template: 'out' },
-  { keywords: ['ราคาเท่าไหร่','เท่าไหร่','price','ราคา','กี่บาท'], template: 'price' },
-  { keywords: ['ไซส์','size','ใหญ่','เล็ก','พอดี','xs','s,','m,','l,','xl','xxl'], template: 'sizes' },
-  { keywords: ['สี','color','สีอะไร','มีสี'], template: 'colors' },
-  { keywords: ['ส่งฟรี','พร้อมส่ง','ของ','available','มีของไหม'], template: 'ready' },
-  { keywords: ['รูป','photo','image','ดูรูป','ส่งรูป'], template: 'allcolors' },
-];
-
-function suggestTemplate(customerMessage) {
-  const msg = String(customerMessage||'').toLowerCase();
-  if (!msg.trim()) return null;
-  let best = null, bestScore = 0;
-  REPLY_HEURISTICS.forEach(h => {
-    const hits = h.keywords.filter(k => msg.includes(k.toLowerCase())).length;
-    if (hits > bestScore) { bestScore = hits; best = h; }
-  });
-  return best?.template || 'info';
-}
-
-// ═══════════════════════════════════════════════
 //  KEYBOARD SHORTCUTS
 // ═══════════════════════════════════════════════
 document.addEventListener('keydown', e => {
@@ -3360,7 +3339,6 @@ function getVariants(row){
 // stock > 0 = จำนวนคงเหลือ • stock <= 0 (รวมค่าติดลบ เช่น -1) = หมด
 function vStock(v){ const s = Number(v?.stock); return Number.isFinite(s) ? s : 0; }
 function vAvail(v){ return vStock(v) > 0; }            // มีของเฉพาะจำนวนเป็นบวก
-function stockText(v){ const s = vStock(v); return s > 0 ? 'เหลือ ' + s : 'หมด'; }
 function isSoldOut(row){
   const vs = getVariants(row);
   if (!vs.length) return false;
@@ -3408,23 +3386,6 @@ function hasSizeDimension(variants) {
   const sizes = new Set(parsed.map(p => p.size).filter(Boolean));
   return sizes.size >= 2;
 }
-function variantStripHTML(row, max=6){
-  const vs = getVariants(row);
-  if (!vs.length) return '';
-  const show = vs.slice(0, max);
-  const rest = vs.length - show.length;
-  return `<div class="pcard-variants" onclick="event.stopPropagation()">${
-    show.map(v => {
-      const sold = !vAvail(v);
-      const label = esc(v.name || v.sku || '');
-      const tip = `${label} • ${stockText(v)}`;
-      return `<div class="pcard-var${sold?' sold':''}">${
-        v.image ? `<img src="${esc(v.image)}" loading="lazy" onerror="this.style.display='none'">` : `<div class="v-fallback">${label.slice(0,2)||'?'}</div>`
-      }<div class="pcard-var-tip">${tip}</div></div>`;
-    }).join('')
-  }${rest>0?`<div class="pcard-var pcard-var-more">+${rest}</div>`:''}</div>`;
-}
-
 // ── PRODUCT GRID ────────────────────────────────────────────
 function renderProductGrid(rows){
   const el = document.getElementById('product-grid-view');

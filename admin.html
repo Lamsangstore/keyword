@@ -3627,70 +3627,6 @@ async function syncSheetToFirebase(collection = 'both') {
   }, 3000);
 }
 
-// ─── SYNC: Firebase → Sheet ──────────────────────
-async function syncFirebaseToSheet(collection = 'both') {
-  const s = getSettings();
-  if (!s.gasUrl) { toast('กรุณาตั้งค่า Apps Script URL ก่อน','warn'); return; }
-
-  const pCount = Object.keys(allProducts||{}).length;
-  const gCount = Object.keys(allGeneral||{}).length;
-  const typed = prompt(
-    `🚨 อันตราย — Firebase → Sheet\n\n` +
-    `จะ "เขียนทับ" Sheet ด้วยข้อมูลใน Firebase\n` +
-    `• ทุกอย่างที่อยู่ใน Sheet ตอนนี้แต่ไม่อยู่ใน Firebase จะ "หาย"\n` +
-    `• ถ้าเพิ่งแก้มือใน Sheet — จะถูกเขียนทับ\n\n` +
-    `Firebase ปัจจุบัน: ${pCount} สินค้า / ${gCount} คีย์ลัด\n\n` +
-    `💡 ถ้า Sheet เสีย กู้จาก Google Sheets → File → Version history\n` +
-    `ระบบจะ backup Firebase ก่อนเขียน\n\n` +
-    `พิมพ์คำว่า "REPLACE" เพื่อยืนยัน:`
-  );
-  if (typed !== 'REPLACE') { addLog('info', '⏪ ยกเลิก sync (ไม่ได้พิมพ์ REPLACE)'); return; }
-
-  try {
-    const bkId = await _preSyncBackup(`ก่อน sync Firebase→Sheet (${collection})`);
-    addLog('ok', `📸 Backup Firebase สำเร็จ: ${bkId}`);
-  } catch(e) {
-    addLog('warn', `⚠️ Backup ล้ม: ${e.message} (sync ต่อ)`);
-  }
-
-  addLog('info', `📤 กำลัง sync Firebase → Sheet (${collection})...`);
-
-  const syncTypes = collection === 'both' ? ['products','general'] : [collection];
-  for (const type of syncTypes) {
-    try {
-      const data   = type === 'products' ? allProducts : allGeneral;
-      const rows   = Object.values(data);
-      const action = type === 'products' ? 'updateProducts' : 'updateGeneral';
-      addLog('info', `⏳ กำลังเขียน ${rows.length} รายการ → Sheet (${type})...`);
-
-      // ส่ง POST (Apps Script รับได้ — CORS ไม่บล็อก POST ที่ไม่มี preflight)
-      const resp = await fetch(s.gasUrl, {
-        method: 'POST',
-        body: JSON.stringify({ action, rows }),
-      });
-      const result = await resp.json();
-      if (result.success) {
-        addLog('ok', `✅ Firebase → Sheet (${type}) สำเร็จ — ${rows.length} รายการ`);
-      } else {
-        addLog('err', `❌ error: ${result.error || 'unknown'}`);
-      }
-    } catch(e) {
-      // POST แบบ no-cors เป็น fallback (ส่งได้ แต่อ่าน response ไม่ได้)
-      try {
-        const data   = type === 'products' ? allProducts : allGeneral;
-        const rows   = Object.values(data);
-        const action = type === 'products' ? 'updateProducts' : 'updateGeneral';
-        await fetch(s.gasUrl, { method:'POST', mode:'no-cors', body: JSON.stringify({action, rows}) });
-        addLog('ok', `✅ Firebase → Sheet (${type}) ส่งแล้ว (no-cors mode)`);
-      } catch(e2) {
-        addLog('err', `❌ ${type}: ${e2.message}`);
-      }
-    }
-  }
-  document.getElementById('last-sync').textContent = new Date().toLocaleTimeString('th-TH');
-  toast('Firebase → Sheet เสร็จสิ้น ✓','success');
-}
-
 function syncAll() { syncSheetToFirebase('both'); }
 
 // ─── HELPERS ─────────────────────────────────────
@@ -3781,10 +3717,12 @@ let p365Cache = {shop:null, list:[], detail:{}};
 let p365CurrentProduct = null;
 
 async function p365Fetch(url) {
+  // bust upstream cache for Page365 so CORS proxies don't serve stale stock
+  if (/page365\.net/i.test(url)) url += (url.includes('?') ? '&' : '?') + '_cb=' + Date.now();
   let lastErr;
   for (const proxy of P365_CORS_PROXIES) {
     try {
-      const res = await fetch(proxy(url));
+      const res = await fetch(proxy(url), { cache: 'no-store' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return await res.json();
     } catch(e) { lastErr = e; }
