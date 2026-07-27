@@ -276,6 +276,26 @@
     .p365-assign-menu button:hover{background:var(--pink-pale);color:var(--pink);border-color:var(--pink)}
     .p365-assign-menu button.divider{border-top:1px dashed var(--purple-pale);margin-top:4px;padding-top:6px;font-weight:700;color:var(--pink)}
 
+    /* ── PAGE365 IMPORT NEW PRODUCT ── */
+    #p365-import-modal .modal{max-width:980px}
+    .p365i-item-badge{font-size:.68em;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap}
+    .p365i-item-badge.new{background:#d6f5e3;color:#1a6e3f}
+    .p365i-item-badge.have{background:#eee;color:#888}
+    .p365-search-item.have{opacity:.62}
+    .p365i-targets{display:flex;flex-wrap:wrap;gap:7px;background:var(--pink-pale);border-radius:10px;padding:10px;margin-bottom:10px;max-height:210px;overflow-y:auto}
+    .p365i-target{display:flex;align-items:center;gap:7px;padding:5px 9px 5px 5px;border:2px solid var(--purple-pale);border-radius:12px;background:#fff;cursor:pointer;font-size:.78em;font-weight:600;color:var(--text);transition:all .15s;position:relative}
+    .p365i-target:hover{border-color:var(--pink)}
+    .p365i-target.active{border-color:var(--pink);background:#fff6f8;box-shadow:0 0 0 3px rgba(232,122,144,.18)}
+    .p365i-target.filled{border-color:var(--green)}
+    .p365i-target.off{opacity:.45}
+    .p365i-target img,.p365i-target .ph{width:32px;height:32px;border-radius:7px;object-fit:cover;flex:none;background:#f0eef8;display:flex;align-items:center;justify-content:center;font-size:.95em}
+    .p365i-target .tlabel{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .p365i-target .tsub{font-size:.85em;font-weight:500;color:var(--purple-mid)}
+    .p365i-target .tclear{border:none;background:none;color:var(--red);cursor:pointer;font-size:.9em;padding:0 2px;line-height:1}
+    .p365i-target input[type=checkbox]{width:auto;margin:0;cursor:pointer}
+    .p365-photo.picked{border-color:var(--green)}
+    .p365i-hint{font-size:.76em;color:var(--purple-mid);margin-bottom:8px}
+
     /* ── PAGE365 PRODUCT MATCHING ── */
     #match-modal .modal{max-width:980px}
     .match-toolbar{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
@@ -614,6 +634,7 @@
 
           <div class="sync-bar">
             <button class="btn btn-pink" onclick="openProductModal()">+ เพิ่มสินค้า</button>
+            <button class="btn btn-green" onclick="openP365ImportModal()" title="ดึงสินค้าใหม่จาก Page365 เข้าระบบ พร้อมเลือกรูปหลัก + รูปตัวเลือกเอง">📥 นำเข้าสินค้าใหม่จาก Page365</button>
             <button class="btn btn-purple" onclick="autoFillVariantImages()" title="เติมรูป variant ที่ยังว่าง จากรูปสีเดียวกัน หรือรูปหลัก">🪄 เติมรูป variant อัตโนมัติ</button>
           </div>
           <div class="search-bar">
@@ -1065,6 +1086,86 @@
   </div>
 </div>
 
+<!-- ── PAGE365: นำเข้าสินค้าใหม่ ── -->
+<div class="modal-overlay" id="p365-import-modal">
+  <div class="modal">
+    <div class="modal-title">📥 นำเข้าสินค้าใหม่จาก Page365</div>
+
+    <!-- STEP 1 — เลือกสินค้า -->
+    <div id="p365i-list-section">
+      <div class="p365-toolbar">
+        <input type="text" id="p365i-shop" placeholder="ชื่อร้าน (subdomain)" value="lamsangstores" style="flex:0 0 180px;min-width:150px">
+        <input type="text" id="p365i-search" placeholder="🔍 ค้นหาสินค้าใน Page365 (ชื่อ / SKU / ID)" oninput="renderP365ImportList()">
+        <button type="button" class="btn btn-orange" style="padding:8px 14px;font-size:.85em" onclick="reloadP365ImportList(true)" title="ดึงรายการใหม่จาก Page365">🔄 รีเฟรช</button>
+      </div>
+      <label style="display:flex;align-items:center;gap:7px;font-size:.82em;font-weight:600;color:var(--purple);cursor:pointer;margin-bottom:8px">
+        <input type="checkbox" id="p365i-only-new" checked onchange="renderP365ImportList()" style="width:auto">
+        แสดงเฉพาะสินค้าที่ยังไม่มีในระบบ
+      </label>
+      <div class="p365-status" id="p365i-status">กำลังโหลด...</div>
+      <div class="p365-search-results" id="p365i-results"></div>
+    </div>
+
+    <!-- STEP 2 — กรอกข้อมูล + เลือกรูปเอง -->
+    <div id="p365i-editor-section" style="display:none">
+      <button type="button" class="btn btn-ghost" style="padding:6px 12px;font-size:.78em;margin-bottom:10px" onclick="backToP365ImportList()">← กลับไปเลือกสินค้า</button>
+      <div id="p365i-dup-warn"></div>
+      <div class="form-row">
+        <div>
+          <label>ชื่อสินค้า *</label>
+          <input type="text" id="p365i-name" placeholder="ชื่อสินค้า">
+        </div>
+        <div>
+          <label>ประเภท *</label>
+          <input type="text" id="p365i-type" list="p365i-type-list" placeholder="เช่น เข็มขัด, กระเป๋า">
+          <datalist id="p365i-type-list"></datalist>
+        </div>
+      </div>
+      <div class="form-row">
+        <div>
+          <label>ราคา</label>
+          <input type="text" id="p365i-price" placeholder="เช่น 590">
+        </div>
+        <div>
+          <label>SKU (ใช้จับคู่ตอน sync stock)</label>
+          <input type="text" id="p365i-sku" placeholder="SKU">
+        </div>
+      </div>
+      <div class="form-row full">
+        <div>
+          <label>ลิงก์ Page365</label>
+          <input type="text" id="p365i-link" placeholder="https://...">
+        </div>
+      </div>
+      <div class="form-row full">
+        <div>
+          <label>รายละเอียด</label>
+          <textarea id="p365i-detail" rows="2" placeholder="รายละเอียดสินค้า"></textarea>
+        </div>
+      </div>
+
+      <label style="margin-top:4px;display:block">🖼️ เลือกรูปเอง — คลิกช่องที่จะใส่รูป แล้วคลิกรูปด้านล่าง</label>
+      <div class="p365i-targets" id="p365i-targets"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:.78em;font-weight:600;color:var(--purple);cursor:pointer">
+          <input type="checkbox" id="p365i-same-color" checked style="width:auto">
+          ใส่รูปให้ไซส์อื่นสีเดียวกันด้วย (เฉพาะช่องที่ยังว่าง)
+        </label>
+        <button type="button" class="btn btn-ghost" style="padding:5px 10px;font-size:.74em" onclick="p365ImpFillFromMain()" title="ใช้รูปหลักเติมตัวเลือกที่ยังไม่มีรูป">🪄 เติมช่องว่างด้วยรูปหลัก</button>
+        <button type="button" class="btn btn-ghost" style="padding:5px 10px;font-size:.74em" onclick="p365ImpClearImages()">🧹 ล้างรูปที่เลือก</button>
+      </div>
+      <div class="p365-photos" id="p365i-photos"></div>
+      <div class="p365i-hint" id="p365i-photos-hint"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('p365-import-modal')">ปิด</button>
+      <button class="btn btn-blue" id="p365i-form-btn" style="display:none" onclick="importP365Product(true)" title="เปิดฟอร์มเพิ่มสินค้าพร้อมข้อมูลที่กรอกไว้ เพื่อแก้เพิ่มก่อนบันทึก">✏️ เปิดในฟอร์มเพิ่มสินค้า</button>
+      <button class="btn btn-pink" id="p365i-save-btn" style="display:none" onclick="importP365Product(false)">💾 นำเข้าสินค้านี้</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── EXCEL IMPORT MODAL ── -->
 <div class="modal-overlay" id="import-modal">
   <div class="modal" style="max-width:560px">
@@ -1293,6 +1394,7 @@ let _adminCmdIndex = 0, _adminCmdItems = [];
 const ADMIN_CMD_ACTIONS = [
   { keys:['/sync','sync'], label:'🔀 Sync Merge (Sheet ↔ Firebase)', run:()=>typeof syncMerge==='function' && syncMerge() },
   { keys:['/page365','/p365'], label:'🔄 Sync จาก Page365', run:()=>typeof openSyncAllModal==='function' && openSyncAllModal() },
+  { keys:['/new','/นำเข้า','/import365'], label:'📥 นำเข้าสินค้าใหม่จาก Page365', run:()=>typeof openP365ImportModal==='function' && openP365ImportModal() },
   { keys:['/backup'], label:'📸 Backup ตอนนี้', run:()=>typeof createManualBackup==='function' && createManualBackup() },
   { keys:['/export'], label:'💾 Export Firebase JSON', run:()=>typeof exportFirebaseToJson==='function' && exportFirebaseToJson() },
   { keys:['/import'], label:'🔧 Import JSON', run:()=>typeof openImportJsonModal==='function' && openImportJsonModal() },
@@ -3704,7 +3806,7 @@ function addLog(type, msg) {
   log.scrollTop = log.scrollHeight;
 }
 
-document.addEventListener('keydown', e => { if(e.key==='Escape') { if (editProductKey) clearEditing(editProductKey); closeModal('product-modal'); closeModal('general-modal'); closeModal('copy-img-modal'); closeModal('import-modal'); closeModal('p365-picker-modal'); closeP365Menu(); } });
+document.addEventListener('keydown', e => { if(e.key==='Escape') { if (editProductKey) clearEditing(editProductKey); closeModal('product-modal'); closeModal('general-modal'); closeModal('copy-img-modal'); closeModal('import-modal'); closeModal('p365-picker-modal'); closeModal('p365-import-modal'); closeP365Menu(); } });
 
 // ═══════════════════════════════════════════════
 //  PAGE365 PHOTO PICKER
@@ -3755,6 +3857,33 @@ async function refreshPage365() {
   searchPage365Products();
 }
 
+// Load (and cache) the full Page365 product list — shared by picker + importer
+async function _p365LoadAllProducts(shop) {
+  const seen = new Set();
+  const all = [];
+  let totalCount = 0;
+  for (let page = 1; page <= 20; page++) {
+    const data = await p365Fetch(`https://${shop}.page365.net/products.json?page=${page}`);
+    if (!data.items || !data.items.length) break;
+    totalCount = data.count || 0;
+    let newAdded = 0;
+    for (const it of data.items) {
+      if (!seen.has(it.id)) { seen.add(it.id); all.push(it); newAdded++; }
+    }
+    if (newAdded === 0) break; // no new items returned — done
+    if (totalCount && all.length >= totalCount) break;
+  }
+  p365Cache = {shop, list: all, detail: {}};
+  return { list: all, totalCount };
+}
+
+async function _p365ProductDetail(id) {
+  if (p365Cache.detail[id]) return p365Cache.detail[id];
+  const detail = await p365Fetch(`https://${p365Cache.shop}.page365.net/products/${id}.json`);
+  p365Cache.detail[id] = detail;
+  return detail;
+}
+
 async function reloadPage365List(force) {
   const shop = document.getElementById('p365-shop').value.trim();
   if (!shop) { setP365Status('กรุณาใส่ชื่อร้าน', true); return; }
@@ -3764,22 +3893,8 @@ async function reloadPage365List(force) {
   }
   setP365Status('⏳ กำลังโหลดสินค้าจาก Page365...');
   try {
-    const seen = new Set();
-    const all = [];
-    let totalCount = 0;
-    for (let page = 1; page <= 20; page++) {
-      const data = await p365Fetch(`https://${shop}.page365.net/products.json?page=${page}`);
-      if (!data.items || !data.items.length) break;
-      totalCount = data.count || 0;
-      let newAdded = 0;
-      for (const it of data.items) {
-        if (!seen.has(it.id)) { seen.add(it.id); all.push(it); newAdded++; }
-      }
-      if (newAdded === 0) break; // no new items returned — done
-      if (totalCount && all.length >= totalCount) break;
-    }
-    p365Cache = {shop, list: all, detail: {}};
-    setP365Status(`✓ โหลดสำเร็จ ${all.length} สินค้า${totalCount && all.length < totalCount ? ` (Page365 รายงาน ${totalCount})` : ''}`);
+    const { list, totalCount } = await _p365LoadAllProducts(shop);
+    setP365Status(`✓ โหลดสำเร็จ ${list.length} สินค้า${totalCount && list.length < totalCount ? ` (Page365 รายงาน ${totalCount})` : ''}`);
   } catch(e) {
     setP365Status(`❌ โหลดไม่สำเร็จ: ${e.message}`, true);
   }
@@ -3831,11 +3946,7 @@ function searchPage365Products() {
 async function loadPage365Product(id) {
   setP365Status(`⏳ กำลังโหลดสินค้า #${id}...`);
   try {
-    let detail = p365Cache.detail[id];
-    if (!detail) {
-      detail = await p365Fetch(`https://${p365Cache.shop}.page365.net/products/${id}.json`);
-      p365Cache.detail[id] = detail;
-    }
+    const detail = await _p365ProductDetail(id);
     p365CurrentProduct = detail;
     renderP365Photos(detail);
     setP365Status(`✓ ${detail.name} — ${detail.photos.length} รูป, ${detail.variants.length} variants`);
@@ -3956,6 +4067,361 @@ function normalizeProdName(s) {
   return String(s||'').trim().toLowerCase()
     .replace(/[\s\-_\.|\/\\()\[\]{}'"`,:;!?@#$%^&*+=~]+/g,'')
     .replace(/lamsang/g,'');
+}
+
+// ═══════════════════════════════════════════════
+//  IMPORT NEW PRODUCT FROM PAGE365 (เลือกรูปเอง)
+// ═══════════════════════════════════════════════
+// p365Imp = { id, shop, photos:[{url,thumb}], variants:[{name,sku,stock,image,include}],
+//             main, img2, target:'main'|'img2'|<variant index> }
+let p365Imp = null;
+
+function _p365PhotoUrl(p)   { return p?.normal || p?.url || p?.large || p?.original || p?.thumb_url || ''; }
+function _p365PhotoThumb(p) { return p?.thumb_url || p?.small || p?.normal || p?.url || ''; }
+function _p365VarImg(v) {
+  return v?.photo?.normal || v?.photo?.url || v?.photo_url || v?.image_url
+      || v?.image?.normal || v?.image?.url || (typeof v?.image === 'string' ? v.image : '') || '';
+}
+function _p365ListSku(p) { return String(p?.parent_sku || p?.sku || p?.merchant_sku || '').trim(); }
+function _p365ProductUrl(shop, id) { return `https://${shop}.page365.net/products/${id}`; }
+function _p365StripHtml(s) {
+  const d = document.createElement('div');
+  d.innerHTML = String(s || '');
+  return (d.textContent || '').replace(/\s*\n\s*\n+/g, '\n').trim();
+}
+function setP365ImpStatus(msg, isError) {
+  const el = document.getElementById('p365i-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = isError ? 'var(--red)' : 'var(--purple-mid)';
+}
+
+// สินค้าที่นำเข้าใน session นี้ — กันซ้ำระหว่างที่ Firebase ยัง sync ไม่ถึง
+const _p365ImportedIds = {};
+
+// สินค้าที่มีในระบบแล้ว — เทียบด้วย ลิงก์ Page365 → SKU → ชื่อ
+function _p365ExistingIndex() {
+  const bySku = {}, byName = {}, byId = { ..._p365ImportedIds };
+  Object.values(allProducts || {}).forEach(r => {
+    const name = r?.[0] || '';
+    const sku = String(r?.[6] || '').trim().toLowerCase();
+    if (sku) bySku[sku] = name;
+    const nm = normalizeProdName(name);
+    if (nm) byName[nm] = name;
+    const m = String(r?.[11] || '').match(/products\/(\d+)/);
+    if (m) byId[m[1]] = name;
+  });
+  return { bySku, byName, byId };
+}
+function _p365MatchExisting(p, idx) {
+  if (idx.byId[String(p.id)]) return idx.byId[String(p.id)];
+  const sku = _p365ListSku(p).toLowerCase();
+  if (sku && idx.bySku[sku]) return idx.bySku[sku];
+  const nm = normalizeProdName(p.name || '');
+  return (nm && idx.byName[nm]) || '';
+}
+
+async function openP365ImportModal() {
+  openModal('p365-import-modal');
+  backToP365ImportList();
+  await reloadP365ImportList(false);
+}
+
+async function reloadP365ImportList(force) {
+  const shop = document.getElementById('p365i-shop').value.trim();
+  if (!shop) { setP365ImpStatus('กรุณาใส่ชื่อร้าน', true); return; }
+  if (!force && p365Cache.shop === shop && p365Cache.list.length) {
+    setP365ImpStatus(`✓ มีสินค้า ${p365Cache.list.length} รายการ (cache) — กด 🔄 เพื่อดึงใหม่`);
+    renderP365ImportList();
+    return;
+  }
+  document.getElementById('p365i-results').innerHTML = '';
+  setP365ImpStatus('⏳ กำลังโหลดรายการสินค้าจาก Page365...');
+  try {
+    const { list, totalCount } = await _p365LoadAllProducts(shop);
+    setP365ImpStatus(`✓ โหลดสำเร็จ ${list.length} สินค้า${totalCount && list.length < totalCount ? ` (Page365 รายงาน ${totalCount})` : ''}`);
+    renderP365ImportList();
+  } catch(e) {
+    setP365ImpStatus(`❌ โหลดไม่สำเร็จ: ${e.message}`, true);
+  }
+}
+
+function renderP365ImportList() {
+  const wrap = document.getElementById('p365i-results');
+  if (!wrap) return;
+  const q = (document.getElementById('p365i-search').value || '').trim().toLowerCase();
+  const onlyNew = document.getElementById('p365i-only-new').checked;
+  const idx = _p365ExistingIndex();
+  const list = p365Cache.list || [];
+
+  let items = list.map(p => ({ p, existing: _p365MatchExisting(p, idx) }));
+  const newCount = items.filter(i => !i.existing).length;
+  if (onlyNew) items = items.filter(i => !i.existing);
+  if (q) items = items.filter(({p}) =>
+    (p.name || '').toLowerCase().includes(q) ||
+    String(p.id) === q ||
+    _p365ListSku(p).toLowerCase().includes(q));
+
+  if (!list.length) { wrap.innerHTML = ''; return; }
+  if (!items.length) {
+    wrap.innerHTML = `<div style="padding:20px;text-align:center;color:var(--purple-mid)">
+      ${onlyNew && !q ? '🎉 นำเข้าครบทุกสินค้าจาก Page365 แล้ว' : `❌ ไม่พบสินค้าที่ตรง "${esc(q)}"`}
+      ${onlyNew ? `<br><button type="button" class="btn btn-ghost" style="padding:6px 14px;font-size:.8em;margin-top:10px" onclick="document.getElementById('p365i-only-new').checked=false;renderP365ImportList()">แสดงสินค้าที่มีในระบบแล้วด้วย</button>` : ''}
+    </div>`;
+    return;
+  }
+
+  wrap.innerHTML = `
+    <div style="font-size:.75em;color:var(--purple-mid);padding:2px 4px">
+      ยังไม่มีในระบบ <strong style="color:var(--green)">${newCount}</strong> / ${list.length} รายการ • แสดง ${Math.min(items.length, 80)} รายการ
+    </div>
+    ${items.slice(0, 80).map(({p, existing}) => {
+      const thumb = p.photo?.small || p.photo?.normal || '';
+      const sku = _p365ListSku(p);
+      return `<div class="p365-search-item${existing ? ' have' : ''}" onclick="openP365ImportEditor(${p.id})">
+        ${thumb ? `<img src="${esc(thumb)}" onerror="this.style.display='none'">` : '<div style="width:48px;height:48px;background:#f0eef8;border-radius:8px;display:flex;align-items:center;justify-content:center">📦</div>'}
+        <div class="info">
+          <b>${esc(p.name || '(ไม่มีชื่อ)')}</b>
+          <span>ID ${p.id} • ฿${esc(p.price ?? '-')}${sku ? ` • ${esc(sku)}` : ''}</span>
+        </div>
+        <span class="p365i-item-badge ${existing ? 'have' : 'new'}">${existing ? 'มีแล้ว' : '+ ใหม่'}</span>
+      </div>`;
+    }).join('')}
+  `;
+}
+
+function backToP365ImportList() {
+  p365Imp = null;
+  document.getElementById('p365i-list-section').style.display = 'block';
+  document.getElementById('p365i-editor-section').style.display = 'none';
+  document.getElementById('p365i-save-btn').style.display = 'none';
+  document.getElementById('p365i-form-btn').style.display = 'none';
+  renderP365ImportList();
+}
+
+async function openP365ImportEditor(id) {
+  setP365ImpStatus(`⏳ กำลังโหลดสินค้า #${id}...`);
+  let detail;
+  try {
+    detail = await _p365ProductDetail(id);
+  } catch(e) {
+    setP365ImpStatus(`❌ โหลดสินค้า #${id} ไม่สำเร็จ: ${e.message}`, true);
+    return;
+  }
+  const listItem = (p365Cache.list || []).find(p => p.id === id) || {};
+  const shop = p365Cache.shop;
+
+  const photos = (detail.photos || []).map(ph => ({ url: _p365PhotoUrl(ph), thumb: _p365PhotoThumb(ph) })).filter(p => p.url);
+  const variants = (detail.variants || []).map(v => ({
+    name:  v.name || '',
+    sku:   String(v.sku || v.merchant_sku || '').trim(),
+    stock: v.in_stock ? (Number(v.available) || 0) : 0,
+    image: _p365VarImg(v),          // Page365 มีรูป variant ให้บ้าง — เปลี่ยนเองได้
+    include: true,
+  }));
+  p365Imp = { id, shop, photos, variants, main: '', img2: '', target: 'main' };
+
+  // prefill form
+  document.getElementById('p365i-name').value  = detail.name || listItem.name || '';
+  document.getElementById('p365i-price').value = String(detail.price ?? listItem.price ?? '');
+  document.getElementById('p365i-sku').value   = _p365ListSku(detail) || _p365ListSku(listItem);
+  document.getElementById('p365i-link').value  = _p365ProductUrl(shop, id);
+  document.getElementById('p365i-detail').value = _p365StripHtml(detail.description || detail.detail || '');
+
+  // ประเภท: เดาจากสินค้าเดิมที่ชื่อคล้ายกัน + เติม datalist
+  const cats = [...new Set(Object.values(allProducts || {}).map(r => r?.[1]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'th'));
+  document.getElementById('p365i-type-list').innerHTML = cats.map(c => `<option value="${esc(c)}">`).join('');
+  const guess = cats.find(c => (detail.name || '').includes(c)) || '';
+  document.getElementById('p365i-type').value = guess;
+
+  // เตือนถ้าซ้ำกับของเดิม
+  const existing = _p365MatchExisting({ ...listItem, id, name: detail.name }, _p365ExistingIndex());
+  document.getElementById('p365i-dup-warn').innerHTML = existing
+    ? `<div style="background:#fff3cd;border:1px solid var(--orange);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:.82em;color:#7d5413">
+         ⚠️ สินค้านี้น่าจะมีในระบบแล้ว: <strong>${esc(existing)}</strong> — ถ้านำเข้าต่อจะได้สินค้าซ้ำ
+       </div>`
+    : '';
+
+  document.getElementById('p365i-list-section').style.display = 'none';
+  document.getElementById('p365i-editor-section').style.display = 'block';
+  document.getElementById('p365i-save-btn').style.display = '';
+  document.getElementById('p365i-form-btn').style.display = '';
+  renderP365ImportEditor();
+}
+
+function _p365ImpTargets() {
+  const t = [
+    { key: 'main', icon: '🖼️', label: 'รูปหลัก',      sub: 'ของสินค้า', img: p365Imp.main },
+    { key: 'img2', icon: '📏', label: 'รูปตารางไซส์', sub: 'ไม่บังคับ',  img: p365Imp.img2 },
+  ];
+  p365Imp.variants.forEach((v, i) => t.push({
+    key: i, icon: '🎨',
+    label: v.name || v.sku || `ตัวเลือก ${i+1}`,
+    sub: v.stock > 0 ? `เหลือ ${v.stock}` : 'หมด',
+    img: v.image, variant: true, index: i, include: v.include,
+  }));
+  return t;
+}
+
+function renderP365ImportEditor() {
+  if (!p365Imp) return;
+  const targets = _p365ImpTargets();
+
+  document.getElementById('p365i-targets').innerHTML = targets.map(t => {
+    const active = String(p365Imp.target) === String(t.key);
+    const cls = ['p365i-target', active ? 'active' : '', t.img ? 'filled' : '', (t.variant && !t.include) ? 'off' : ''].filter(Boolean).join(' ');
+    const keyJson = typeof t.key === 'number' ? t.key : `'${t.key}'`;
+    return `<div class="${cls}" onclick="p365ImpSetTarget(${keyJson})">
+      ${t.variant ? `<input type="checkbox" ${t.include ? 'checked' : ''} onclick="event.stopPropagation();p365ImpToggleVariant(${t.index},this.checked)" title="ติ๊กออกถ้าไม่ต้องการตัวเลือกนี้">` : ''}
+      ${t.img ? `<img src="${esc(t.img)}" onerror="this.style.visibility='hidden'">` : `<div class="ph">${t.icon}</div>`}
+      <div style="min-width:0">
+        <div class="tlabel">${esc(t.label)}</div>
+        <div class="tsub">${esc(t.sub)}</div>
+      </div>
+      ${t.img ? `<button type="button" class="tclear" onclick="event.stopPropagation();p365ImpClearTarget(${keyJson})" title="ลบรูปนี้">✕</button>` : ''}
+    </div>`;
+  }).join('');
+
+  const grid = document.getElementById('p365i-photos');
+  const used = new Set(targets.filter(t => t.img).map(t => t.img));
+  if (!p365Imp.photos.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1;padding:20px;text-align:center;color:var(--purple-mid)">สินค้านี้ไม่มีรูปใน Page365 — ใส่รูปเองในฟอร์มเพิ่มสินค้าได้</div>`;
+  } else {
+    grid.innerHTML = p365Imp.photos.map((ph, i) => {
+      const usedBy = targets.filter(t => t.img === ph.url).map(t => t.label);
+      return `<div class="p365-photo${used.has(ph.url) ? ' picked' : ''}" onclick="p365ImpAssign(${i})" title="คลิกเพื่อใส่ในช่องที่เลือกอยู่">
+        <img src="${esc(ph.thumb || ph.url)}" loading="lazy" onerror="this.style.opacity=.3">
+        <div class="p365-photo-pos">#${i+1}</div>
+        <div class="p365-assigned">${usedBy.slice(0,3).map(l => `<span>✓ ${esc(l)}</span>`).join('')}${usedBy.length>3?`<span>+${usedBy.length-3}</span>`:''}</div>
+      </div>`;
+    }).join('');
+  }
+
+  const cur = targets.find(t => String(t.key) === String(p365Imp.target));
+  const missing = targets.filter(t => t.key !== 'img2' && !t.img && !(t.variant && !t.include)).length;
+  document.getElementById('p365i-photos-hint').innerHTML =
+    `กำลังใส่รูปให้: <strong style="color:var(--pink)">${esc(cur ? cur.label : '-')}</strong> • ` +
+    (missing ? `ยังไม่มีรูป ${missing} ช่อง` : `<strong style="color:var(--green)">✓ ใส่รูปครบแล้ว</strong>`) +
+    ` • รูปทั้งหมด ${p365Imp.photos.length} รูป`;
+}
+
+function p365ImpSetTarget(key) {
+  if (!p365Imp) return;
+  p365Imp.target = key;
+  renderP365ImportEditor();
+}
+
+function p365ImpToggleVariant(i, checked) {
+  if (!p365Imp || !p365Imp.variants[i]) return;
+  p365Imp.variants[i].include = !!checked;
+  if (!checked && String(p365Imp.target) === String(i)) p365Imp.target = 'main';
+  renderP365ImportEditor();
+}
+
+function _p365ImpSetImage(key, url) {
+  if (key === 'main') p365Imp.main = url;
+  else if (key === 'img2') p365Imp.img2 = url;
+  else if (p365Imp.variants[Number(key)]) p365Imp.variants[Number(key)].image = url;
+}
+
+function p365ImpClearTarget(key) {
+  if (!p365Imp) return;
+  _p365ImpSetImage(key, '');
+  renderP365ImportEditor();
+}
+
+function p365ImpAssign(photoIndex) {
+  if (!p365Imp) return;
+  const url = p365Imp.photos[photoIndex]?.url;
+  if (!url) return;
+  const key = p365Imp.target;
+  _p365ImpSetImage(key, url);
+
+  // ใส่ให้ไซส์อื่นสีเดียวกันที่ยังว่าง
+  if (typeof key === 'number' && document.getElementById('p365i-same-color')?.checked) {
+    const color = _extractColor(p365Imp.variants[key]?.name || '');
+    if (color) {
+      p365Imp.variants.forEach((v, j) => {
+        if (j !== key && v.include && !v.image && _extractColor(v.name) === color) v.image = url;
+      });
+    }
+  }
+
+  // เลื่อนไปช่องถัดไปที่ยังไม่มีรูป (ข้ามรูปตารางไซส์)
+  const next = _p365ImpTargets().find(t => t.key !== 'img2' && !t.img && !(t.variant && !t.include));
+  if (next) p365Imp.target = next.key;
+  renderP365ImportEditor();
+}
+
+function p365ImpFillFromMain() {
+  if (!p365Imp) return;
+  if (!p365Imp.main) { toast('ยังไม่ได้เลือกรูปหลัก','warn'); return; }
+  let n = 0;
+  p365Imp.variants.forEach(v => { if (v.include && !v.image) { v.image = p365Imp.main; n++; } });
+  renderP365ImportEditor();
+  toast(n ? `เติมรูปหลักให้ ${n} ตัวเลือก ✓` : 'ทุกตัวเลือกมีรูปแล้ว', n ? 'success' : 'warn');
+}
+
+function p365ImpClearImages() {
+  if (!p365Imp) return;
+  p365Imp.main = ''; p365Imp.img2 = '';
+  p365Imp.variants.forEach(v => v.image = '');
+  p365Imp.target = 'main';
+  renderP365ImportEditor();
+}
+
+function _p365ImpBuildRow() {
+  const name   = document.getElementById('p365i-name').value.trim();
+  const type   = document.getElementById('p365i-type').value.trim();
+  const price  = document.getElementById('p365i-price').value.trim();
+  const detail = document.getElementById('p365i-detail').value.trim();
+  const sku    = document.getElementById('p365i-sku').value.trim();
+  const link   = document.getElementById('p365i-link').value.trim();
+  if (!name || !type) { toast('กรุณากรอกชื่อสินค้าและประเภท','warn'); return null; }
+  const variants = p365Imp.variants.filter(v => v.include).map(v => ({
+    sku: v.sku || '', name: v.name || '', stock: Number(v.stock) || 0, image: v.image || '',
+  })).filter(v => v.sku || v.name);
+  // [0]ชื่อ [1]ประเภท [2]ราคา [3]รายละเอียด [4]รูปหลัก [5]รูปไซส์
+  // [6]SKU [7]Shopee [8]TikTok [9]พิกัด [10]Lazada [11]Page365 [12]variants[]
+  return [name, type, price, detail, p365Imp.main || '', p365Imp.img2 || '', sku, '', '', '', '', link, variants];
+}
+
+async function importP365Product(openForm) {
+  if (!p365Imp) return;
+  const row = _p365ImpBuildRow();
+  if (!row) return;
+
+  if (openForm) {
+    closeModal('p365-import-modal');
+    openProductModal(null);
+    document.getElementById('p-name').value    = row[0];
+    document.getElementById('p-type').value    = row[1];
+    document.getElementById('p-price').value   = row[2];
+    document.getElementById('p-detail').value  = row[3];
+    document.getElementById('p-img1').value    = row[4];
+    document.getElementById('p-img2').value    = row[5];
+    document.getElementById('p-sku').value     = row[6];
+    document.getElementById('p-page365').value = row[11];
+    previewUrlImg(document.getElementById('p-img1'), 'upload-preview-1', 'preview-img-1');
+    previewUrlImg(document.getElementById('p-img2'), 'upload-preview-2', 'preview-img-2');
+    loadVariants(row[12]);
+    toast('เปิดในฟอร์มแล้ว — ตรวจข้อมูลแล้วกด 💾 บันทึก','success');
+    return;
+  }
+
+  const btn = document.getElementById('p365i-save-btn');
+  btn.disabled = true; btn.textContent = 'กำลังนำเข้า...';
+  try {
+    await db.ref('products').push(row);
+    _p365ImportedIds[String(p365Imp.id)] = row[0];
+    auditLog('นำเข้าจาก Page365', row[0], `${row[12].length} variants • Page365 #${p365Imp.id}`);
+    toast(`นำเข้า "${row[0]}" สำเร็จ ✓`, 'success');
+    backToP365ImportList();
+  } catch(e) {
+    toast('นำเข้าไม่สำเร็จ: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '💾 นำเข้าสินค้านี้';
+  }
 }
 
 // ═══════════════════════════════════════════════
