@@ -82,6 +82,7 @@
       box-shadow:0 2px 12px rgba(0,0,0,.06);
     }
     .as-logo{
+      display:block;
       width:36px;height:36px;flex-shrink:0;
       border-radius:10px;overflow:hidden;
       box-shadow:0 2px 6px rgba(0,0,0,.12);
@@ -237,6 +238,31 @@
       transition:all .2s var(--ease);
     }
     .back-btn:hover{background:var(--pink);border-color:var(--pink);color:#fff}
+    /* ปุ่มกลับหน้าแรก (มีทุกหน้า) */
+    .home-btn{
+      display:inline-flex;align-items:center;gap:5px;
+      padding:8px 16px;
+      background:linear-gradient(135deg,var(--pink2,#F8D5F8),var(--pink,#E0C7EE));
+      border:1px solid rgba(0,0,0,.06);
+      border-radius:30px;
+      font-family:'Prompt',sans-serif;
+      font-size:.82em;font-weight:800;
+      color:#5a3f6e;
+      cursor:pointer;
+      white-space:nowrap;
+      transition:all .2s var(--ease);
+    }
+    .home-btn:hover{transform:translateY(-1px);box-shadow:0 4px 10px rgba(184,148,216,.4)}
+    .home-btn:active{transform:scale(.96)}
+    /* โลโก้ + ชื่อแบรนด์บนแถบบน = กดกลับหน้าแรกได้ */
+    .as-home-link{
+      display:flex;align-items:center;gap:14px;
+      background:none;border:0;padding:0;margin:0;
+      font:inherit;color:inherit;cursor:pointer;
+      transition:opacity .2s var(--ease);
+    }
+    .as-home-link:hover{opacity:.75}
+    .as-home-link:active{transform:scale(.97)}
     /* dark mode override */
     body.dark #top-nav{
       background:rgba(18,18,30,.92);
@@ -247,6 +273,20 @@
       background:rgba(255,255,255,.12);
       border-color:rgba(255,255,255,.18);
       color:#fff;
+    }
+    body.dark .home-btn{
+      background:linear-gradient(135deg,#5a4878,#3a2c54);
+      border-color:rgba(255,255,255,.14);
+      color:#F8D5F8;
+    }
+    /* จอเล็ก: ซ่อน pill "Live" บนแถบ detail เพื่อให้ปุ่มกลับหน้าแรกมีที่พอ */
+    @media(max-width:560px){
+      #top-nav .live-pill{display:none}
+      #top-nav{gap:8px;padding-left:12px;padding-right:12px}
+      .back-btn,.home-btn{padding:8px 12px}
+    }
+    @media(max-width:400px){
+      .back-btn .back-label{display:none}
     }
     /* When in detail view, push page content below the fixed top-nav */
     body.in-detail .page{padding-top:calc(env(safe-area-inset-top) + 60px)}
@@ -1657,10 +1697,12 @@
 
 <!-- APP STORE TOPBAR -->
 <header class="as-topbar" id="main-topbar">
-  <div class="as-logo">
-    <img src="https://i.postimg.cc/XNG0gfWq/image0.png" alt="LAMSANG" fetchpriority="high">
-  </div>
-  <span class="as-brand">App Store</span>
+  <button type="button" class="as-home-link" onclick="goHome()" title="กลับหน้าแรก" aria-label="กลับหน้าแรก">
+    <span class="as-logo">
+      <img src="https://i.postimg.cc/XNG0gfWq/image0.png" alt="LAMSANG" fetchpriority="high">
+    </span>
+    <span class="as-brand">App Store</span>
+  </button>
   <div class="as-search" onclick="document.getElementById('search-input').focus()">
     <span class="as-search-icon">🔍</span>
     <input id="search-input" type="text" placeholder="ค้นหาสินค้า..." oninput="handleSearch(this.value)">
@@ -1723,7 +1765,8 @@
 
 <!-- TOP NAV (detail) -->
 <div id="top-nav">
-  <button class="back-btn" onclick="handleBack()">‹ กลับ</button>
+  <button class="back-btn" onclick="handleBack()">‹ <span class="back-label">กลับ</span></button>
+  <button class="home-btn" onclick="goHome()" title="กลับหน้าแรก">🏠 หน้าแรก</button>
   <span class="live-pill">Live</span>
   <div style="flex:1"></div>
   <button class="as-sync-btn" onclick="customerSyncFromPage365(false)" title="อัพเดต stock จาก Page365">
@@ -2956,6 +2999,7 @@ const CMD_ACTIONS = [
   { keys: ['/cart','cart','ตะกร้า','/ตะกร้า'], label: '🛒 เปิดตะกร้า', run: openCartDrawer },
   { keys: ['/dark','dark','/มืด'], label: '🌙 สลับ Dark mode', run: () => typeof toggleDark === 'function' && toggleDark() },
   { keys: ['/back','back','/กลับ'], label: '‹ กลับ', run: () => typeof handleBack === 'function' && handleBack() },
+  { keys: ['/home','home','/หน้าแรก','หน้าแรก'], label: '🏠 กลับหน้าแรก', run: () => typeof goHome === 'function' && goHome() },
   { keys: ['/admin','admin'], label: '⚙️ เปิดแอดมิน', run: () => window.open('admin.html', '_blank') },
   { keys: ['/fav','fav','/โปรด'], label: '⭐ ดูรายการโปรด', run: () => { typeof showFavorites === 'function' && showFavorites(); closeCmdPalette(); } },
 ];
@@ -3277,6 +3321,9 @@ document.addEventListener('keydown', e => {
     copyWithTemplate(currentDetailIdx, 'info');
   } else if (e.key === 'b' && typeof currentDetailIdx === 'number' && currentDetailIdx >= 0) {
     handleBack();
+  } else if (e.key === 'h' || e.key === 'H') {
+    if (e.shiftKey || e.metaKey || e.ctrlKey) return;
+    goHome();
   }
 });
 
@@ -3903,6 +3950,27 @@ function showGeneralGrid(push=true){
   if(push) history.pushState({view:'grid',tab:'general'},'');
 }
 function handleBack(){ history.length>1?history.back():(currentTab==='product'?showProductGrid():showGeneralGrid()) }
+
+// กลับหน้าแรกแบบตรง ๆ — ใช้ได้ทุกหน้า ไม่ต้องพึ่ง history
+function goHome(){
+  // ปิด overlay ที่อาจเปิดค้างอยู่
+  try{ closeCartDrawer(); }catch(e){}
+  try{ closeLightbox(); }catch(e){}
+  try{ closeCmdPalette(); }catch(e){}
+  // ล้างการค้นหา + ตัวกรอง ให้กลับสู่สภาพหน้าแรก
+  searchQuery='';
+  const s=document.getElementById('search-input'); if(s) s.value='';
+  selectedCat='ทั้งหมด';
+  selectedColor=null;
+  showingFavOnly=false;
+  const favPill=document.getElementById('fav-tab-pill');
+  if(favPill) favPill.classList.remove('active-fav');
+  currentDetailIdx=-1; currentDetailRow=null;
+  switchTab('product');
+  if(productRows.length) buildCatPills(productRows);
+  window.scrollTo(0,0);
+}
+window.goHome=goHome;
 function handleSortChange(v){ currentSort=v; window.renderProductGrid(productRows) }
 window.onpopstate=e=>{
   if(!e.state) return;
