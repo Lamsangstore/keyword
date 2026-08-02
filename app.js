@@ -205,13 +205,18 @@ function selectCatPill(cat, el) {
 let _customerDb = null;
 let _customerP365Map = {};   // manual Page365 product↔product mapping (set in admin)
 async function initFirebase(){
-  firebase.initializeApp(window.FIREBASE_CONFIG);
+  if (!firebase.apps.length) firebase.initializeApp(window.FIREBASE_CONFIG);
   const db = firebase.database();
   _customerDb = db;
   db.ref('_adminSettings/p365Map').on('value', s => { _customerP365Map = s.val() || {}; });
-  // Sign in anonymously so writes pass security rules
+  // ล็อกอิน anonymous เพื่อให้ผ่าน rules (หน้านี้อ่านอย่างเดียว + เพิ่ม log ได้)
+  // ⚠️ ต้องรอเช็ก session เดิมก่อน — admin.html ใช้ origin เดียวกัน
+  //    ถ้ายิง signInAnonymously ทันที จะไปเตะแอดมินที่ล็อกอินอยู่ให้หลุดเงียบ ๆ
   try {
-    await firebase.auth().signInAnonymously();
+    const existing = await new Promise(resolve => {
+      const unsub = firebase.auth().onAuthStateChanged(u => { unsub(); resolve(u); });
+    });
+    if (!existing) await firebase.auth().signInAnonymously();
   } catch(e) {
     console.error('Anonymous auth failed:', e);
     showSyncToast('⚠️ Firebase auth ล้ม — เปิด Anonymous Auth ใน Console ก่อน', 'error');
@@ -270,8 +275,8 @@ async function initFirebase(){
     if (v.pink) r.setProperty('--pink', v.pink);
     if (v.purple) r.setProperty('--purple', v.purple);
   });
-  // Auto-sync on load if stale
-  setTimeout(() => customerSyncFromPage365(true), 2500);
+  // ไม่มี auto-sync ตอนเปิดหน้าแล้ว — การเขียน products ทำได้จากหน้า Admin เท่านั้น
+  // (สต๊อกล่าสุดยังดึงมาแสดงตอนเปิดการ์ดสินค้าอยู่ ดู _autoSyncStockForDetail)
 }
 
 // ── CUSTOMER-SIDE PAGE365 SYNC ─────────────────────────────
@@ -334,184 +339,13 @@ function _p365VariantPhoto(pv) {
       || pv?.image?.normal || pv?.image?.url || pv?.image || '';
 }
 
+// ── STOCK SYNC ทั้งร้าน — ย้ายไปหน้า Admin แล้ว ─────────────
+// หน้านี้เป็น "อ่านอย่างเดียว" ตาม database rules ใหม่:
+// ผู้ใช้ที่ไม่ได้ล็อกอินเขียน products ไม่ได้อีกต่อไป
+// การ sync ทั้งร้านทำได้ที่ admin.html (ต้องล็อกอินก่อน)
 async function customerSyncFromPage365(silent) {
-  if (customerSyncing) {
-    if (!silent) showSyncToast('⏳ กำลัง sync อยู่ — รอสักครู่', 'info');
-    return;
-  }
-  // First manual sync — opportunistically request notification permission
-  if (!silent) ensureNotifyPerm();
-  if (silent) {
-    const age = Date.now() - (customerLastSyncAt || 0);
-    if (age < CUSTOMER_SYNC_STALE_MS) return; // fresh — skip auto only
-  }
-  if (!_customerDb) {
-    if (!silent) showSyncToast('❌ ยังเชื่อมต่อ Firebase ไม่ได้', 'error');
-    return;
-  }
-
-  customerSyncing = true;
-  const btns = document.querySelectorAll('.as-sync-btn');
-  const lbls = document.querySelectorAll('.sync-label');
-  btns.forEach(b => { b.classList.add('syncing'); b.disabled = true; });
-  lbls.forEach(l => l.textContent = 'กำลังอัพเดต...');
-
-  const shop = 'lamsangstores';
-  try {
-    // Read products fresh from Firebase (don't depend on local productRows)
-    const snap = await _customerDb.ref('products').once('value');
-    const dataMap = snap.val() || {};
-    if (!Object.keys(dataMap).length) throw new Error('ไม่มีสินค้าใน Firebase');
-
-    // 1) Load product list (deduped)
-    const seen = new Set(); const list = [];
-    for (let page=1; page<=20; page++) {
-      const d = await _customerFetch(`https://${shop}.page365.net/products.json?page=${page}`);
-      if (!d.items?.length) break;
-      let added = 0;
-      for (const it of d.items) if (!seen.has(it.id)) { seen.add(it.id); list.push(it); added++; }
-      if (added===0) break;
-      if (d.count && list.length>=d.count) break;
-    }
-    if (!list.length) throw new Error('โหลดรายการสินค้าจาก Page365 ไม่ได้');
-    const byName = {};
-    const bySku = {};
-    list.forEach(p => {
-      byName[_custNormName(p.name)] = p;
-      // Page365 may expose parent_sku under different keys depending on shop setup
-      const sku = String(p.parent_sku || p.sku || p.merchant_sku || '').trim();
-      if (sku) bySku[sku] = p;
-    });
-
-    const updates = {};
-    let matched=0, totalStockUpdates=0, imgUpdates=0, failed=0;
-
-    // 2) Sequential fetch with small concurrency
-    const entries = Object.entries(dataMap);
-    const concurrency = 4;
-    let cursor = 0;
-    const unmatchedProducts = [];
-    async function worker() {
-      while (cursor < entries.length) {
-        const i = cursor++;
-        const [key, row] = entries[i];
-        // Manual mapping (จับคู่เองใน admin) wins, then SKU, then name
-        const manual = _customerP365Map[key];
-        const sku = String(row[6] || '').trim();
-        const norm = _custNormName(row[0]||'');
-        let p365 = null;
-        if (manual && manual.id) p365 = list.find(p => p.id === manual.id) || { id: manual.id, name: manual.name || ('#'+manual.id) };
-        if (!p365 && sku) p365 = bySku[sku];
-        if (!p365 && norm) {
-          p365 = byName[norm] || list.find(p => _custNormName(p.name).includes(norm) || norm.includes(_custNormName(p.name)));
-        }
-        if (!p365) { unmatchedProducts.push(row[0]||'(ไม่มีชื่อ)'); continue; }
-        try {
-          const detail = await _customerFetch(`https://${shop}.page365.net/products/${p365.id}.json`);
-          const p365Vs = detail.variants || [];
-          let curVariants = Array.isArray(row[12]) ? [...row[12]] : [];
-          const mainImg = detail.photos?.[0]?.normal || detail.photos?.[0]?.url || '';
-
-          // Update existing variants: stock only — NEVER overwrite curated image
-          let rowSU = 0, rowIU = 0;
-          const _justWentOut = []; // variants that newly went to 0
-          curVariants = curVariants.map(v => {
-            let pv;
-            const ov = manual?.variants?.[v.name];
-            if (ov !== undefined) {
-              if (ov === '') return v;   // ผู้ใช้เลือก "ข้าม" ใน admin
-              pv = p365Vs.find(p => p.name === ov) || p365Vs.find(p => _custNormVName(p.name) === _custNormVName(ov));
-            } else {
-              pv = p365Vs.find(p => _custNormVName(p.name) === _custNormVName(v.name));
-            }
-            if (pv) {
-              const newStock = pv.in_stock ? (Number(pv.available)||0) : 0;
-              const oldStock = Number(v.stock)||0;
-              if (newStock !== oldStock) rowSU++;
-              if (oldStock > 0 && newStock === 0) _justWentOut.push(v.name||v.sku||'');
-              // Fill image only when missing (preserve user's curated photo per SKU)
-              if (!v.image) {
-                const pvImg = _p365VariantPhoto(pv) || mainImg;
-                if (pvImg) { rowIU++; return {...v, stock: newStock, image: pvImg}; }
-              }
-              return {...v, stock: newStock};
-            }
-            return v;
-          });
-          // Notify about new sold-outs
-          if (_justWentOut.length && Notification?.permission === 'granted') {
-            _justWentOut.forEach(name => notifyStockOut(row[0]||'(unnamed)', name));
-          }
-          // Add missing variants
-          const existing = new Set(curVariants.map(v => _custNormVName(v.name)));
-          p365Vs.forEach(pv => {
-            if (existing.has(_custNormVName(pv.name))) return;
-            const pvImg = _p365VariantPhoto(pv) || mainImg;
-            curVariants.push({sku:'', name: pv.name||'', stock: pv.in_stock?(Number(pv.available)||0):0, image: pvImg});
-            if (pvImg) rowIU++;
-          });
-          const newRow = [...row];
-          while (newRow.length < 13) newRow.push('');
-          newRow[12] = curVariants;
-          // Update main product image only when missing (preserve admin-curated photo)
-          if (!newRow[4] && mainImg) { newRow[4] = mainImg; rowIU++; }
-          updates[`products/${key}`] = newRow;
-          totalStockUpdates += rowSU;
-          imgUpdates += rowIU;
-          matched++;
-        } catch(e) { failed++; }
-      }
-    }
-    await Promise.all(Array.from({length: concurrency}, worker));
-    if (Object.keys(updates).length) {
-      // Snapshot current /products to /_backups before applying changes
-      try {
-        const bkId = 'bk_' + Date.now();
-        await _customerDb.ref(`_backups/${bkId}`).set({
-          meta: {
-            ts: Date.now(),
-            source: silent ? 'auto-sync' : 'sync-button',
-            count: Object.keys(dataMap).length,
-            note: `ก่อน sync • ${matched} สินค้า`
-          },
-          products: dataMap
-        });
-        // Rotate: keep last 10
-        const bkSnap = await _customerDb.ref('_backups').once('value');
-        const all = bkSnap.val() || {};
-        const ids = Object.keys(all).sort();
-        if (ids.length > 10) {
-          const removals = {};
-          ids.slice(0, ids.length - 10).forEach(id => removals[`_backups/${id}`] = null);
-          await _customerDb.ref().update(removals);
-        }
-      } catch(e) { console.warn('Backup failed:', e); }
-
-      updates['_meta/lastSyncAt'] = Date.now();
-      await _customerDb.ref().update(updates);
-    } else {
-      await _customerDb.ref('_meta/lastSyncAt').set(Date.now());
-    }
-    const summary = `✓ Sync • ${matched} สินค้า`
-      + (totalStockUpdates ? ` • stock ${totalStockUpdates}` : '')
-      + (imgUpdates ? ` • รูป ${imgUpdates}` : '')
-      + (failed ? ` • ข้าม ${failed}` : '')
-      + (unmatchedProducts.length ? ` • ไม่ match ${unmatchedProducts.length}` : '');
-    if (unmatchedProducts.length) {
-      console.warn('⚠️ Sync: สินค้าที่ไม่ match Page365 (' + unmatchedProducts.length + ' ตัว):', unmatchedProducts);
-    }
-    if (!silent) {
-      showSyncToast(summary, 'success');
-    } else if (totalStockUpdates > 0 || imgUpdates > 0) {
-      showSyncToast(`🔄 อัพเดตล่าสุด • ${matched} สินค้า`, 'success');
-    }
-  } catch(e) {
-    if (!silent) showSyncToast('❌ Sync ล้มเหลว: ' + (e.message||'unknown'), 'error');
-  } finally {
-    customerSyncing = false;
-    btns.forEach(b => { b.classList.remove('syncing'); b.disabled = false; });
-    updateSyncBtnLabel();
-  }
+  if (silent) return;   // auto-sync ตอนเปิดหน้า — เงียบไว้ ไม่ต้องรบกวน
+  showSyncToast('🔒 อัปเดตสต๊อกทั้งร้าน ทำได้ที่หน้า Admin', 'info');
 }
 
 // ── SYNC AUDIT: รุ่นที่จับคู่ Page365 ไม่ได้ (sync ไม่ได้) ──
@@ -1098,7 +932,7 @@ let _cmdIndex = 0;
 let _cmdItems = [];
 
 const CMD_ACTIONS = [
-  { keys: ['/sync','sync','/365'], label: '🔄 Sync stock จาก Page365', run: () => customerSyncFromPage365(false) },
+  { keys: ['/sync','sync','/365'], label: '🔒 Sync stock — เปิดหน้า Admin', run: () => window.open('admin.html','_blank') },
   { keys: ['/check','sync ไม่ได้','unmatched','ตรวจ stock','รุ่นที่ sync ไม่ได้'], label: '⚠️ ตรวจรุ่นที่ Sync ไม่ได้', run: () => openUnmatchedReport() },
   { keys: ['/cart','cart','ตะกร้า','/ตะกร้า'], label: '🛒 เปิดตะกร้า', run: openCartDrawer },
   { keys: ['/dark','dark','/มืด'], label: '🌙 สลับ Dark mode', run: () => typeof toggleDark === 'function' && toggleDark() },
@@ -1298,20 +1132,8 @@ function logOrderHistory(items, promo) {
         price: parseInt(String(it.price||'').replace(/[^0-9]/g,'')) || 0
       }))
     });
-    // Rotate occasionally
-    if (Math.random() < 0.02) {
-      _customerDb.ref('_orderHistory').once('value').then(snap => {
-        const all = snap.val() || {};
-        const ids = Object.keys(all);
-        if (ids.length > 500) {
-          ids.sort((a,b) => (all[a]?.ts||0) - (all[b]?.ts||0));
-          const removeIds = ids.slice(0, ids.length - 500);
-          const removals = {};
-          removeIds.forEach(id => removals[`_orderHistory/${id}`] = null);
-          _customerDb.ref().update(removals).catch(()=>{});
-        }
-      });
-    }
+    // เดิมมีการลบ log เก่าทิ้งจากหน้านี้ — เอาออกแล้ว เพราะ rules ใหม่
+    // ให้หน้านี้ "เพิ่มได้อย่างเดียว" ลบไม่ได้ (การล้าง log ทำที่หน้า Admin)
   } catch(e) { console.warn('order log:', e); }
 }
 
@@ -1694,7 +1516,10 @@ async function autoSyncProductStock(idx){
     if (changed){
       const newRow = [...row]; while (newRow.length<13) newRow.push(''); newRow[12] = cur;
       productRows[idx] = newRow;
-      await _customerDb.ref('products/'+key).set(newRow); // listener จะ refresh หน้า detail ให้เอง
+      // ไม่เขียนกลับ Firebase แล้ว — หน้านี้อ่านอย่างเดียว
+      // อัปเดตแค่ข้อมูลในเครื่องแล้ววาดใหม่เอง (เมื่อก่อน listener เป็นคนวาดให้หลังเขียน)
+      if (currentDetailIdx === idx) showProductDetail(idx, false);
+      if (currentTab === 'product') window.renderProductGrid(productRows);
       _setStockSyncStatus('✓ อัปเดตสต๊อกล่าสุดแล้ว', true);
       setTimeout(() => _setStockSyncStatus(''), 2500);
     } else {

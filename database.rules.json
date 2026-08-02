@@ -1,0 +1,107 @@
+// ════════════════════════════════════════════════════════════
+//  LAMSANG — Realtime Database security rules
+// ════════════════════════════════════════════════════════════
+//
+//  หลักการ:
+//    • index.html (หน้าคีย์ลัด) = anonymous → อ่านได้อย่างเดียว + เพิ่ม log ได้เท่านั้น
+//    • admin.html = ต้องล็อกอินด้วยอีเมลจริง และ uid ต้องอยู่ใน /_admins ถึงจะเขียนได้
+//
+//  ⚠️ ก่อน publish rules นี้ ต้องทำ 3 ข้อนี้ให้เสร็จก่อน
+//     ไม่งั้นหน้า admin จะเขียนอะไรไม่ได้เลย:
+//
+//    1) Firebase Console → Authentication → Sign-in method
+//       เปิด Email/Password  (และเปิด Anonymous ค้างไว้ เพราะหน้า index ยังใช้อยู่)
+//
+//    2) Authentication → Users → Add user → สร้างบัญชีแอดมิน
+//       แล้วก๊อป "User UID" มา
+//
+//    3) Realtime Database → Data → สร้าง node:
+//          _admins / <UID ที่ก๊อปมา>  =  true
+//       (แก้ผ่าน Console ได้เสมอ — Console ไม่ติด rules)
+//
+//  เพิ่มแอดมินคนใหม่ทีหลัง: สร้าง user แล้วเพิ่ม _admins/<uid> = true อีกอัน
+//  ถอดสิทธิ์: ลบ _admins/<uid> ทิ้ง — ไม่ต้องแก้ rules
+//
+{
+  "rules": {
+    // ปิดทุกอย่างเป็นค่าเริ่มต้น แล้วค่อยเปิดทีละ path
+    ".read": false,
+    ".write": false,
+
+    "products": {
+      ".read": true,
+      ".write": "root.child('_admins').child(auth.uid).val() === true"
+    },
+
+    "general": {
+      ".read": true,
+      ".write": "root.child('_admins').child(auth.uid).val() === true"
+    },
+
+    "_productNotes": {
+      ".read": true,
+      ".write": "root.child('_admins').child(auth.uid).val() === true"
+    },
+
+    // อ่านทั้งก้อนไม่ได้ — ในนี้มี gasUrl กับ Cloudinary uploadPreset ที่ไม่ควรเปิดสาธารณะ
+    // เปิดอ่านเฉพาะ 3 ตัวที่หน้า index ต้องใช้จริง
+    "_adminSettings": {
+      ".read": "root.child('_admins').child(auth.uid).val() === true",
+      ".write": "root.child('_admins').child(auth.uid).val() === true",
+      "theme":   { ".read": true },
+      "promo":   { ".read": true },
+      "p365Map": { ".read": true }
+    },
+
+    "_meta": {
+      ".read": "root.child('_admins').child(auth.uid).val() === true",
+      ".write": "root.child('_admins').child(auth.uid).val() === true",
+      "lastSyncAt": { ".read": true }
+    },
+
+    "_editing": {
+      ".read": "root.child('_admins').child(auth.uid).val() === true",
+      ".write": "root.child('_admins').child(auth.uid).val() === true"
+    },
+
+    "_backups": {
+      ".read": "root.child('_admins').child(auth.uid).val() === true",
+      ".write": "root.child('_admins').child(auth.uid).val() === true"
+    },
+
+    // หน้า index เพิ่ม log ได้อย่างเดียว — แก้/ลบ/อ่านย้อนหลังต้องเป็นแอดมิน
+    "_auditLog": {
+      ".read": "root.child('_admins').child(auth.uid).val() === true",
+      ".write": "root.child('_admins').child(auth.uid).val() === true",
+      "$entry": {
+        ".write": "auth != null && !data.exists() && newData.exists()",
+        ".validate": "newData.hasChildren(['ts','user','action'])",
+        "ts":      { ".validate": "newData.isNumber()" },
+        "user":    { ".validate": "newData.isString() && newData.val().length <= 40" },
+        "action":  { ".validate": "newData.isString() && newData.val().length <= 40" },
+        "target":  { ".validate": "newData.isString() && newData.val().length <= 200" },
+        "details": { ".validate": "newData.isString() && newData.val().length <= 300" },
+        "$other":  { ".validate": false }
+      }
+    },
+
+    // เหมือน _auditLog — เพิ่มได้อย่างเดียว
+    "_orderHistory": {
+      ".read": "root.child('_admins').child(auth.uid).val() === true",
+      ".write": "root.child('_admins').child(auth.uid).val() === true",
+      "$entry": {
+        ".write": "auth != null && !data.exists() && newData.exists()",
+        ".validate": "newData.hasChildren(['ts','user'])",
+        "ts":   { ".validate": "newData.isNumber()" },
+        "user": { ".validate": "newData.isString() && newData.val().length <= 40" }
+      }
+    },
+
+    // แก้ได้จาก Firebase Console เท่านั้น — ปิดทั้งอ่านและเขียนจากฝั่งเว็บ
+    // (rules ยังอ่าน node นี้ได้เองผ่าน root.child() — .read คุมแค่ฝั่ง client)
+    "_admins": {
+      ".read": false,
+      ".write": false
+    }
+  }
+}

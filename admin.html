@@ -463,7 +463,8 @@
     <div style="font-size:2.5em;margin-bottom:8px">🔐</div>
     <h1>Admin Panel</h1>
     <p>คีย์ลัดสินค้า — ระบบจัดการข้อมูล</p>
-    <input id="pw-input" class="login-input" type="password" placeholder="รหัสผ่าน Admin" onkeydown="if(event.key==='Enter')doLogin()">
+    <input id="email-input" class="login-input" type="email" placeholder="อีเมล Admin" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('pw-input').focus()">
+    <input id="pw-input" class="login-input" type="password" placeholder="รหัสผ่าน" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
     <button class="login-btn" onclick="doLogin()">เข้าสู่ระบบ</button>
     <div class="login-error" id="login-error">รหัสผ่านไม่ถูกต้อง</div>
   </div>
@@ -477,6 +478,7 @@
       <button type="button" class="un-current-badge" onclick="promptUserName(true)" id="un-badge" title="คลิกเพื่อเปลี่ยนชื่อ">👤 <span id="un-badge-text">—</span></button>
       <button class="btn btn-green btn-sm" onclick="syncAll()" id="sync-all-btn">🔄 Sync ทั้งหมด</button>
       <a href="index.html" target="_blank"><button class="btn btn-ghost" style="font-size:.8em;padding:7px 14px">👁 ดูหน้าหลัก</button></a>
+      <span id="login-who" style="font-size:.78em;opacity:.65;margin-right:8px"></span>
       <button class="logout-btn" onclick="doLogout()">ออกจากระบบ</button>
     </div>
   </div>
@@ -1361,30 +1363,82 @@ function handleExcelDrop(event) {
 }
 function getSettings() { return JSON.parse(localStorage.getItem('admin_settings') || '{}'); }
 
-// ─── AUTH ────────────────────────────────────────
-function doLogin() {
+// ─── AUTH (Firebase Authentication — ของจริง) ────────────────
+// เมื่อก่อนเช็กรหัสผ่านในเบราว์เซอร์เอง (localStorage + ค่าเริ่มต้น 'admin1234')
+// ซึ่งใครเปิด DevTools ก็ข้ามได้ และฝั่งฐานข้อมูลก็แยกไม่ออกว่าใครเป็นแอดมิน
+// ตอนนี้ล็อกอินจริงผ่าน Firebase → rules ฝั่ง server เป็นคนกันการเขียนให้
+let _authReady = false;
+
+function _bootAuth() {
+  if (!firebase.apps.length) firebase.initializeApp(window.FIREBASE_CONFIG);
+  firebase.auth().onAuthStateChanged(user => {
+    const loginScreen = document.getElementById('login-screen');
+    const app = document.getElementById('app');
+    // ⚠️ ต้องเช็ก !isAnonymous ด้วย — หน้า index ล็อกอินแบบ anonymous ไว้บน origin เดียวกัน
+    //    ถ้าเช็กแค่ว่า "มี user ไหม" เปิด index ก่อนแล้วมาเปิด admin จะเข้าได้เลยโดยไม่ต้องล็อกอิน
+    if (user && !user.isAnonymous) {
+      loginScreen.style.display = 'none';
+      app.style.display = 'block';
+      document.getElementById('login-error').style.display = 'none';
+      const who = document.getElementById('login-who');
+      if (who) who.textContent = user.email || '';
+      if (!_authReady) { _authReady = true; initApp(); }
+    } else {
+      loginScreen.style.display = 'flex';
+      app.style.display = 'none';
+    }
+  });
+}
+document.addEventListener('DOMContentLoaded', _bootAuth);
+
+async function doLogin() {
+  const email = document.getElementById('email-input').value.trim();
   const pw = document.getElementById('pw-input').value;
-  const stored = localStorage.getItem('admin_pw') || 'admin1234';
-  if (pw === stored) {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    document.getElementById('login-error').style.display = 'none';
-    initApp();
-  } else {
-    document.getElementById('login-error').style.display = 'block';
+  const errEl = document.getElementById('login-error');
+  if (!email || !pw) { errEl.textContent = 'กรอกอีเมลและรหัสผ่านให้ครบ'; errEl.style.display='block'; return; }
+  errEl.style.display = 'none';
+  try {
+    await firebase.auth().signInWithEmailAndPassword(email, pw);
+    // onAuthStateChanged จะเปิดหน้า app ให้เอง
+  } catch (e) {
+    const msg = {
+      'auth/invalid-email'    : 'รูปแบบอีเมลไม่ถูกต้อง',
+      'auth/user-not-found'   : 'ไม่พบบัญชีนี้',
+      'auth/wrong-password'   : 'รหัสผ่านไม่ถูกต้อง',
+      'auth/invalid-credential': 'อีเมลหรือรหัสผ่านไม่ถูกต้อง',
+      'auth/too-many-requests': 'ลองผิดหลายครั้งเกินไป — รอสักครู่แล้วลองใหม่',
+      'auth/operation-not-allowed': 'ยังไม่ได้เปิด Email/Password ใน Firebase Console → Authentication → Sign-in method',
+      'auth/network-request-failed': 'เชื่อมต่ออินเทอร์เน็ตไม่ได้',
+    }[e.code] || ('เข้าสู่ระบบไม่สำเร็จ: ' + (e.code || e.message));
+    errEl.textContent = msg;
+    errEl.style.display = 'block';
     document.getElementById('pw-input').value = '';
   }
 }
-function doLogout() { location.reload(); }
-function changePw() {
+async function doLogout() {
+  try { await firebase.auth().signOut(); } catch(e) {}
+  location.reload();
+}
+async function changePw() {
   const p1 = document.getElementById('new-pw').value;
   const p2 = document.getElementById('new-pw2').value;
   if (!p1) { toast('กรุณากรอกรหัสผ่าน','warn'); return; }
   if (p1 !== p2) { toast('รหัสผ่านไม่ตรงกัน','error'); return; }
-  localStorage.setItem('admin_pw', p1);
-  toast('เปลี่ยนรหัสผ่านสำเร็จ','success');
-  document.getElementById('new-pw').value = '';
-  document.getElementById('new-pw2').value = '';
+  if (p1.length < 6) { toast('รหัสผ่านต้องยาวอย่างน้อย 6 ตัวอักษร','warn'); return; }
+  const user = firebase.auth().currentUser;
+  if (!user) { toast('ยังไม่ได้เข้าสู่ระบบ','error'); return; }
+  try {
+    await user.updatePassword(p1);
+    toast('เปลี่ยนรหัสผ่านสำเร็จ','success');
+    document.getElementById('new-pw').value = '';
+    document.getElementById('new-pw2').value = '';
+  } catch (e) {
+    if (e.code === 'auth/requires-recent-login') {
+      toast('เพื่อความปลอดภัย ต้องออกจากระบบแล้วเข้าใหม่ก่อนเปลี่ยนรหัส','warn');
+    } else {
+      toast('เปลี่ยนรหัสผ่านไม่สำเร็จ: ' + (e.code || e.message),'error');
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -2142,15 +2196,10 @@ function _normalizeProducts(raw) {
 async function initApp() {
   loadSettings();
   setInterval(refreshLastUpdateDisplay, 60000); // refresh "X hours ago" every minute
-  firebase.initializeApp(window.FIREBASE_CONFIG);
+  if (!firebase.apps.length) firebase.initializeApp(window.FIREBASE_CONFIG);
   db = firebase.database();
-  // Sign in anonymously so writes pass security rules
-  try {
-    await firebase.auth().signInAnonymously();
-  } catch(e) {
-    console.error('Anonymous auth failed:', e);
-    toast('⚠️ Firebase auth ล้ม — เปิด Anonymous Auth ใน Console ก่อน', 'error');
-  }
+  // ไม่ต้อง signInAnonymously แล้ว — _bootAuth() ล็อกอินด้วยอีเมลจริงไปก่อนหน้านี้
+  // และ database rules ใช้ auth.uid ตัวนี้ตัดสินว่าเขียนได้ไหม
 
   // Real-time listeners
   db.ref('products').on('value', snap => {

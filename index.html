@@ -30,7 +30,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <script src="firebase-config.js"></script>
-  <link rel="stylesheet" href="app.css?v=27">
+  <link rel="stylesheet" href="app.css?v=28">
 </head>
 <body>
 
@@ -46,10 +46,6 @@
     <span class="as-search-icon">🔍</span>
     <input id="search-input" type="text" placeholder="ค้นหาสินค้า..." oninput="handleSearch(this.value)">
   </div>
-  <button id="sync-btn" class="as-sync-btn" onclick="customerSyncFromPage365(false)" title="อัพเดต stock จาก Page365">
-    <span class="sync-icon">🔄</span>
-    <span class="sync-label" id="sync-label">Sync stock</span>
-  </button>
   <button class="cart-btn" onclick="openCartDrawer()" title="ตะกร้าออเดอร์ (Shift+T)">
     🛒<span class="cart-badge">0</span>
   </button>
@@ -111,10 +107,6 @@
   <button class="home-btn" onclick="goHome()" title="กลับหน้าแรก">🏠 หน้าแรก</button>
   <span class="live-pill">Live</span>
   <div style="flex:1"></div>
-  <button class="as-sync-btn" onclick="customerSyncFromPage365(false)" title="อัพเดต stock จาก Page365">
-    <span class="sync-icon">🔄</span>
-    <span class="sync-label">Sync stock</span>
-  </button>
   <button class="cart-btn" onclick="openCartDrawer()" title="ตะกร้าออเดอร์">
     🛒<span class="cart-badge">0</span>
   </button>
@@ -235,7 +227,7 @@
   </div><!-- /page-inner -->
 </div><!-- /page -->
 
-<script src="app.js?v=27"></script>
+<script src="app.js?v=28"></script>
 
 <!-- COMPOSITE IMAGE MODAL -->
 <div class="ci-modal-overlay" id="ci-modal-overlay" onclick="if(event.target===this)closeCompositeImage()">
