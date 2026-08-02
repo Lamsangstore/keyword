@@ -1686,3 +1686,113 @@
     #fab-main:hover{transform:scale(1.08);box-shadow:0 6px 22px rgba(255,59,107,.5)}
     #fab-main.open{transform:rotate(45deg)}
     #fab-wrap{display:none} /* shown only in detail view */
+
+    /* ══════════════════════════════════════
+       MOBILE FILTER BAR + BOTTOM SHEET
+       มือถือ: ยุบ หมวดหมู่ / สี / เรียง / ตัวเลือก
+       ที่เมื่อก่อนกางเต็มหน้าจอ ให้เหลือปุ่มเดียว
+       ══════════════════════════════════════ */
+    #m-filter-bar{
+      display:none;
+      position:sticky;top:106px;z-index:90;
+      align-items:center;gap:8px;
+      padding:10px 14px;
+      background:rgba(245,244,250,.95);
+      backdrop-filter:blur(16px);
+      -webkit-backdrop-filter:blur(16px);
+      border-bottom:1px solid var(--border);
+    }
+    body.dark #m-filter-bar{background:rgba(19,18,31,.95)}
+    .mfb-btn{
+      display:inline-flex;align-items:center;gap:6px;flex-shrink:0;
+      padding:8px 15px;border-radius:30px;
+      border:1.5px solid var(--border);background:var(--surface);
+      font-family:'Prompt',sans-serif;font-size:.82em;font-weight:700;
+      color:var(--ink);cursor:pointer;transition:all .15s;
+    }
+    .mfb-btn.has-filter{
+      background:linear-gradient(135deg,var(--pink2),var(--pink));
+      border-color:transparent;color:#fff;
+      box-shadow:0 4px 12px rgba(184,148,216,.35);
+    }
+    .mfb-count{
+      min-width:18px;height:18px;padding:0 5px;border-radius:9px;
+      background:rgba(255,255,255,.35);
+      font-size:.78em;font-weight:800;line-height:18px;text-align:center;
+    }
+    .mfb-summary{
+      flex:1;min-width:0;
+      font-size:.76em;font-weight:600;color:var(--muted);
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+    .mfb-clear{
+      flex-shrink:0;padding:6px 12px;border-radius:30px;
+      border:1.5px solid var(--border);background:var(--surface);
+      font-family:'Prompt',sans-serif;font-size:.76em;font-weight:700;
+      color:var(--muted);cursor:pointer;
+    }
+    body.dark .mfb-btn,body.dark .mfb-clear{background:#1e1c2e;border-color:#2a2640;color:#e4dfff}
+    body.dark .mfb-btn.has-filter{border-color:transparent;color:#fff}
+
+    /* ── bottom sheet ── */
+    #filter-sheet{display:none;position:fixed;inset:0;z-index:800}
+    #filter-sheet.open{display:block}
+    .fs-overlay{position:absolute;inset:0;background:rgba(0,0,0,.45)}
+    .fs-panel{
+      position:absolute;left:0;right:0;bottom:0;
+      background:var(--surface,#fff);
+      border-radius:22px 22px 0 0;
+      max-height:82vh;display:flex;flex-direction:column;
+      box-shadow:0 -8px 40px rgba(0,0,0,.25);
+      animation:fsUp .28s var(--ease);
+      padding-bottom:env(safe-area-inset-bottom);
+    }
+    @keyframes fsUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+    body.dark .fs-panel{background:#1e1c2e;color:#e4dfff}
+    .fs-grip{width:40px;height:4px;border-radius:2px;background:var(--border);margin:10px auto 2px}
+    .fs-head{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:8px 18px 12px;border-bottom:1px solid var(--border);
+    }
+    .fs-head h4{margin:0;font-size:1.05em;font-weight:800;color:var(--ink)}
+    body.dark .fs-head h4{color:#e4dfff}
+    .fs-close{
+      width:32px;height:32px;border-radius:50%;border:none;
+      background:rgba(0,0,0,.05);color:var(--ink);
+      font-size:1em;cursor:pointer;line-height:1;
+    }
+    body.dark .fs-close{background:rgba(255,255,255,.1);color:#e4dfff}
+    .fs-body{padding:4px 18px 16px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
+    .fs-sec{margin-top:18px}
+    .fs-sec-title{
+      font-size:.78em;font-weight:800;color:var(--muted);
+      text-transform:uppercase;letter-spacing:.04em;margin-bottom:9px;
+    }
+    .fs-wrap{display:flex;flex-wrap:wrap;gap:8px}
+    .fs-wrap .cat-pill,.fs-wrap .color-chip,.fs-wrap .hide-sold-btn{flex-shrink:1}
+    .fs-foot{
+      display:flex;gap:10px;padding:12px 18px;
+      border-top:1px solid var(--border);
+    }
+    .fs-foot button{
+      padding:12px 16px;border-radius:14px;
+      font-family:'Prompt',sans-serif;font-size:.9em;font-weight:800;cursor:pointer;
+    }
+    .fs-reset{flex:0 0 auto;border:1.5px solid var(--border);background:transparent;color:var(--muted)}
+    .fs-apply{
+      flex:1;border:none;color:#fff;
+      background:linear-gradient(135deg,var(--pink2),var(--pink));
+      box-shadow:0 4px 14px rgba(184,148,216,.4);
+    }
+
+    /* ── มือถือ: เปิดแถบตัวกรอง แล้วซ่อนของเดิมที่กางเต็มหน้า ── */
+    @media(max-width:700px){
+      #m-filter-bar{display:flex}
+      #cat-pill-bar{display:none !important}
+      #product-toolbar{display:none !important}
+      #color-chip-bar{display:none !important}
+      #fav-tab-pill{display:none !important}
+      /* ชื่อหัวข้อซ้ำกับแท็บด้านบนอยู่แล้ว — ย่อลงให้เหลือที่ให้สินค้า */
+      .section-head{padding:14px 16px 6px}
+      .section-title{font-size:1.15em}
+    }

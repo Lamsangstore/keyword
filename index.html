@@ -30,7 +30,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <script src="firebase-config.js"></script>
-  <link rel="stylesheet" href="app.css?v=28">
+  <link rel="stylesheet" href="app.css?v=29">
 </head>
 <body>
 
@@ -150,6 +150,40 @@
   </div>
 </div>
 
+<!-- FILTER BOTTOM SHEET (มือถือ) -->
+<div id="filter-sheet">
+  <div class="fs-overlay" onclick="closeFilterSheet()"></div>
+  <div class="fs-panel" role="dialog" aria-label="ตัวกรองสินค้า">
+    <div class="fs-grip"></div>
+    <div class="fs-head">
+      <h4>⚙️ ตัวกรอง</h4>
+      <button class="fs-close" onclick="closeFilterSheet()" aria-label="ปิด">✕</button>
+    </div>
+    <div class="fs-body">
+      <div class="fs-sec">
+        <div class="fs-sec-title">เรียงลำดับ</div>
+        <div class="fs-wrap" id="fs-sort"></div>
+      </div>
+      <div class="fs-sec">
+        <div class="fs-sec-title">ประเภทสินค้า</div>
+        <div class="fs-wrap" id="fs-cats"></div>
+      </div>
+      <div class="fs-sec" id="fs-colors-sec">
+        <div class="fs-sec-title">สี</div>
+        <div class="fs-wrap" id="fs-colors"></div>
+      </div>
+      <div class="fs-sec">
+        <div class="fs-sec-title">ตัวเลือกอื่น</div>
+        <div class="fs-wrap" id="fs-opts"></div>
+      </div>
+    </div>
+    <div class="fs-foot">
+      <button class="fs-reset" onclick="clearAllFilters()">ล้างทั้งหมด</button>
+      <button class="fs-apply" onclick="closeFilterSheet()" id="fs-apply">ดูสินค้า</button>
+    </div>
+  </div>
+</div>
+
 <!-- MAIN -->
 <div class="page">
   <!-- TAB BAR -->
@@ -158,9 +192,19 @@
     <button class="tab-btn" id="tabGeneral" onclick="switchTab('general')">คีย์ลัดทั่วไป</button>
   </div>
 
-  <!-- CATEGORY PILL BAR (mobile/tablet) -->
+  <!-- CATEGORY PILL BAR (เดสก์ท็อป/แท็บเล็ต — มือถือใช้ #m-filter-bar แทน) -->
   <div class="cat-pill-bar" id="cat-pill-bar">
     <div class="cat-pill active" id="pill-all" onclick="selectCatPill('ทั้งหมด',this)">✦ ทั้งหมด</div>
+  </div>
+
+  <!-- MOBILE FILTER BAR — ยุบตัวกรองทั้งหมดไว้ในปุ่มเดียว -->
+  <div id="m-filter-bar">
+    <button class="mfb-btn" id="mfb-btn" onclick="openFilterSheet()">
+      <span>⚙️ ตัวกรอง</span>
+      <span class="mfb-count" id="mfb-count" style="display:none">0</span>
+    </button>
+    <span class="mfb-summary" id="mfb-summary">ทั้งหมด</span>
+    <button class="mfb-clear" id="mfb-clear" onclick="clearAllFilters()" style="display:none">ล้าง</button>
   </div>
 
   <!-- PAGE INNER: desktop = sidebar + content, mobile = block -->
@@ -182,7 +226,7 @@
             คีย์ลัดสินค้า
             <span class="live-pill">Live</span>
           </div>
-          <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <div id="product-toolbar" style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span style="font-size:.78em;font-weight:600;color:var(--muted)">เรียง</span>
             <select id="sortProduct" onchange="handleSortChange(this.value)" style="padding:7px 14px;border-radius:30px;border:1.5px solid var(--border);font-family:'Prompt',sans-serif;font-size:.8em;font-weight:700;color:var(--ink);background:var(--surface);cursor:pointer;outline:none">
               <option value="name_asc">ชื่อ (ก→ฮ)</option>
@@ -227,7 +271,7 @@
   </div><!-- /page-inner -->
 </div><!-- /page -->
 
-<script src="app.js?v=28"></script>
+<script src="app.js?v=29"></script>
 
 <!-- COMPOSITE IMAGE MODAL -->
 <div class="ci-modal-overlay" id="ci-modal-overlay" onclick="if(event.target===this)closeCompositeImage()">

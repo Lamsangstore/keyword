@@ -2991,3 +2991,177 @@ async function downloadAllCi() {
   }
   showSyncToast(`ดาวน์โหลด ${ciGroups.length} ไฟล์ ✓`, 'success');
 }
+
+// ═══════════════════════════════════════════════
+//  MOBILE FILTER SHEET
+//  มือถือ: ยุบ หมวดหมู่ / สี / เรียง / ตัวเลือก ที่เมื่อก่อนกาง
+//  เต็มหน้าจอ (กินพื้นที่ ~350px ก่อนเห็นสินค้าชิ้นแรก) ให้เหลือปุ่มเดียว
+//  ตัวกรองใช้ตัวแปรและฟังก์ชันชุดเดิมทั้งหมด — แค่เปลี่ยนที่แสดงผล
+// ═══════════════════════════════════════════════
+const SORT_LABELS = {
+  name_asc:   'ชื่อ (ก→ฮ)',
+  price_asc:  'ราคา น้อย→มาก',
+  price_desc: 'ราคา มาก→น้อย',
+};
+
+function _activeFilters(){
+  const out = [];
+  if (selectedCat && selectedCat !== 'ทั้งหมด') out.push(selectedCat);
+  if (selectedColor) out.push('สี' + selectedColor);
+  if (hideSoldOut) out.push('ซ่อนของหมด');
+  if (showingFavOnly) out.push('รายการโปรด');
+  if (currentSort !== 'name_asc') out.push(SORT_LABELS[currentSort] || currentSort);
+  return out;
+}
+
+function _shownCount(){
+  return document.querySelectorAll('#product-grid-view .pcard').length;
+}
+
+// อัปเดตแถบตัวกรองด้านบน (ป้ายจำนวน + สรุปว่ากรองอะไรอยู่)
+function updateFilterBar(){
+  const active = _activeFilters();
+  const btn = document.getElementById('mfb-btn');
+  const cnt = document.getElementById('mfb-count');
+  const sum = document.getElementById('mfb-summary');
+  const clr = document.getElementById('mfb-clear');
+  if (!btn) return;
+  btn.classList.toggle('has-filter', active.length > 0);
+  if (cnt){
+    cnt.textContent = active.length;
+    cnt.style.display = active.length ? 'block' : 'none';
+  }
+  if (sum) sum.textContent = active.length ? active.join(' · ') : 'แสดงทั้งหมด';
+  if (clr) clr.style.display = active.length ? 'block' : 'none';
+  const apply = document.getElementById('fs-apply');
+  if (apply) apply.textContent = `ดูสินค้า ${_shownCount()} รายการ`;
+}
+
+function _escAttr(s){ return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+
+function renderFilterSheet(){
+  const rows = productRows || [];
+
+  // เรียงลำดับ
+  const sortEl = document.getElementById('fs-sort');
+  if (sortEl) sortEl.innerHTML = Object.entries(SORT_LABELS).map(([v,label]) =>
+    `<button class="cat-pill${currentSort===v?' active':''}" onclick="pickSort('${v}')">${label}</button>`
+  ).join('');
+
+  // ประเภทสินค้า
+  const catEl = document.getElementById('fs-cats');
+  if (catEl){
+    const counts = {};
+    rows.forEach(r => { const t = r[1]||'ไม่ระบุ'; counts[t] = (counts[t]||0)+1; });
+    const types = Object.keys(counts).sort((a,b)=>a.localeCompare(b,'th'));
+    catEl.innerHTML =
+      `<button class="cat-pill${selectedCat==='ทั้งหมด'?' active':''}" onclick="pickCat('ทั้งหมด')">✦ ทั้งหมด <span class="pill-count">${rows.length}</span></button>` +
+      types.map(t => `<button class="cat-pill${selectedCat===t?' active':''}" onclick="pickCat('${_escAttr(t)}')">${catIcon(t)} ${t} <span class="pill-count">${counts[t]}</span></button>`).join('');
+  }
+
+  // สี — ใช้ชุดสีเดียวกับ chip bar เดิม
+  const colEl = document.getElementById('fs-colors');
+  const colSec = document.getElementById('fs-colors-sec');
+  if (colEl){
+    const present = new Map();
+    rows.forEach(r => productColorGroups(r).forEach(lbl => present.set(lbl, (present.get(lbl)||0)+1)));
+    const groups = COLOR_GROUPS.filter(g => present.has(g.label));
+    if (groups.length < 2){
+      if (colSec) colSec.style.display = 'none';
+    } else {
+      if (colSec) colSec.style.display = '';
+      colEl.innerHTML =
+        `<button class="color-chip${!selectedColor?' active':''}" onclick="pickColor(null)">🎨 ทุกสี</button>` +
+        groups.map(g => `<button class="color-chip${selectedColor===g.label?' active':''}" onclick="pickColor('${_escAttr(g.label)}')">
+          <span class="color-sw" style="background:${g.sw}"></span>${g.label}<span class="cc-count">${present.get(g.label)}</span>
+        </button>`).join('');
+    }
+  }
+
+  // ตัวเลือกอื่น
+  const optEl = document.getElementById('fs-opts');
+  if (optEl){
+    const favCount = (typeof getFavs === 'function' ? getFavs().length : 0);
+    optEl.innerHTML =
+      `<button class="hide-sold-btn${hideSoldOut?' on':''}" onclick="pickHideSold()">${hideSoldOut?'👁 แสดงของหมด':'🙈 ซ่อนของหมด'}</button>` +
+      (favCount ? `<button class="hide-sold-btn${showingFavOnly?' on':''}" onclick="pickFavOnly()">⭐ รายการโปรด ${favCount}</button>` : '') +
+      `<button class="hide-sold-btn" onclick="closeFilterSheet();openUnmatchedReport()">⚠️ เช็ก Sync</button>`;
+  }
+
+  updateFilterBar();
+}
+
+// ── ตัวเลือกในชีต: เปลี่ยนค่าแล้ววาดใหม่ทันที (เห็นผลหลังชีตเลย) ──
+function pickSort(v){
+  const sel = document.getElementById('sortProduct');
+  if (sel) sel.value = v;
+  handleSortChange(v);
+  renderFilterSheet();
+}
+function pickCat(cat){
+  selectedCat = cat;
+  showingFavOnly = false;
+  buildCatPills(productRows);          // sync แถบเดิม + sidebar เดสก์ท็อป
+  window.renderProductGrid(productRows);
+  renderFilterSheet();
+}
+function pickColor(label){
+  selectColorChip(label);
+  renderFilterSheet();
+}
+function pickHideSold(){
+  toggleHideSold(document.getElementById('hideSoldBtn'));
+  renderFilterSheet();
+}
+function pickFavOnly(){
+  toggleFavTab();
+  renderFilterSheet();
+}
+
+function clearAllFilters(){
+  selectedCat = 'ทั้งหมด';
+  selectedColor = null;
+  showingFavOnly = false;
+  if (hideSoldOut) toggleHideSold(document.getElementById('hideSoldBtn'));
+  const sel = document.getElementById('sortProduct');
+  if (sel) sel.value = 'name_asc';
+  currentSort = 'name_asc';
+  const favPill = document.getElementById('fav-tab-pill');
+  if (favPill) favPill.classList.remove('active-fav');
+  buildCatPills(productRows);
+  buildColorChips(productRows);
+  window.renderProductGrid(productRows);
+  renderFilterSheet();
+}
+
+function openFilterSheet(){
+  renderFilterSheet();
+  document.getElementById('filter-sheet').classList.add('open');
+  const body = document.querySelector('#filter-sheet .fs-body');
+  if (body) body.scrollTop = 0;   // เปิดใหม่ให้เริ่มที่บนสุดเสมอ
+  document.body.style.overflow = 'hidden';
+}
+function closeFilterSheet(){
+  document.getElementById('filter-sheet').classList.remove('open');
+  document.body.style.overflow = '';
+  updateFilterBar();
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('filter-sheet')?.classList.contains('open')) closeFilterSheet();
+});
+// หมุนจอ/ขยายหน้าต่างจนกลายเป็นเดสก์ท็อป — ปิดชีตทิ้ง เพราะเดสก์ท็อปใช้ sidebar แทน
+window.addEventListener('resize', () => {
+  if (window.innerWidth > 700 && document.getElementById('filter-sheet')?.classList.contains('open')) closeFilterSheet();
+}, {passive:true});
+
+// แถบตัวกรองต้องอัปเดตทุกครั้งที่ grid วาดใหม่ (จำนวน + สรุปว่ากรองอะไรอยู่)
+// หุ้มทับ renderProductGrid ตัวที่ผ่าน fav patch มาแล้ว
+(function(){
+  const _prevRender = window.renderProductGrid;
+  window.renderProductGrid = function(){
+    const out = _prevRender.apply(this, arguments);
+    try { updateFilterBar(); } catch(e){}
+    return out;
+  };
+})();
+document.addEventListener('DOMContentLoaded', updateFilterBar);
