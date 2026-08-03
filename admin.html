@@ -377,12 +377,103 @@
     .sync-log{background:#1e1e2e;border-radius:10px;padding:14px;font-family:monospace;font-size:.8em;max-height:180px;overflow-y:auto;color:#cdd6f4}
     .log-ok{color:#a6e3a1}.log-err{color:#f38ba8}.log-info{color:#89b4fa}
 
+    /* ══════════════════════════════════════════════════
+       MOBILE  (<=768px)
+       เดิมมีแค่ 5 บรรทัด ทำให้บนมือถือ:
+         • แถบบนกว้าง 646px ในจอ 375px → ทั้งหน้าเลื่อนซ้ายขวาได้
+         • เมนูกางเป็น 2 คอลัมน์ กินที่บนสุด 138px ทุกหน้า
+         • ตารางสินค้า 10 คอลัมน์ กว้าง 1051px
+       ══════════════════════════════════════════════════ */
     @media(max-width:768px){
-      .main-layout{flex-direction:column}
-      .sidebar{width:100%;display:flex;flex-wrap:wrap;gap:4px;padding:12px}
-      .sidebar-item{flex:1;min-width:120px;justify-content:center;font-size:.82em}
-      .content{padding:16px}
+      html{font-size:15px}
+
+      /* ── แถบบน: เหลือแต่ไอคอน ── */
+      .topbar{height:auto;min-height:56px;padding:8px 12px;gap:8px}
+      .topbar-title{font-size:1em;gap:6px;flex-shrink:0}
+      .topbar-title .tb-name{display:none}      /* เหลือแต่ ⚙️ */
+      .topbar .live-dot{display:none}
+      .topbar-right{gap:6px;flex:1;justify-content:flex-end;min-width:0}
+      .topbar-right .lbl{display:none}          /* ปุ่มเหลือแต่ไอคอน */
+      .topbar-right .btn{padding:8px 11px!important;font-size:1em!important}
+      .topbar-right .logout-btn{padding:8px 11px;font-size:1em}
+      #login-who{display:none}                  /* อีเมลไปแสดงในหน้า ตั้งค่า แทน */
+      .un-current-badge{max-width:104px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+      /* ── เมนู: ย้ายลงเป็นแถบล่างแบบแอป ── */
+      .main-layout{flex-direction:column;min-height:auto}
+      .sidebar{
+        position:fixed;left:0;right:0;bottom:0;z-index:200;
+        width:100%;display:flex;gap:0;padding:4px 2px;
+        box-shadow:0 -2px 14px rgba(0,0,0,.12);
+        border-top:1px solid var(--purple-pale);
+        padding-bottom:calc(4px + env(safe-area-inset-bottom));
+      }
+      .sidebar-item{
+        flex:1;min-width:0;margin:0;
+        flex-direction:column;gap:2px;
+        padding:7px 2px;font-size:.66em;line-height:1.25;
+        justify-content:center;text-align:center;
+      }
+      .sidebar-item .icon{font-size:1.35em}
+      .content{padding:14px 12px 84px;max-width:100%}  /* เว้นที่ให้แถบล่าง */
+
+      /* ── การ์ด/ฟอร์ม ── */
+      .panel{padding:16px 14px;border-radius:14px;margin-bottom:16px}
       .form-row{grid-template-columns:1fr}
+      .sync-bar{gap:8px}
+      .sync-bar .btn{flex:1 1 100%;justify-content:center}
+      .alerts-grid{grid-template-columns:1fr}
+      /* กล่องลาก Excel: ปุ่มล้นขอบ — ให้ตกลงมาเป็นแถวใหม่เต็มความกว้าง */
+      .import-drop{flex-wrap:wrap;gap:10px;padding:14px}
+      .import-drop .drop-actions{flex:1 1 100%;display:flex;flex-wrap:wrap;gap:8px}
+      .import-drop .drop-actions .btn{flex:1 1 100%;justify-content:center}
+
+      /* ── ตาราง: ตัดคอลัมน์ที่ไม่จำเป็นบนมือถือ ── */
+      /* เหลือ รูป · ชื่อ · ราคา · Stock · จัดการ
+         (ตัด checkbox, ประเภท, SKU, Shopee, TikTok) */
+      #product-table th:nth-child(1),#product-table td:nth-child(1),
+      #product-table th:nth-child(4),#product-table td:nth-child(4),
+      #product-table th:nth-child(6),#product-table td:nth-child(6),
+      #product-table th:nth-child(8),#product-table td:nth-child(8),
+      #product-table th:nth-child(9),#product-table td:nth-child(9){display:none}
+      /* auto layout ไม่สนใจ width ที่ตั้งไว้ (บีบ "ชื่อสินค้า" เหลือ ~59px แล้วโยน
+         ที่เหลือให้คอลัมน์ราคา 117px) — fixed layout บังคับได้จริง */
+      #product-table{table-layout:fixed;width:100%}
+      #product-table th:nth-child(2),#product-table td:nth-child(2){width:48px}
+      #product-table th:nth-child(5),#product-table td:nth-child(5){width:50px}
+      #product-table th:nth-child(7),#product-table td:nth-child(7){width:54px}
+      #product-table th:nth-child(10),#product-table td:nth-child(10){width:42px}
+      #product-table .td-price{white-space:normal}
+      /* ตารางคีย์ลัดทั่วไป: ตัดคอลัมน์ "รายละเอียด (ตัวอย่าง)" ที่ยาวเกินจอ */
+      #general-table{table-layout:fixed;width:100%}
+      #general-table th:nth-child(3),#general-table td:nth-child(3){display:none}
+      #general-table th:nth-child(4),#general-table td:nth-child(4){width:44px}
+      #general-table th:nth-child(5),#general-table td:nth-child(5){width:58px}
+      /* ปุ่ม "✏️ แก้ไข" ในตารางนี้มีข้อความ ต้องบีบไม่ให้ล้นคอลัมน์ */
+      #general-table .td-actions .btn{padding:5px 6px!important;font-size:.68em!important}
+      table{font-size:.82em}
+      thead th{padding:8px 6px;white-space:normal}   /* ไม่งั้นหัว "จัดการ" โดนตัด */
+      tbody td{padding:7px 6px}
+      .td-img{width:40px;height:40px}
+      .td-name{max-width:none;white-space:normal;word-break:break-word;font-size:.95em}
+      /* ปุ่มจัดการเรียงลงเป็นคอลัมน์แคบ ๆ ไม่งั้นดันตารางจนล้น
+         (ปุ่มมี inline style อยู่ ต้อง !important ถึงจะทับได้) */
+      .td-actions{flex-direction:column;gap:3px;white-space:normal;width:min-content}
+      .td-actions .btn{padding:5px 7px!important;font-size:.72em!important;justify-content:center}
+      /* แถวฟิลเตอร์: จัดเป็น 2 ช่องต่อแถว แทนที่จะยาวเป็นหางว่าว */
+      .filter-select{min-width:0!important;flex:1 1 calc(50% - 4px)}
+      .filter-bar #filter-count{margin-left:0!important;flex:1 1 100%;text-align:right}
+
+      /* ── โมดัล: เต็มจอ อ่านง่ายกว่า ── */
+      .modal-overlay{padding:0;align-items:flex-end}
+      .modal{
+        border-radius:18px 18px 0 0;padding:18px 16px;
+        max-height:92vh;max-width:100%!important;
+        padding-bottom:calc(18px + env(safe-area-inset-bottom));
+      }
+      .modal-title{font-size:1.1em;margin-bottom:14px}
+      .modal-actions{justify-content:stretch}
+      .modal-actions .btn{flex:1;justify-content:center}
     }
   </style>
 </head>
@@ -473,13 +564,13 @@
 <!-- ── APP ── -->
 <div id="app">
   <div class="topbar">
-    <div class="topbar-title">⚙️ Admin Panel <span class="live-dot">Firebase Live</span></div>
+    <div class="topbar-title">⚙️ <span class="tb-name">Admin Panel</span> <span class="live-dot">Firebase Live</span></div>
     <div class="topbar-right">
       <button type="button" class="un-current-badge" onclick="promptUserName(true)" id="un-badge" title="คลิกเพื่อเปลี่ยนชื่อ">👤 <span id="un-badge-text">—</span></button>
-      <button class="btn btn-green btn-sm" onclick="syncAll()" id="sync-all-btn">🔄 Sync ทั้งหมด</button>
-      <a href="index.html" target="_blank"><button class="btn btn-ghost" style="font-size:.8em;padding:7px 14px">👁 ดูหน้าหลัก</button></a>
+      <button class="btn btn-green btn-sm" onclick="syncAll()" id="sync-all-btn" title="Sync ทั้งหมด">🔄<span class="lbl"> Sync ทั้งหมด</span></button>
+      <a href="index.html" target="_blank"><button class="btn btn-ghost" style="font-size:.8em;padding:7px 14px" title="ดูหน้าหลัก">👁<span class="lbl"> ดูหน้าหลัก</span></button></a>
       <span id="login-who" style="font-size:.78em;opacity:.65;margin-right:8px"></span>
-      <button class="logout-btn" onclick="doLogout()">ออกจากระบบ</button>
+      <button class="logout-btn" onclick="doLogout()" title="ออกจากระบบ">🚪<span class="lbl"> ออกจากระบบ</span></button>
     </div>
   </div>
 
@@ -791,7 +882,13 @@
           <button class="btn btn-ghost" style="padding:6px 12px;font-size:.82em" onclick="resetTheme()">↺ Reset เป็นค่าเริ่มต้น</button>
         </div>
         <div class="panel">
-          <div class="panel-title">🔒 เปลี่ยนรหัสผ่าน Admin</div>
+          <div class="panel-title">🔒 บัญชี Admin</div>
+          <div style="font-size:.85em;color:var(--purple-mid);margin-bottom:14px">
+            เข้าสู่ระบบด้วย <strong id="settings-email" style="color:var(--pink)">—</strong><br>
+            <span style="font-size:.9em">UID: <code id="settings-uid" style="font-size:.95em;user-select:all">—</code>
+            <button class="btn btn-ghost" style="padding:3px 9px;font-size:.75em;margin-left:6px" onclick="copyMyUid(this)">📋 ก๊อป</button></span><br>
+            <span style="font-size:.85em;opacity:.8">ใช้ UID นี้เพิ่มแอดมินคนใหม่ที่ <code>_admins/&lt;UID&gt; = true</code> ใน Firebase Console</span>
+          </div>
           <div class="form-row">
             <div><label>รหัสผ่านใหม่</label><input type="password" id="new-pw" placeholder="รหัสผ่านใหม่"></div>
             <div><label>ยืนยันรหัสผ่าน</label><input type="password" id="new-pw2" placeholder="ยืนยัน"></div>
@@ -1382,6 +1479,11 @@ function _bootAuth() {
       document.getElementById('login-error').style.display = 'none';
       const who = document.getElementById('login-who');
       if (who) who.textContent = user.email || '';
+      // มือถือซ่อนอีเมลบนแถบบน — แสดงในหน้า ตั้งค่า แทน พร้อม UID สำหรับเพิ่มแอดมิน
+      const sEmail = document.getElementById('settings-email');
+      if (sEmail) sEmail.textContent = user.email || '—';
+      const sUid = document.getElementById('settings-uid');
+      if (sUid) sUid.textContent = user.uid;
       if (!_authReady) { _authReady = true; initApp(); }
     } else {
       loginScreen.style.display = 'flex';
@@ -1414,6 +1516,13 @@ async function doLogin() {
     errEl.style.display = 'block';
     document.getElementById('pw-input').value = '';
   }
+}
+function copyMyUid(btn){
+  const u = firebase.auth().currentUser;
+  if (!u) { toast('ยังไม่ได้เข้าสู่ระบบ','warn'); return; }
+  navigator.clipboard.writeText(u.uid)
+    .then(() => { const t = btn.textContent; btn.textContent = '✓ ก๊อปแล้ว'; setTimeout(()=>btn.textContent=t, 1500); })
+    .catch(() => toast('ก๊อปไม่สำเร็จ — กดค้างที่ UID เพื่อเลือกเองได้','warn'));
 }
 async function doLogout() {
   try { await firebase.auth().signOut(); } catch(e) {}
