@@ -2426,9 +2426,29 @@ function _ciDiagText() {
     const m2 = Math.round(x.measureText('★ ดีลพิเศษเฉพาะในแชท · ยิ่งซื้อยิ่งคุ้ม').width);
     const cv = document.getElementById('ci-canvas');
     const cvSize = cv ? `${cv.width}x${cv.height}` : '?';
+    // วัดจากพิกเซลจริงบน canvas ว่าป้ายเขียวขอบขวาสุดอยู่ตรงไหน
+    // ค่าที่ถูกคือ 1021 (โค้ดตรึงไว้ที่ W-30-28) ถ้าได้เลขอื่น = วาดผิดตำแหน่งจริง
+    // ถ้าได้ 1021 แต่รูปยังดูโดนตัด = วาดถูก แต่ไปเพี้ยนตอนบันทึก/แสดงผล
+    let badgeRight = '?';
+    try {
+      if (cv) {
+        const g = cv.getContext('2d');
+        const y0 = Math.floor(cv.height * 0.75), hh = cv.height - y0;
+        const px = g.getImageData(0, y0, cv.width, hh).data;
+        let mx = -1;
+        for (let i = 0; i < px.length; i += 4) {
+          if (Math.abs(px[i] - 26) < 28 && Math.abs(px[i+1] - 143) < 28 && Math.abs(px[i+2] - 79) < 28) {
+            const x = (i / 4) % cv.width;
+            if (x > mx) mx = x;
+          }
+        }
+        badgeRight = mx < 0 ? 'ไม่พบป้าย' : mx;
+      }
+    } catch (e) { badgeRight = 'อ่านไม่ได้'; }
     return `🔎 ข้อมูลเครื่อง (แตะเพื่อก๊อป)\n`
          + `v${ver} · ${engine} · ไทย:${thaiOK ? 'Prompt ✓' : 'ฟอนต์ระบบ ✗'} · w900:${w900 ? '✓' : '✗'} · dpr${window.devicePixelRatio || 1}\n`
-         + `วัดได้ ${m1}/${m2} (ควรเป็น 81/349) · canvas ${cvSize}`;
+         + `วัดได้ ${m1}/${m2} (ควรเป็น 81/349) · canvas ${cvSize}\n`
+         + `ขอบขวาป้าย ${badgeRight} (ควรเป็น 1021)`;
   } catch (e) { return 'diag error'; }
 }
 function copyCiDiag(el) {
