@@ -2418,14 +2418,16 @@ function _ciDiagText() {
     const iosM = ua.match(/OS (\d+)[._](\d+)/);
     const engine = /iPhone|iPad|iPod/.test(ua) ? ('iOS' + (iosM ? ' ' + iosM[1] + '.' + iosM[2] : '') + ' WebKit')
                  : (/Safari/.test(ua) && !/Chrome/.test(ua) ? 'Safari' : 'Chromium');
-    return `v${ver} · ${engine} · ไทย:${thaiOK ? 'Prompt ✓' : 'ฟอนต์ระบบ ✗'} · w900:${w900 ? '✓' : '✗'} · dpr${window.devicePixelRatio || 1}`;
+    return `🔎 ข้อมูลเครื่อง (แตะเพื่อก๊อป)\n`
+         + `v${ver} · ${engine} · ไทย:${thaiOK ? 'Prompt ✓' : 'ฟอนต์ระบบ ✗'} · w900:${w900 ? '✓' : '✗'} · dpr${window.devicePixelRatio || 1}`;
   } catch (e) { return 'diag error'; }
 }
 function copyCiDiag(el) {
-  const t = el.textContent;
-  navigator.clipboard?.writeText(t).then(() => {
-    const o = el.textContent; el.textContent = 'ก๊อปแล้ว ✓';
-    setTimeout(() => el.textContent = o, 1200);
+  const payload = el.textContent.split('\n').pop();   // เอาเฉพาะบรรทัดข้อมูล ไม่เอาหัวข้อ
+  navigator.clipboard?.writeText(payload).then(() => {
+    const o = el.textContent;
+    el.textContent = '✓ ก๊อปแล้ว — วางส่งได้เลย';
+    setTimeout(() => el.textContent = o, 1500);
   }).catch(() => {});
 }
 
