@@ -343,9 +343,92 @@ function _p365VariantPhoto(pv) {
 // หน้านี้เป็น "อ่านอย่างเดียว" ตาม database rules ใหม่:
 // ผู้ใช้ที่ไม่ได้ล็อกอินเขียน products ไม่ได้อีกต่อไป
 // การ sync ทั้งร้านทำได้ที่ admin.html (ต้องล็อกอินก่อน)
+// ── รีเฟรชสต๊อกจาก Page365 (เห็นบนเครื่องตัวเอง ไม่บันทึกลงฐานข้อมูล) ──
+// database rules ใหม่ไม่ให้หน้านี้เขียน products แล้ว แต่ "ดูสต๊อกล่าสุด" ยังทำได้
+// โดยดึงจาก Page365 มาอัปเดตเฉพาะข้อมูลในเครื่องแล้ววาดใหม่
+// การบันทึกให้ทุกคนเห็นตรงกัน ทำที่หน้า Admin (ปุ่ม Sync ทั้งหมด)
 async function customerSyncFromPage365(silent) {
-  if (silent) return;   // auto-sync ตอนเปิดหน้า — เงียบไว้ ไม่ต้องรบกวน
-  showSyncToast('🔒 อัปเดตสต๊อกทั้งร้าน ทำได้ที่หน้า Admin', 'info');
+  if (customerSyncing) { if (!silent) showSyncToast('⏳ กำลังอัปเดตอยู่ — รอสักครู่', 'info'); return; }
+  if (!productRows.length) { if (!silent) showSyncToast('❌ ยังโหลดสินค้าไม่เสร็จ', 'error'); return; }
+
+  customerSyncing = true;
+  const btns = document.querySelectorAll('.as-sync-btn');
+  const lbls = document.querySelectorAll('.sync-label');
+  btns.forEach(b => { b.classList.add('syncing'); b.disabled = true; });
+  lbls.forEach(l => l.textContent = 'กำลังอัปเดต...');
+
+  let matched = 0, changedRows = 0, changedVariants = 0;
+  try {
+    const list = await _custP365List();
+    if (!list.length) throw new Error('โหลดรายการจาก Page365 ไม่ได้');
+
+    const bySku = {}, byName = {};
+    list.forEach(p => {
+      const sku = String(p.parent_sku || p.sku || p.merchant_sku || '').trim();
+      if (sku) bySku[sku] = p;
+      byName[_custNormName(p.name)] = p;
+    });
+
+    for (let idx = 0; idx < productRows.length; idx++) {
+      const row = productRows[idx], key = productKeys[idx];
+      if (!Array.isArray(row[12]) || !row[12].length) continue;
+
+      const manual = _customerP365Map[key];
+      const sku = String(row[6] || '').trim();
+      const norm = _custNormName(row[0] || '');
+      let p365 = (manual && manual.id) ? { id: manual.id } : null;
+      if (!p365 && sku) p365 = bySku[sku];
+      if (!p365 && norm) p365 = byName[norm]
+        || list.find(p => { const n = _custNormName(p.name); return n && (n.includes(norm) || norm.includes(n)); });
+      if (!p365) continue;
+      matched++;
+
+      let detail;
+      try { detail = await _customerFetch(`https://lamsangstores.page365.net/products/${p365.id}.json`); }
+      catch (e) { continue; }
+      const pvs = detail.variants || [];
+
+      let hit = 0;
+      const next = row[12].map(v => {
+        const ov = manual?.variants?.[v.name];
+        let pv;
+        if (ov !== undefined) { if (ov === '') return v; pv = pvs.find(p => p.name === ov) || pvs.find(p => _custNormVName(p.name) === _custNormVName(ov)); }
+        else pv = pvs.find(p => _custNormVName(p.name) === _custNormVName(v.name));
+        if (!pv) return v;
+        const ns = pv.in_stock ? (Number(pv.available) || 0) : 0;
+        if (ns === (Number(v.stock) || 0)) return v;
+        hit++;
+        return { ...v, stock: ns };
+      });
+      if (hit) {
+        const nr = [...row]; while (nr.length < 13) nr.push(''); nr[12] = next;
+        productRows[idx] = nr;
+        changedRows++; changedVariants += hit;
+      }
+    }
+
+    // วาดใหม่ให้เห็นผลทันที
+    buildCatPills(productRows);
+    buildColorChips(productRows);
+    if (currentTab === 'product') window.renderProductGrid(productRows);
+    if (typeof currentDetailIdx === 'number' && currentDetailIdx >= 0
+        && document.getElementById('product-details-view').style.display === 'block') {
+      showProductDetail(currentDetailIdx, false);
+    }
+    customerLastSyncAt = Date.now();
+
+    if (!silent) {
+      showSyncToast(changedVariants
+        ? `✓ อัปเดตสต๊อกแล้ว ${changedRows} สินค้า (${changedVariants} รุ่น) — เห็นเฉพาะเครื่องนี้`
+        : `✓ สต๊อกเป็นปัจจุบันแล้ว (เทียบ ${matched} สินค้า)`, 'success');
+    }
+  } catch (e) {
+    if (!silent) showSyncToast('❌ อัปเดตไม่สำเร็จ: ' + (e.message || 'unknown'), 'error');
+  } finally {
+    customerSyncing = false;
+    btns.forEach(b => { b.classList.remove('syncing'); b.disabled = false; });
+    updateSyncBtnLabel();
+  }
 }
 
 // ── SYNC AUDIT: รุ่นที่จับคู่ Page365 ไม่ได้ (sync ไม่ได้) ──
@@ -932,7 +1015,7 @@ let _cmdIndex = 0;
 let _cmdItems = [];
 
 const CMD_ACTIONS = [
-  { keys: ['/sync','sync','/365'], label: '🔒 Sync stock — เปิดหน้า Admin', run: () => window.open('admin.html','_blank') },
+  { keys: ['/sync','sync','/365'], label: '🔄 Sync stock จาก Page365', run: () => customerSyncFromPage365(false) },
   { keys: ['/check','sync ไม่ได้','unmatched','ตรวจ stock','รุ่นที่ sync ไม่ได้'], label: '⚠️ ตรวจรุ่นที่ Sync ไม่ได้', run: () => openUnmatchedReport() },
   { keys: ['/cart','cart','ตะกร้า','/ตะกร้า'], label: '🛒 เปิดตะกร้า', run: openCartDrawer },
   { keys: ['/dark','dark','/มืด'], label: '🌙 สลับ Dark mode', run: () => typeof toggleDark === 'function' && toggleDark() },
@@ -2445,10 +2528,20 @@ function _ciDiagText() {
         badgeRight = mx < 0 ? 'ไม่พบป้าย' : mx;
       }
     } catch (e) { badgeRight = 'อ่านไม่ได้'; }
+    // บิตแมปถูกแล้ว แต่ยังดูเบี้ยว → เช็กว่าตอนแสดงผลบนจอ canvas ล้นกรอบจนโดนตัดหรือไม่
+    let dispW = '?', boxW = '?';
+    try {
+      if (cv) {
+        dispW = Math.round(cv.getBoundingClientRect().width);
+        const box = cv.parentElement;
+        boxW = Math.round(box.clientWidth - parseFloat(getComputedStyle(box).paddingLeft) - parseFloat(getComputedStyle(box).paddingRight));
+      }
+    } catch (e) {}
     return `🔎 ข้อมูลเครื่อง (แตะเพื่อก๊อป)\n`
          + `v${ver} · ${engine} · ไทย:${thaiOK ? 'Prompt ✓' : 'ฟอนต์ระบบ ✗'} · w900:${w900 ? '✓' : '✗'} · dpr${window.devicePixelRatio || 1}\n`
          + `วัดได้ ${m1}/${m2} (ควรเป็น 81/349) · canvas ${cvSize}\n`
-         + `ขอบขวาป้าย ${badgeRight} (ควรเป็น 993)`;
+         + `ขอบขวาป้าย ${badgeRight} (ควรเป็น 993)\n`
+         + `แสดงผล ${dispW}px ในกรอบ ${boxW}px${dispW > boxW + 1 ? ' ⚠️ ล้นกรอบ' : ' ✓'}`;
   } catch (e) { return 'diag error'; }
 }
 function copyCiDiag(el) {

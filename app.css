@@ -1810,3 +1810,39 @@
       .section-head{padding:14px 16px 6px}
       .section-title{font-size:1.15em}
     }
+
+    /* ══════════════════════════════════════════════════
+       SAFE AREA — ปุ่มปิด popup ถูกแถบสถานะ/Dynamic Island บัง
+       iPhone มีแถบสถานะกับ Dynamic Island กินพื้นที่บนสุด ~59px
+       popup ที่จัดกึ่งกลางด้วย max-height:92vh ทำให้ขอบบนขึ้นไป
+       อยู่ใต้แถบนั้น กดปุ่มปิดไม่ได้ — ต้องเว้นระยะตาม env(safe-area)
+       ══════════════════════════════════════════════════ */
+    .ci-modal-overlay{
+      padding-top:calc(16px + env(safe-area-inset-top));
+      padding-bottom:calc(16px + env(safe-area-inset-bottom));
+    }
+    .ci-modal{max-height:100%}
+
+    #cart-picker{
+      padding-top:calc(16px + env(safe-area-inset-top));
+      padding-bottom:calc(16px + env(safe-area-inset-bottom));
+    }
+    .cart-picker-panel{max-height:100%}
+
+    #cmd-palette{
+      padding-top:calc(60px + env(safe-area-inset-top));
+      padding-bottom:calc(20px + env(safe-area-inset-bottom));
+    }
+
+    #lightbox-close{
+      top:calc(16px + env(safe-area-inset-top));
+      right:calc(16px + env(safe-area-inset-right));
+    }
+
+    /* ลิ้นชักตะกร้า: หัวเรื่อง + ปุ่ม ✕ อยู่บนสุดของแผง */
+    .cart-drawer-panel{padding-top:env(safe-area-inset-top)}
+
+    /* ปุ่มปิดของ ci-modal อยู่ล่างอยู่แล้ว แต่กันไว้เผื่อจอเตี้ย */
+    @media(max-height:700px){
+      .ci-modal{max-height:100%}
+    }
