@@ -2418,12 +2418,21 @@ function _ciDiagText() {
     const iosM = ua.match(/OS (\d+)[._](\d+)/);
     const engine = /iPhone|iPad|iPod/.test(ua) ? ('iOS' + (iosM ? ' ' + iosM[1] + '.' + iosM[2] : '') + ' WebKit')
                  : (/Safari/.test(ua) && !/Chrome/.test(ua) ? 'Safari' : 'Chromium');
+    // ความกว้างข้อความที่วัดได้จริง — ตัวเลขนี้คือหัวใจ
+    // ถ้าเครื่องอื่นได้ตัวเลขไม่เท่ากัน แปลว่าวัดข้อความคนละแบบ = ต้นเหตุที่เลย์เอาต์เลื่อน
+    // ค่าอ้างอิงบน Chromium: 81 / 349
+    x.font = "800 21px 'Prompt', Arial, sans-serif";
+    const m1 = Math.round(x.measureText('ลด 20%').width);
+    const m2 = Math.round(x.measureText('★ ดีลพิเศษเฉพาะในแชท · ยิ่งซื้อยิ่งคุ้ม').width);
+    const cv = document.getElementById('ci-canvas');
+    const cvSize = cv ? `${cv.width}x${cv.height}` : '?';
     return `🔎 ข้อมูลเครื่อง (แตะเพื่อก๊อป)\n`
-         + `v${ver} · ${engine} · ไทย:${thaiOK ? 'Prompt ✓' : 'ฟอนต์ระบบ ✗'} · w900:${w900 ? '✓' : '✗'} · dpr${window.devicePixelRatio || 1}`;
+         + `v${ver} · ${engine} · ไทย:${thaiOK ? 'Prompt ✓' : 'ฟอนต์ระบบ ✗'} · w900:${w900 ? '✓' : '✗'} · dpr${window.devicePixelRatio || 1}\n`
+         + `วัดได้ ${m1}/${m2} (ควรเป็น 81/349) · canvas ${cvSize}`;
   } catch (e) { return 'diag error'; }
 }
 function copyCiDiag(el) {
-  const payload = el.textContent.split('\n').pop();   // เอาเฉพาะบรรทัดข้อมูล ไม่เอาหัวข้อ
+  const payload = el.textContent.split('\n').slice(1).join(' | ');   // ตัดหัวข้อออก เอาเฉพาะข้อมูล
   navigator.clipboard?.writeText(payload).then(() => {
     const o = el.textContent;
     el.textContent = '✓ ก๊อปแล้ว — วางส่งได้เลย';
