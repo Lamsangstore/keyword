@@ -4,7 +4,9 @@
   <meta charset="UTF-8">
   <title>Admin Panel — คีย์ลัดสินค้า</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <!-- canvas (รูปชุดส่งลูกค้า) ใช้น้ำหนัก 500/800/900 ด้วย ถ้าไม่ประกาศไว้
+       เบราว์เซอร์จะปลอมตัวหนาเอง แล้วออกมาไม่เหมือนกันในแต่ละเบราว์เซอร์ -->
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -5230,7 +5232,24 @@ async function switchCopyImgGroup(idx) {
   await renderCopyImgGroup(copyImgGroups[idx]._row, idx);
 }
 
+// ── รอฟอนต์ก่อนวาด canvas ───────────────────────────────────
+// canvas คำนวณตำแหน่ง/ความกว้างกล่องจาก measureText ด้วยฟอนต์ 'Prompt'
+// ถ้าฟอนต์ยังมาไม่ถึงตอนวาด เบราว์เซอร์ fallback ไป Arial ที่กว้างต่างกันถึง 10%
+// → ป้ายล้นกรอบ ขีดฆ่าไม่ตรง และแต่ละเครื่องได้ผลไม่เหมือนกัน (Safari เจอบ่อยสุด)
+let _ciFontsReady = null;
+function _ciEnsureFonts() {
+  if (_ciFontsReady) return _ciFontsReady;
+  if (!document.fonts || !document.fonts.load) return Promise.resolve();
+  const sample = 'ลดเฉลี่ยเส้นพร้อมส่งหมดปกติไซส์ABC0123.-%';
+  const weights = [500, 600, 700, 800, 900];   // ครบทุกน้ำหนักที่ canvas ใช้
+  _ciFontsReady = Promise.all(
+    weights.map(w => document.fonts.load(`${w} 40px 'Prompt'`, sample).catch(() => null))
+  ).then(() => document.fonts.ready).catch(() => null);
+  return _ciFontsReady;
+}
+
 async function renderCopyImgGroup(rowData, idx) {
+  await _ciEnsureFonts();   // ต้องรอก่อนวาด ไม่งั้นตำแหน่งเพี้ยน
   const r = rowData;
   const g = copyImgGroups[idx];
   g._row = r;

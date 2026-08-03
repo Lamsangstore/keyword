@@ -25,12 +25,14 @@
   <meta property="og:url" content="https://lamsangstore.github.io/keyword/index.html">
   <meta property="og:type" content="website">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- 900 ใช้ในตรา SOLD OUT บนรูปชุดส่งลูกค้า (canvas) — ถ้าไม่ประกาศไว้
+       เบราว์เซอร์จะปลอมตัวหนาเอง ซึ่ง Safari กับ Chrome ทำไม่เหมือนกัน -->
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <script src="firebase-config.js"></script>
-  <link rel="stylesheet" href="app.css?v=29">
+  <link rel="stylesheet" href="app.css?v=30">
 </head>
 <body>
 
@@ -271,7 +273,7 @@
   </div><!-- /page-inner -->
 </div><!-- /page -->
 
-<script src="app.js?v=29"></script>
+<script src="app.js?v=30"></script>
 
 <!-- COMPOSITE IMAGE MODAL -->
 <div class="ci-modal-overlay" id="ci-modal-overlay" onclick="if(event.target===this)closeCompositeImage()">

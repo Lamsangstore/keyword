@@ -2380,6 +2380,25 @@ async function ciLoadImage(src) {
   img = await _ciLoadDirect(_ciAllOrigins(src));
   return img;
 }
+// ── รอฟอนต์ก่อนวาด canvas ───────────────────────────────────
+// canvas วาดข้อความด้วย 'Prompt' แล้วคำนวณตำแหน่ง/ความกว้างกล่องจาก measureText
+// ถ้าฟอนต์ยังโหลดไม่เสร็จตอนวาด เบราว์เซอร์จะ fallback ไป Arial ซึ่งกว้างต่างกัน
+// ถึง 10% (วัดจริง: 'ลด 20%' Prompt 81px / Arial 73px) → ป้ายล้นกรอบ ขีดฆ่าไม่ตรง
+// และที่สำคัญคือ "แต่ละเครื่องออกมาไม่เหมือนกัน" ขึ้นกับว่าฟอนต์มาทันหรือไม่
+// Safari เจอบ่อยกว่าเพราะเลื่อนโหลดฟอนต์นานกว่า Chrome
+let _ciFontsReady = null;
+function _ciEnsureFonts() {
+  if (_ciFontsReady) return _ciFontsReady;
+  if (!document.fonts || !document.fonts.load) return Promise.resolve();
+  // ระบุตัวอย่างข้อความไทยด้วย — Google Fonts แยก subset ภาษาไทยเป็นคนละไฟล์
+  const sample = 'ลดเฉลี่ยเส้นพร้อมส่งหมดปกติไซส์ABC0123.-%';
+  const weights = [500, 600, 700, 800, 900];   // ครบทุกน้ำหนักที่ canvas ใช้
+  _ciFontsReady = Promise.all(
+    weights.map(w => document.fonts.load(`${w} 40px 'Prompt'`, sample).catch(() => null))
+  ).then(() => document.fonts.ready).catch(() => null);
+  return _ciFontsReady;
+}
+
 function ciDrawSoldStamp(ctx, cx, cy, w) {
   ctx.save();
   ctx.translate(cx, cy);
@@ -2502,6 +2521,7 @@ async function renderCiGroup(idx) {
 }
 
 async function _ciDrawToCanvas(canvas, g, r) {
+  await _ciEnsureFonts();   // ต้องรอก่อนวาด ไม่งั้นตำแหน่งเพี้ยน (ดู _ciEnsureFonts)
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height; // 1080x1080
 
