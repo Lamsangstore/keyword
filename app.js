@@ -2448,7 +2448,7 @@ function _ciDiagText() {
     return `🔎 ข้อมูลเครื่อง (แตะเพื่อก๊อป)\n`
          + `v${ver} · ${engine} · ไทย:${thaiOK ? 'Prompt ✓' : 'ฟอนต์ระบบ ✗'} · w900:${w900 ? '✓' : '✗'} · dpr${window.devicePixelRatio || 1}\n`
          + `วัดได้ ${m1}/${m2} (ควรเป็น 81/349) · canvas ${cvSize}\n`
-         + `ขอบขวาป้าย ${badgeRight} (ควรเป็น 1021)`;
+         + `ขอบขวาป้าย ${badgeRight} (ควรเป็น 993)`;
   } catch (e) { return 'diag error'; }
 }
 function copyCiDiag(el) {
@@ -2766,7 +2766,11 @@ async function _ciDrawToCanvas(canvas, g, r) {
     const pillW = 104, pillH = 36;
     const pillX = innerX;
     const priceX = pillX + pillW + 22;
-    const badgeRight = W - padX - 28;
+    // เดิมเว้นจากขอบกรอบแค่ 28px (ให้สมมาตรกับ innerX ด้านซ้าย) — วาดถูกต้อง
+    // แต่พอรูป 1080px ถูกย่อลงมาแสดงบนจอมือถือ (~750px) แล้วโดนบีบอัดตอนส่ง LINE
+    // ช่องว่าง 28px เหลือไม่ถึง 20px จริง ขอบป้ายเขียวกับขอบกรอบชมพูกลืนกัน
+    // จนดูเหมือนป้ายทะลุออกนอกกรอบ — เว้นให้กว้างขึ้นเพื่อให้ทนการย่อ/บีบอัด
+    const badgeRight = W - padX - 56;
     ciTiers.forEach((t, i) => {
       const ly = bandTop + 72 + i*40;
       // qty pill
@@ -2811,7 +2815,7 @@ async function _ciDrawToCanvas(canvas, g, r) {
       if (t.pct > 0) {
         const bt = `ลด ${t.pct}%`;
         ctx.font = "800 21px 'Prompt', Arial, sans-serif";
-        const bw = ctx.measureText(bt).width + 26;
+        const bw = ctx.measureText(bt).width + 34;   // เผื่อขอบในป้ายให้ '%' ไม่ชิดขอบเขียว
         const bx = badgeRight - bw;
         ctx.fillStyle = '#1a8f4f';
         rr(bx, ly - 17, bw, 34, 17); ctx.fill();
