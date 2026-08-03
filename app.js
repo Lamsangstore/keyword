@@ -2399,6 +2399,36 @@ function _ciEnsureFonts() {
   return _ciFontsReady;
 }
 
+// ── บรรทัดตรวจสอบใต้รูป ────────────────────────────────────
+// เวลารูปออกมาไม่ตรงกันในแต่ละเครื่อง อันนี้บอกได้ว่าเพราะอะไร:
+// เครื่องนั้นใช้โค้ดเวอร์ชันไหน และฟอนต์ Prompt ถูกใช้วาดจริงหรือไม่
+// (วัดข้อความไทยด้วย Prompt เทียบกับฟอนต์ระบบ — ถ้ากว้างเท่ากันแปลว่า
+//  subset ภาษาไทยของ Prompt ไม่มา แล้วตกไปใช้ฟอนต์ระบบซึ่งกว้างคนละอย่าง)
+function _ciDiagText() {
+  try {
+    const src = document.querySelector('script[src*="app.js"]')?.getAttribute('src') || '';
+    const ver = (src.match(/v=(\d+)/) || [,'?'])[1];
+    const c = document.createElement('canvas'), x = c.getContext('2d');
+    const probe = 'ลด 20% เฉลี่ย';
+    x.font = "800 40px 'Prompt', sans-serif"; const wPrompt = x.measureText(probe).width;
+    x.font = "800 40px sans-serif";           const wSys    = x.measureText(probe).width;
+    const thaiOK = Math.abs(wPrompt - wSys) > 0.5;
+    const w900 = document.fonts && [...document.fonts].some(f => f.family.includes('Prompt') && f.weight === '900' && f.status === 'loaded');
+    const ua = navigator.userAgent;
+    const iosM = ua.match(/OS (\d+)[._](\d+)/);
+    const engine = /iPhone|iPad|iPod/.test(ua) ? ('iOS' + (iosM ? ' ' + iosM[1] + '.' + iosM[2] : '') + ' WebKit')
+                 : (/Safari/.test(ua) && !/Chrome/.test(ua) ? 'Safari' : 'Chromium');
+    return `v${ver} · ${engine} · ไทย:${thaiOK ? 'Prompt ✓' : 'ฟอนต์ระบบ ✗'} · w900:${w900 ? '✓' : '✗'} · dpr${window.devicePixelRatio || 1}`;
+  } catch (e) { return 'diag error'; }
+}
+function copyCiDiag(el) {
+  const t = el.textContent;
+  navigator.clipboard?.writeText(t).then(() => {
+    const o = el.textContent; el.textContent = 'ก๊อปแล้ว ✓';
+    setTimeout(() => el.textContent = o, 1200);
+  }).catch(() => {});
+}
+
 function ciDrawSoldStamp(ctx, cx, cy, w) {
   ctx.save();
   ctx.translate(cx, cy);
@@ -2507,6 +2537,8 @@ async function renderCiGroup(idx) {
   const info = document.getElementById('ci-info');
   info.textContent = `กำลังสร้างภาพ ${idx+1}/${ciGroups.length}...`;
   await _ciDrawToCanvas(document.getElementById('ci-canvas'), g, r);
+  const diag = document.getElementById('ci-diag');
+  if (diag) diag.textContent = _ciDiagText();
   await new Promise(resolve => {
     document.getElementById('ci-canvas').toBlob(blob => {
       g.blob = blob;

@@ -32,7 +32,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <script src="firebase-config.js"></script>
-  <link rel="stylesheet" href="app.css?v=30">
+  <link rel="stylesheet" href="app.css?v=31">
 </head>
 <body>
 
@@ -273,7 +273,7 @@
   </div><!-- /page-inner -->
 </div><!-- /page -->
 
-<script src="app.js?v=30"></script>
+<script src="app.js?v=31"></script>
 
 <!-- COMPOSITE IMAGE MODAL -->
 <div class="ci-modal-overlay" id="ci-modal-overlay" onclick="if(event.target===this)closeCompositeImage()">
@@ -282,6 +282,8 @@
     <div class="ci-nav" id="ci-nav" style="display:none"></div>
     <canvas id="ci-canvas" width="1080" height="1080"></canvas>
     <div class="ci-info" id="ci-info">กำลังสร้างภาพ...</div>
+    <!-- บรรทัดตรวจสอบ: ให้คนที่รูปออกมาไม่ตรง ถ่ายจอส่งมาได้เลย ว่าเครื่องนั้นใช้เวอร์ชันอะไร ฟอนต์มาครบไหม -->
+    <div class="ci-diag" id="ci-diag" onclick="copyCiDiag(this)" title="แตะเพื่อก๊อปข้อมูล">—</div>
     <div class="ci-actions">
       <button class="ci-btn-close" onclick="closeCompositeImage()">ปิด</button>
       <button class="ci-btn-dl" onclick="downloadCiImage()">⬇️ Download</button>
