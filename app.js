@@ -2482,97 +2482,6 @@ function _ciEnsureFonts() {
   return _ciFontsReady;
 }
 
-// ── บรรทัดตรวจสอบใต้รูป ────────────────────────────────────
-// เวลารูปออกมาไม่ตรงกันในแต่ละเครื่อง อันนี้บอกได้ว่าเพราะอะไร:
-// เครื่องนั้นใช้โค้ดเวอร์ชันไหน และฟอนต์ Prompt ถูกใช้วาดจริงหรือไม่
-// (วัดข้อความไทยด้วย Prompt เทียบกับฟอนต์ระบบ — ถ้ากว้างเท่ากันแปลว่า
-//  subset ภาษาไทยของ Prompt ไม่มา แล้วตกไปใช้ฟอนต์ระบบซึ่งกว้างคนละอย่าง)
-function _ciDiagText() {
-  try {
-    const src = document.querySelector('script[src*="app.js"]')?.getAttribute('src') || '';
-    const ver = (src.match(/v=(\d+)/) || [,'?'])[1];
-    const c = document.createElement('canvas'), x = c.getContext('2d');
-    const probe = 'ลด 20% เฉลี่ย';
-    x.font = "800 40px 'Prompt', sans-serif"; const wPrompt = x.measureText(probe).width;
-    x.font = "800 40px sans-serif";           const wSys    = x.measureText(probe).width;
-    const thaiOK = Math.abs(wPrompt - wSys) > 0.5;
-    const w900 = document.fonts && [...document.fonts].some(f => f.family.includes('Prompt') && f.weight === '900' && f.status === 'loaded');
-    const ua = navigator.userAgent;
-    const iosM = ua.match(/OS (\d+)[._](\d+)/);
-    const engine = /iPhone|iPad|iPod/.test(ua) ? ('iOS' + (iosM ? ' ' + iosM[1] + '.' + iosM[2] : '') + ' WebKit')
-                 : (/Safari/.test(ua) && !/Chrome/.test(ua) ? 'Safari' : 'Chromium');
-    // ความกว้างข้อความที่วัดได้จริง — ตัวเลขนี้คือหัวใจ
-    // ถ้าเครื่องอื่นได้ตัวเลขไม่เท่ากัน แปลว่าวัดข้อความคนละแบบ = ต้นเหตุที่เลย์เอาต์เลื่อน
-    // ค่าอ้างอิงบน Chromium: 81 / 349
-    x.font = "800 21px 'Prompt', Arial, sans-serif";
-    const m1 = Math.round(x.measureText('ลด 20%').width);
-    const m2 = Math.round(x.measureText('★ ดีลพิเศษเฉพาะในแชท · ยิ่งซื้อยิ่งคุ้ม').width);
-    const cv = document.getElementById('ci-canvas');
-    const cvSize = cv ? `${cv.width}x${cv.height}` : '?';
-    // วัดจากพิกเซลจริงบน canvas ว่าป้ายเขียวขอบขวาสุดอยู่ตรงไหน
-    // ค่าที่ถูกคือ 1021 (โค้ดตรึงไว้ที่ W-30-28) ถ้าได้เลขอื่น = วาดผิดตำแหน่งจริง
-    // ถ้าได้ 1021 แต่รูปยังดูโดนตัด = วาดถูก แต่ไปเพี้ยนตอนบันทึก/แสดงผล
-    let badgeRight = '?';
-    try {
-      if (cv) {
-        const g = cv.getContext('2d');
-        const y0 = Math.floor(cv.height * 0.75), hh = cv.height - y0;
-        const px = g.getImageData(0, y0, cv.width, hh).data;
-        let mx = -1;
-        for (let i = 0; i < px.length; i += 4) {
-          if (Math.abs(px[i] - 26) < 28 && Math.abs(px[i+1] - 143) < 28 && Math.abs(px[i+2] - 79) < 28) {
-            const x = (i / 4) % cv.width;
-            if (x > mx) mx = x;
-          }
-        }
-        badgeRight = mx < 0 ? 'ไม่พบป้าย' : mx;
-      }
-    } catch (e) { badgeRight = 'อ่านไม่ได้'; }
-    // ข้อความในกรอบทุกอันวาดแบบ textAlign='center' → หมึกต้องกระจายซ้าย/ขวาเท่ากัน
-    // ถ้าเครื่องไหนได้ค่าเบี้ยวไปข้างเดียว แปลว่าการจัดกึ่งกลางไม่ถูกใช้
-    // ตัวหนังสือจะทะลุออกนอกเม็ด/ป้ายทางขวา ซึ่งตรงกับอาการที่เห็น
-    let ctr = '?';
-    try {
-      const probe = (font, s) => {
-        x.font = font; x.textAlign = 'center';
-        const m = x.measureText(s);
-        return Math.round(m.actualBoundingBoxLeft) + '/' + Math.round(m.actualBoundingBoxRight);
-      };
-      ctr = probe("800 21px 'Prompt', Arial, sans-serif", 'ลด 20%')
-          + ' · ' + probe("800 22px 'Prompt', Arial, sans-serif", '1 เส้น');
-    } catch (e) { ctr = 'วัดไม่ได้'; }
-    // ตำแหน่งเส้นขีดฆ่าที่คำนวณได้บนเครื่องนี้ (Chromium ได้ ~14.3 ที่ฟอนต์ 30px)
-    let strike = '?';
-    try {
-      x.font = "800 30px 'Prompt', Arial, sans-serif"; x.textBaseline = 'top';
-      strike = _ciStrikeOffset(x, 30).toFixed(1);
-    } catch (e) {}
-    // บิตแมปถูกแล้ว แต่ยังดูเบี้ยว → เช็กว่าตอนแสดงผลบนจอ canvas ล้นกรอบจนโดนตัดหรือไม่
-    let dispW = '?', boxW = '?';
-    try {
-      if (cv) {
-        dispW = Math.round(cv.getBoundingClientRect().width);
-        const box = cv.parentElement;
-        boxW = Math.round(box.clientWidth - parseFloat(getComputedStyle(box).paddingLeft) - parseFloat(getComputedStyle(box).paddingRight));
-      }
-    } catch (e) {}
-    return `🔎 ข้อมูลเครื่อง (แตะเพื่อก๊อป)\n`
-         + `v${ver} · ${engine} · ไทย:${thaiOK ? 'Prompt ✓' : 'ฟอนต์ระบบ ✗'} · w900:${w900 ? '✓' : '✗'} · dpr${window.devicePixelRatio || 1}\n`
-         + `วัดได้ ${m1}/${m2} (ควรเป็น 81/349) · canvas ${cvSize}\n`
-         + `ขอบขวาป้าย ${badgeRight} (ควรเป็น 993)\n`
-         + `แสดงผล ${dispW}px ในกรอบ ${boxW}px${dispW > boxW + 1 ? ' ⚠️ ล้นกรอบ' : ' ✓'}\n`
-         + `กึ่งกลาง ${ctr} (ควรเป็น 40/40 · 25/25) · ขีดฆ่า ${strike}`;
-  } catch (e) { return 'diag error'; }
-}
-function copyCiDiag(el) {
-  const payload = el.textContent.split('\n').slice(1).join(' | ');   // ตัดหัวข้อออก เอาเฉพาะข้อมูล
-  navigator.clipboard?.writeText(payload).then(() => {
-    const o = el.textContent;
-    el.textContent = '✓ ก๊อปแล้ว — วางส่งได้เลย';
-    setTimeout(() => el.textContent = o, 1500);
-  }).catch(() => {});
-}
-
 // ── วาดข้อความโดยไม่พึ่ง ctx.textAlign ─────────────────────
 // บน WebKit บางเครื่อง fillText ไม่ใช้ค่า ctx.textAlign ที่ตั้งไว้ (แต่ measureText ใช้)
 // ผลคือข้อความที่ควรอยู่กึ่งกลางกรอบ ถูกวาดจากจุดกึ่งกลางแล้วยื่นไปทางขวา
@@ -2706,8 +2615,6 @@ async function renderCiGroup(idx) {
   const info = document.getElementById('ci-info');
   info.textContent = `กำลังสร้างภาพ ${idx+1}/${ciGroups.length}...`;
   await _ciDrawToCanvas(document.getElementById('ci-canvas'), g, r);
-  const diag = document.getElementById('ci-diag');
-  if (diag) diag.textContent = _ciDiagText();
   await new Promise(resolve => {
     document.getElementById('ci-canvas').toBlob(blob => {
       g.blob = blob;
