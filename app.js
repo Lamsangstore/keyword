@@ -2541,6 +2541,12 @@ function _ciDiagText() {
       ctr = probe("800 21px 'Prompt', Arial, sans-serif", 'ลด 20%')
           + ' · ' + probe("800 22px 'Prompt', Arial, sans-serif", '1 เส้น');
     } catch (e) { ctr = 'วัดไม่ได้'; }
+    // ตำแหน่งเส้นขีดฆ่าที่คำนวณได้บนเครื่องนี้ (Chromium ได้ ~14.3 ที่ฟอนต์ 30px)
+    let strike = '?';
+    try {
+      x.font = "800 30px 'Prompt', Arial, sans-serif"; x.textBaseline = 'top';
+      strike = _ciStrikeOffset(x, 30).toFixed(1);
+    } catch (e) {}
     // บิตแมปถูกแล้ว แต่ยังดูเบี้ยว → เช็กว่าตอนแสดงผลบนจอ canvas ล้นกรอบจนโดนตัดหรือไม่
     let dispW = '?', boxW = '?';
     try {
@@ -2555,7 +2561,7 @@ function _ciDiagText() {
          + `วัดได้ ${m1}/${m2} (ควรเป็น 81/349) · canvas ${cvSize}\n`
          + `ขอบขวาป้าย ${badgeRight} (ควรเป็น 993)\n`
          + `แสดงผล ${dispW}px ในกรอบ ${boxW}px${dispW > boxW + 1 ? ' ⚠️ ล้นกรอบ' : ' ✓'}\n`
-         + `กึ่งกลาง ${ctr} (ควรเป็น 40/40 · 25/25)`;
+         + `กึ่งกลาง ${ctr} (ควรเป็น 40/40 · 25/25) · ขีดฆ่า ${strike}`;
   } catch (e) { return 'diag error'; }
 }
 function copyCiDiag(el) {
@@ -2579,6 +2585,17 @@ function ciText(ctx, s, cx, y, align) {
   if (align === 'center') x = cx - ctx.measureText(str).width / 2;
   else if (align === 'right') x = cx - ctx.measureText(str).width;
   ctx.fillText(str, x, y);
+}
+
+// ระยะจากจุดวาดข้อความ (textBaseline='top') ลงมาถึงกึ่งกลางหมึกของตัวอักษร
+// ใช้สำหรับวางเส้นขีดฆ่าให้พาดกลางคำพอดี — วัดจากเครื่องที่รันจริง ไม่ใช้ค่าเดา
+function _ciStrikeOffset(ctx, fontSize) {
+  try {
+    const m = ctx.measureText('ก');   // ตัวอักษรฐาน ไม่มีวรรณยุกต์ลอยสูงมากวนค่า
+    const mid = (m.actualBoundingBoxDescent - m.actualBoundingBoxAscent) / 2;
+    if (isFinite(mid) && mid > 0) return mid;
+  } catch (e) {}
+  return fontSize * 0.48;             // เผื่อเบราว์เซอร์ที่ไม่มี actualBoundingBox
 }
 
 function ciDrawSoldStamp(ctx, cx, cy, w) {
@@ -2845,10 +2862,14 @@ async function _ciDrawToCanvas(canvas, g, r) {
     ciText(ctx, colorName, cxC, nameY, 'center');
     if (sold) {
       const tw = ctx.measureText(colorName).width;
+      // เดิมวางเส้นที่ nameFont/2 ซึ่งเป็นการเดาจากขนาดฟอนต์ ไม่ใช่ตำแหน่งหมึกจริง
+      // ทำให้บางเครื่องเส้นไปอยู่ค่อนไปทางบนของตัวอักษร
+      // วัดจากตัว 'ก' (ไม่มีวรรณยุกต์ลอยสูงมากวนค่า) แล้วใช้กึ่งกลางหมึกจริงของเครื่องนั้น
       ctx.strokeStyle = '#bbb'; ctx.lineWidth = Math.max(1.5, nameFont*0.07);
+      const lineY = nameY + _ciStrikeOffset(ctx, nameFont);
       ctx.beginPath();
-      ctx.moveTo(cxC - tw/2, nameY + nameFont/2);
-      ctx.lineTo(cxC + tw/2, nameY + nameFont/2);
+      ctx.moveTo(cxC - tw/2, lineY);
+      ctx.lineTo(cxC + tw/2, lineY);
       ctx.stroke();
     }
 
