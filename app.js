@@ -2567,6 +2567,20 @@ function copyCiDiag(el) {
   }).catch(() => {});
 }
 
+// ── วาดข้อความโดยไม่พึ่ง ctx.textAlign ─────────────────────
+// บน WebKit บางเครื่อง fillText ไม่ใช้ค่า ctx.textAlign ที่ตั้งไว้ (แต่ measureText ใช้)
+// ผลคือข้อความที่ควรอยู่กึ่งกลางกรอบ ถูกวาดจากจุดกึ่งกลางแล้วยื่นไปทางขวา
+// → ชื่อสีเลื่อนไม่ตรงเส้นขีดฆ่า, "เส้น" ทะลุเม็ดสีชมพู, "%" ทะลุป้ายเขียว
+// แก้โดยคำนวณจุดเริ่มเองทุกครั้ง แล้ววาดแบบ left เสมอ — ได้ผลเหมือนกันทุกเบราว์เซอร์
+function ciText(ctx, s, cx, y, align) {
+  const str = String(s);
+  ctx.textAlign = 'left';
+  let x = cx;
+  if (align === 'center') x = cx - ctx.measureText(str).width / 2;
+  else if (align === 'right') x = cx - ctx.measureText(str).width;
+  ctx.fillText(str, x, y);
+}
+
 function ciDrawSoldStamp(ctx, cx, cy, w) {
   ctx.save();
   ctx.translate(cx, cy);
@@ -2583,7 +2597,7 @@ function ciDrawSoldStamp(ctx, cx, cy, w) {
   ctx.font = `900 ${w * 0.20}px 'Prompt', Arial, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('SOLD OUT', 0, 0);
+  ciText(ctx, 'SOLD OUT', 0, 0, 'center');
   ctx.restore();
 }
 
@@ -2722,12 +2736,12 @@ async function _ciDrawToCanvas(canvas, g, r) {
   ctx.fillStyle = '#999';
   ctx.font = "600 16px 'Prompt', Arial, sans-serif";
   ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-  ctx.fillText('LAMSANGSTORE', W/2, 18);
+  ciText(ctx, 'LAMSANGSTORE', W/2, 18, 'center');
 
   // Title (smaller)
   ctx.fillStyle = '#352F44';
   ctx.font = "800 38px 'Prompt', Arial, sans-serif";
-  ctx.fillText(String(g.title).slice(0, 40), W/2, 38);
+  ciText(ctx, String(g.title).slice(0, 40), W/2, 38, 'center');
 
   // Size badge (or "ทุกสี" label) — compact
   let headerBottom = 86;
@@ -2743,7 +2757,7 @@ async function _ciDrawToCanvas(canvas, g, r) {
     ctx.fill();
     ctx.fillStyle = '#fff';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(txt, W/2, by + 17);
+    ciText(ctx, txt, W/2, by + 17, 'center');
     headerBottom = by + 34 + 10;
   } else {
     headerBottom = 86;
@@ -2828,7 +2842,7 @@ async function _ciDrawToCanvas(canvas, g, r) {
     ctx.font = `800 ${nameFont}px 'Prompt', Arial, sans-serif`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'top';
     const nameY = iy + wellH + 8;
-    ctx.fillText(colorName, cxC, nameY);
+    ciText(ctx, colorName, cxC, nameY, 'center');
     if (sold) {
       const tw = ctx.measureText(colorName).width;
       ctx.strokeStyle = '#bbb'; ctx.lineWidth = Math.max(1.5, nameFont*0.07);
@@ -2843,9 +2857,9 @@ async function _ciDrawToCanvas(canvas, g, r) {
     const isLow = !sold && stockN > 0 && stockN <= 3;
     ctx.font = `700 ${statusFont}px 'Prompt', Arial, sans-serif`;
     const statusY = nameY + nameFont + 4;
-    if (sold) { ctx.fillStyle = '#d92626'; ctx.fillText('● หมด', cxC, statusY); }
-    else if (isLow) { ctx.fillStyle = '#d68910'; ctx.fillText('⚠ เหลือน้อย', cxC, statusY); }
-    else { ctx.fillStyle = '#1a6e3f'; ctx.fillText('● พร้อมส่ง', cxC, statusY); }
+    if (sold) { ctx.fillStyle = '#d92626'; ciText(ctx, '● หมด', cxC, statusY, 'center'); }
+    else if (isLow) { ctx.fillStyle = '#d68910'; ciText(ctx, '⚠ เหลือน้อย', cxC, statusY, 'center'); }
+    else { ctx.fillStyle = '#1a6e3f'; ciText(ctx, '● พร้อมส่ง', cxC, statusY, 'center'); }
   }
 
   // Footer
@@ -2886,7 +2900,7 @@ async function _ciDrawToCanvas(canvas, g, r) {
       ctx.fillStyle = '#fff';
       ctx.font = "800 22px 'Prompt', Arial, sans-serif";
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(`${t.qty} ${ciUnit}`, pillX + pillW/2, ly + 1);
+      ciText(ctx, `${t.qty} ${ciUnit}`, pillX + pillW/2, ly + 1, 'center');
       // price text
       ctx.textAlign = 'left';
       if (t.qty === 1) {
@@ -2928,7 +2942,7 @@ async function _ciDrawToCanvas(canvas, g, r) {
         rr(bx, ly - 17, bw, 34, 17); ctx.fill();
         ctx.fillStyle = '#fff';
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(bt, bx + bw/2, ly + 1);
+        ciText(ctx, bt, bx + bw/2, ly + 1, 'center');
       }
     });
     // ── ส่งฟรี + เก็บปลายทาง ──
@@ -2936,7 +2950,7 @@ async function _ciDrawToCanvas(canvas, g, r) {
     ctx.fillStyle = '#7a5c68';
     ctx.font = "700 22px 'Prompt', Arial, sans-serif";
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('ส่งฟรีทั่วไทย · เก็บปลายทาง +20 บาท', W/2, codY);
+    ciText(ctx, 'ส่งฟรีทั่วไทย · เก็บปลายทาง +20 บาท', W/2, codY, 'center');
   } else {
     // Compact footer: price + SKU
     if (r[2]) {
@@ -2949,7 +2963,7 @@ async function _ciDrawToCanvas(canvas, g, r) {
       ctx.fillStyle = '#999';
       ctx.font = "500 13px 'Prompt', Arial, sans-serif";
       ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
-      ctx.fillText('SKU: ' + String(r[6]).slice(-20), W - 30, H - 14);
+      ciText(ctx, 'SKU: ' + String(r[6]).slice(-20), W - 30, H - 14, 'right');
     }
   }
   // bottom accent bar
