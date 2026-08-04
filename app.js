@@ -2528,6 +2528,19 @@ function _ciDiagText() {
         badgeRight = mx < 0 ? 'ไม่พบป้าย' : mx;
       }
     } catch (e) { badgeRight = 'อ่านไม่ได้'; }
+    // ข้อความในกรอบทุกอันวาดแบบ textAlign='center' → หมึกต้องกระจายซ้าย/ขวาเท่ากัน
+    // ถ้าเครื่องไหนได้ค่าเบี้ยวไปข้างเดียว แปลว่าการจัดกึ่งกลางไม่ถูกใช้
+    // ตัวหนังสือจะทะลุออกนอกเม็ด/ป้ายทางขวา ซึ่งตรงกับอาการที่เห็น
+    let ctr = '?';
+    try {
+      const probe = (font, s) => {
+        x.font = font; x.textAlign = 'center';
+        const m = x.measureText(s);
+        return Math.round(m.actualBoundingBoxLeft) + '/' + Math.round(m.actualBoundingBoxRight);
+      };
+      ctr = probe("800 21px 'Prompt', Arial, sans-serif", 'ลด 20%')
+          + ' · ' + probe("800 22px 'Prompt', Arial, sans-serif", '1 เส้น');
+    } catch (e) { ctr = 'วัดไม่ได้'; }
     // บิตแมปถูกแล้ว แต่ยังดูเบี้ยว → เช็กว่าตอนแสดงผลบนจอ canvas ล้นกรอบจนโดนตัดหรือไม่
     let dispW = '?', boxW = '?';
     try {
@@ -2541,7 +2554,8 @@ function _ciDiagText() {
          + `v${ver} · ${engine} · ไทย:${thaiOK ? 'Prompt ✓' : 'ฟอนต์ระบบ ✗'} · w900:${w900 ? '✓' : '✗'} · dpr${window.devicePixelRatio || 1}\n`
          + `วัดได้ ${m1}/${m2} (ควรเป็น 81/349) · canvas ${cvSize}\n`
          + `ขอบขวาป้าย ${badgeRight} (ควรเป็น 993)\n`
-         + `แสดงผล ${dispW}px ในกรอบ ${boxW}px${dispW > boxW + 1 ? ' ⚠️ ล้นกรอบ' : ' ✓'}`;
+         + `แสดงผล ${dispW}px ในกรอบ ${boxW}px${dispW > boxW + 1 ? ' ⚠️ ล้นกรอบ' : ' ✓'}\n`
+         + `กึ่งกลาง ${ctr} (ควรเป็น 40/40 · 25/25)`;
   } catch (e) { return 'diag error'; }
 }
 function copyCiDiag(el) {
