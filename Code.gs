@@ -214,6 +214,9 @@ function pushProductsToFirebase() {
       }
       // ALWAYS preserve variants array
       merged.push(existingVariants);
+      // [13] ราคาป้าย — Sheet ไม่มีคอลัมน์นี้ ต้องคัดลอกของเดิมมาเสมอ
+      // ไม่งั้น sync แต่ละครั้งจะลบราคาป้ายของทุกสินค้าทิ้ง
+      merged.push(existing[13] != null ? existing[13] : '');
 
       // Update text fields if Sheet has non-empty value
       [0,1,2,3,7,8,9,10,11].forEach(idx => {
@@ -233,7 +236,7 @@ function pushProductsToFirebase() {
         String(sr[0]||''), String(sr[1]||''), String(sr[2]||''), String(sr[3]||''),
         String(sr[4]||''), String(sr[5]||''), sku,
         String(sr[7]||''), String(sr[8]||''), String(sr[9]||''),
-        String(sr[10]||''), String(sr[11]||''), []
+        String(sr[10]||''), String(sr[11]||''), [], ''
       ];
       created++;
     }
@@ -524,8 +527,9 @@ function autoSyncStockFromPage365() {
 
     if (rowChanges === 0 && rowAdded === 0) continue;
 
+    // ต้องวนถึง index 13 (ราคาป้าย) ไม่งั้น sync สต๊อกอัตโนมัติจะลบราคาป้ายทิ้งทุกรอบ
     const newRow = [];
-    for (let i = 0; i < 13; i++) newRow.push(row[i] != null ? row[i] : (i === 12 ? [] : ''));
+    for (let i = 0; i < 14; i++) newRow.push(row[i] != null ? row[i] : (i === 12 ? [] : ''));
     newRow[12] = curVariants;
     updates[key] = newRow;
     stockChanges += rowChanges;
