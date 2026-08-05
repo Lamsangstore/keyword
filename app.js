@@ -2977,17 +2977,16 @@ async function _ciDrawToCanvas(canvas, g, r) {
       } else {
         const avgTxt = `เฉลี่ย ${t.avg.toLocaleString()}.-/${ciUnit}`;
         const sumTxt = `(รวม ${t.total.toLocaleString()}.-)`;
-        ctx.font = "800 26px 'Prompt', Arial, sans-serif";
-        const aw = ctx.measureText(avgTxt).width;
-        ctx.font = "600 21px 'Prompt', Arial, sans-serif";
-        const sw = ctx.measureText(sumTxt).width;
+        // เน้นที่ยอดรวม: "เฉลี่ย" บาง/อ่อน · "รวม" หนา/เข้ม
+        const AVG_F = "600 21px 'Prompt', Arial, sans-serif";
+        const SUM_F = "800 26px 'Prompt', Arial, sans-serif";
+        ctx.font = AVG_F; const aw = ctx.measureText(avgTxt).width;
+        ctx.font = SUM_F; const sw = ctx.measureText(sumTxt).width;
         const px = badgeRight - (aw + 14 + sw);   // ชิดขวา
-        ctx.fillStyle = CI_C.ink;
-        ctx.font = "800 26px 'Prompt', Arial, sans-serif";
-        ctx.fillText(avgTxt, px, ly);
-        ctx.fillStyle = CI_C.inkSoft;
-        ctx.font = "600 21px 'Prompt', Arial, sans-serif";
-        ctx.fillText(sumTxt, px + aw + 14, ly + 1);
+        ctx.fillStyle = CI_C.inkSoft; ctx.font = AVG_F;
+        ctx.fillText(avgTxt, px, ly + 1);
+        ctx.fillStyle = CI_C.ink; ctx.font = SUM_F;
+        ctx.fillText(sumTxt, px + aw + 14, ly);
       }
     });
     // ── บรรทัดส่งฟรี ──
