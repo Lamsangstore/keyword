@@ -2566,7 +2566,8 @@ function priceLineText(row){
   const tag = tagPriceNum(row);
   const sell = priceNumOf(row && row[2]);
   // ใช้ ฿ ให้ตรงกับบรรทัดราคาหลายชิ้นในข้อความเดียวกัน
-  if (tag) return `ราคาปกติ ${tag.toLocaleString()}฿\nราคาพิเศษ ${sell.toLocaleString()}฿`;
+  // รวมเป็นบรรทัดเดียว โดยให้ราคาพิเศษมาก่อน แล้ววงเล็บบอกราคาปกติต่อท้าย
+  if (tag) return `ราคาพิเศษ ${sell.toLocaleString()}฿ (จากราคาปกติ ${tag.toLocaleString()}฿)`;
   return `ราคาปกติ ${sell.toLocaleString()}฿`;
 }
 
