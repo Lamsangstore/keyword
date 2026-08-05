@@ -2520,6 +2520,7 @@ const CI_C = {
   bandB:    '#F1EEE9',            // พื้นแบนเนอร์ (ล่าง)
   well:     '#F6F4F1',            // พื้นกรอบรูปสินค้า
   gold:     '#B08D57',            // ทองด้าน — จุดเน้น
+  goldDeep: '#8A6A38',            // ทองเข้ม — ตัวเลขราคาพิเศษ (ต้องอ่านชัดที่ขนาดใหญ่)
   ok:       '#5A7A62',            // เขียวเซจ — พร้อมส่ง
   out:      '#9B6A6A',            // แดงอิฐจาง — หมด
   low:      '#A8823F',            // เหลืองทองเข้ม — เหลือน้อย
@@ -2922,26 +2923,36 @@ async function _ciDrawToCanvas(canvas, g, r) {
     // ไม่มีราคาป้าย → แสดงราคาขายเป็นราคาปกติตามเดิม
     const ciTagPrice = tagPriceNum(r);
     if (ciUnitPrice > 0) {
-      let px = badgeRight;
-      // ราคาขาย (ขวาสุด)
-      ctx.fillStyle = CI_C.ink;
-      ctx.font = "800 25px 'Prompt', Arial, sans-serif";
-      const sellTxt = `${ciTagPrice ? 'ราคาพิเศษ' : 'ราคาปกติ'} ${ciUnitPrice.toLocaleString()}.-`;
-      ciText(ctx, sellTxt, px, bandTop + 30, 'right');
-      px -= ctx.measureText(sellTxt).width + 14;
-      // ราคาป้าย ขีดฆ่า (ซ้ายของราคาขาย)
+      // ตัวเลขราคาที่ลูกค้าจ่ายจริงคือพระเอกของภาพ — ใหญ่เท่าชื่อสินค้า (38px)
+      // และใช้สีทองเข้มให้ต่างจากตัวหนังสือเทาเข้มส่วนอื่น
+      // ป้ายคำว่า "ราคาพิเศษ" ตัวเล็กนำหน้า · ราคาปกติขีดฆ่าไว้ซ้ายสุดเป็นตัวเทียบ
+      const label   = (ciTagPrice ? 'ราคาพิเศษ' : 'ราคาปกติ') + ' ';
+      const numTxt  = `${ciUnitPrice.toLocaleString()}.-`;
+      const LBL_F = "600 21px 'Prompt', Arial, sans-serif";
+      const NUM_F = "800 38px 'Prompt', Arial, sans-serif";
+      ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.font = LBL_F; const lblW = ctx.measureText(label).width;
+      ctx.font = NUM_F; const numW = ctx.measureText(numTxt).width;
+      const blockX = badgeRight - (lblW + numW);
+
       if (ciTagPrice) {
+        ctx.font = LBL_F;
+        const tagTxt = `ปกติ ${ciTagPrice.toLocaleString()}.-`;
+        const tagW = ctx.measureText(tagTxt).width;
+        const tagX = blockX - 20 - tagW;
         ctx.fillStyle = CI_C.inkFaint;
-        ctx.font = "600 22px 'Prompt', Arial, sans-serif";
-        const tagTxt = `ราคาปกติ ${ciTagPrice.toLocaleString()}.-`;
-        const tw2 = ctx.measureText(tagTxt).width;
-        ciText(ctx, tagTxt, px, bandTop + 30, 'right');
+        ctx.fillText(tagTxt, tagX, bandTop + 30);
         ctx.strokeStyle = CI_C.inkFaint; ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(px - tw2, bandTop + 30);
-        ctx.lineTo(px, bandTop + 30);
+        ctx.moveTo(tagX, bandTop + 30);
+        ctx.lineTo(tagX + tagW, bandTop + 30);
         ctx.stroke();
       }
+
+      ctx.fillStyle = CI_C.inkSoft; ctx.font = LBL_F;
+      ctx.fillText(label, blockX, bandTop + 30);
+      ctx.fillStyle = CI_C.goldDeep; ctx.font = NUM_F;
+      ctx.fillText(numTxt, blockX + lblW, bandTop + 30);
     }
 
     // Tier rows — เรียงคอลัมน์: [เม็ดจำนวน] [ป้ายส่วนลด] .......... [ราคา]
