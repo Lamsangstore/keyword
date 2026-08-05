@@ -1634,7 +1634,7 @@ function showProductDetail(idx,push=true){
 
   const sold = isSoldOut(row);
   const variants = getVariants(row);
-  const baseFn = String(row[6]||row[0]||'image').replace(/[^a-zA-Z0-9_-]/g,'_');
+  const baseFn = `${_ciFileBase(row)} ${_ciDateStamp()}`;
   const heroActions = row[4] ? `
     <div class="img-actions-row">
       <button class="img-action-btn copy" onclick="copyImageFromUrl('${row[4]}',this)">📋 Copy</button>
@@ -1748,7 +1748,7 @@ function showProductDetail(idx,push=true){
           <img class="size-img" src="${row[5]}" onload="onImgLoad(this)" loading="lazy" onclick="openLightbox('${row[5]}','ตารางไซส์: ${esc(row[0])}')">
           <div class="img-actions-row">
             <button class="img-action-btn copy" onclick="copyImageFromUrl('${row[5]}',this)">📋 Copy</button>
-            <button class="img-action-btn dl" onclick="downloadImageFromUrl('${row[5]}','${baseFn}_size.png',this)">⬇️ Download</button>
+            <button class="img-action-btn dl" onclick="downloadImageFromUrl('${row[5]}','${_ciFileBase(row)} ตารางไซส์ ${_ciDateStamp()}.png',this)">⬇️ Download</button>
           </div>`:''}
           ${colorImagesHtml}
         </div>`:''}
@@ -2485,6 +2485,26 @@ function _ciEnsureFonts() {
   return _ciFontsReady;
 }
 
+// ── ชื่อไฟล์ตอนดาวน์โหลด ────────────────────────────────────
+// เดิมใช้รหัส SKU (เช่น B1729826495898618699.png) ซึ่งดูแล้วไม่รู้ว่าสินค้าอะไร
+// เปลี่ยนเป็น "ชื่อสินค้า วันที่" — เก็บภาษาไทยไว้ ตัดเฉพาะอักขระที่ใช้ในชื่อไฟล์ไม่ได้
+function _ciFileBase(row) {
+  const name = String((row && row[0]) || 'สินค้า')
+    .replace(/[\\/:*?"<>|]/g, ' ')   // อักขระต้องห้ามใน Windows/macOS
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 60);
+  return name || 'สินค้า';
+}
+function _ciDateStamp() {
+  const d = new Date(), p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+// ชื่อไฟล์รูปชุดส่งลูกค้า — ใส่ไซส์ต่อท้ายเมื่อแยกตามไซส์
+function ciFileName(row, sizeLabel) {
+  return `${_ciFileBase(row)}${sizeLabel ? ' ไซส์ ' + sizeLabel : ''} ${_ciDateStamp()}.png`;
+}
+
 // ── โทนสีรูปชุดส่งลูกค้า ─────────────────────────────────────
 // เดิมเป็นชมพู+แดง+เขียว ซึ่งดึงสายตาหลายจุดและอ่านว่าเป็นแฟชั่นตลาดทั่วไป
 // ปรับเป็นมินิมอล: พื้นเทาอ่อน/ขาวมุก · ตัวหนังสือเทาเข้ม · เน้นด้วยทองด้าน
@@ -2605,7 +2625,6 @@ function openCompositeImage(idx, presetSize) {
   }
   ciGroups = [];
   ciIndex = 0;
-  const baseSku = (row[6]||row[0]||'product').replace(/[^a-zA-Z0-9_-]/g,'_');
 
   if (hasSizeDimension(variants)) {
     const {colors, sizes, grid} = groupVariantsBySize(variants);
@@ -2616,7 +2635,7 @@ function openCompositeImage(idx, presetSize) {
         title: row[0]||'',
         sizeLabel: size,
         variants: groupVs,
-        filename: `${baseSku}_${size}.png`,
+        filename: ciFileName(row, size),
         blob: null,
         _row: row,
       });
@@ -2631,7 +2650,7 @@ function openCompositeImage(idx, presetSize) {
       title: row[0]||'',
       sizeLabel: '',
       variants: variants.map(v => ({...v, _color: parseVariant(v.name).color})),
-      filename: `${baseSku}.png`,
+      filename: ciFileName(row, ''),
       blob: null,
       _row: row,
     });
@@ -3064,16 +3083,15 @@ function downloadCiImage() {
 function _buildCompositeGroups(row) {
   const variants = getVariants(row);
   if (!variants.length) return [];
-  const baseSku = (row[6]||row[0]||'product').replace(/[^a-zA-Z0-9_-]/g,'_');
   if (hasSizeDimension(variants)) {
     const {colors, sizes, grid} = groupVariantsBySize(variants);
     return sizes.map(size => {
       const items = colors.map(c => grid[c]?.[size]).filter(Boolean).map(v => ({...v, _color: parseVariant(v.name).color, _size: size}));
       if (!items.length) return null;
-      return {title: row[0]||'', sizeLabel: size, variants: items, filename: `${baseSku}_${size}.png`, _row: row};
+      return {title: row[0]||'', sizeLabel: size, variants: items, filename: ciFileName(row, size), _row: row};
     }).filter(Boolean);
   }
-  return [{title: row[0]||'', sizeLabel: '', variants: variants.map(v => ({...v, _color: parseVariant(v.name).color})), filename: `${baseSku}.png`, _row: row}];
+  return [{title: row[0]||'', sizeLabel: '', variants: variants.map(v => ({...v, _color: parseVariant(v.name).color})), filename: ciFileName(row, ''), _row: row}];
 }
 
 // Embedded composite gallery in product detail page (LAZY)

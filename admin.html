@@ -5196,7 +5196,6 @@ async function openCopyImgModal(key) {
   copyImgIndex = 0;
 
   const variants = Array.isArray(r[12]) ? r[12] : [];
-  const baseSku = (r[6]||r[0]||'product').replace(/[^a-zA-Z0-9_-]/g,'_');
 
   // Determine groups: belts = single group with all variants; pants = one per size
   if (variants.length && _adminHasSize(variants)) {
@@ -5213,7 +5212,7 @@ async function openCopyImgModal(key) {
         label: `ไซส์ ${size}`,
         sizeLabel: size,
         variants: sizeMap[size],
-        filename: `${baseSku}_${size}.png`,
+        filename: ciFileName(r, size),
         blob: null,
         _row: r,
       });
@@ -5225,7 +5224,7 @@ async function openCopyImgModal(key) {
       label: variants.length ? 'ทุกสี' : '',
       sizeLabel: '',
       variants: variants.map(v => ({...v, _color: _adminParseVariant(v.name).color})),
-      filename: `${baseSku}.png`,
+      filename: ciFileName(r, ''),
       blob: null,
       _row: r,
     });
@@ -5264,6 +5263,24 @@ function _ciEnsureFonts() {
     weights.map(w => document.fonts.load(`${w} 40px 'Prompt'`, sample).catch(() => null))
   ).then(() => document.fonts.ready).catch(() => null);
   return _ciFontsReady;
+}
+
+// ── ชื่อไฟล์ตอนดาวน์โหลด ────────────────────────────────────
+// เดิมใช้รหัส SKU ซึ่งดูแล้วไม่รู้ว่าสินค้าอะไร → ใช้ "ชื่อสินค้า วันที่" แทน
+function _ciFileBase(row) {
+  const name = String((row && row[0]) || 'สินค้า')
+    .replace(/[\\/:*?"<>|]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 60);
+  return name || 'สินค้า';
+}
+function _ciDateStamp() {
+  const d = new Date(), p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+function ciFileName(row, sizeLabel) {
+  return `${_ciFileBase(row)}${sizeLabel ? ' ไซส์ ' + sizeLabel : ''} ${_ciDateStamp()}.png`;
 }
 
 // ── วาดข้อความโดยไม่พึ่ง ctx.textAlign ─────────────────────
