@@ -2561,7 +2561,10 @@ function ciDrawSoldOut(ctx, x, y, w, h) {
   // ใหม่: หรี่รูปลงบาง ๆ แล้ววางคำกลางกรอบด้วยตัวบางเว้นระยะ
   // ยังเห็นสินค้าชัด และคุมโทนให้เข้ากับส่วนอื่นของภาพ
   ctx.save();
-  rr(x, y, w, h, 16); ctx.clip();
+  // วาดกรอบมุมมนเอง — rr() เป็นตัวแปรภายใน _ciDrawToCanvas เรียกจากตรงนี้ไม่ได้
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x, y, w, h, 16); else ctx.rect(x, y, w, h);
+  ctx.clip();
   ctx.fillStyle = 'rgba(255,255,255,0.58)';       // หรี่รูป
   ctx.fillRect(x, y, w, h);
 
@@ -2680,7 +2683,14 @@ async function renderCiGroup(idx) {
   }
   const info = document.getElementById('ci-info');
   info.textContent = `กำลังสร้างภาพ ${idx+1}/${ciGroups.length}...`;
-  await _ciDrawToCanvas(document.getElementById('ci-canvas'), g, r);
+  try {
+    await _ciDrawToCanvas(document.getElementById('ci-canvas'), g, r);
+  } catch (e) {
+    // ก่อนหน้านี้ถ้าวาดพัง จะค้างที่ "กำลังสร้างภาพ..." ตลอดไปโดยไม่บอกสาเหตุ
+    console.error('composite draw failed:', e);
+    info.textContent = '⚠️ สร้างภาพไม่สำเร็จ: ' + (e && e.message ? e.message : e);
+    return;
+  }
   await new Promise(resolve => {
     document.getElementById('ci-canvas').toBlob(blob => {
       g.blob = blob;
@@ -2914,13 +2924,7 @@ async function _ciDrawToCanvas(canvas, g, r) {
     const pillW = 104, pillH = 36;
     const pillX = innerX;
     const badgeX = pillX + pillW + 22;
-    // วัดป้ายส่วนลดที่กว้างที่สุดก่อน เพื่อให้คอลัมน์ราคาของทุกแถวเริ่มตรงกัน
-    ctx.font = "800 21px 'Prompt', Arial, sans-serif";
-    let maxBadgeW = 0;
-    ciTiers.forEach(t => {
-      if (t.pct > 0) maxBadgeW = Math.max(maxBadgeW, ctx.measureText(`ลด ${t.pct}%`).width + 34);
-    });
-    const priceX = badgeX + (maxBadgeW ? maxBadgeW + 40 : 0);
+    // ราคาชิดขวาที่ badgeRight — คอลัมน์เดียวกับ "ราคาขาย" ในแถวหัวข้อด้านบน
     ciTiers.forEach((t, i) => {
       const ly = bandTop + 72 + i*40;
       // qty pill
@@ -2944,33 +2948,46 @@ async function _ciDrawToCanvas(canvas, g, r) {
       // ราคา — คอลัมน์ขวา
       ctx.textAlign = 'left';
       if (t.qty === 1) {
-        ctx.fillStyle = CI_C.ink;
         ctx.font = "800 27px 'Prompt', Arial, sans-serif";
         const disc = `${t.total.toLocaleString()}.-`;
-        ctx.fillText(disc, priceX, ly);
-        // ราคาปกติ (ขีดฆ่า) ต่อท้าย
-        if (ciUnitPrice > t.total) {
-          const dw = ctx.measureText(disc).width;
-          let ox = priceX + dw + 16;
+        const dw = ctx.measureText(disc).width;
+        const showOrig = ciUnitPrice > t.total;
+        const origStr = `${ciUnitPrice.toLocaleString()}.-`;
+        let extraW = 0, labelW = 0, origW = 0;
+        if (showOrig) {
+          ctx.font = "600 22px 'Prompt', Arial, sans-serif";
+          labelW = ctx.measureText('ปกติ ').width;
+          origW = ctx.measureText(origStr).width;
+          extraW = 16 + labelW + origW;
+        }
+        let px = badgeRight - (dw + extraW);      // ชิดขวา
+        ctx.fillStyle = CI_C.ink;
+        ctx.font = "800 27px 'Prompt', Arial, sans-serif";
+        ctx.fillText(disc, px, ly);
+        if (showOrig) {
+          let ox = px + dw + 16;
           ctx.fillStyle = CI_C.inkSoft;
           ctx.font = "600 22px 'Prompt', Arial, sans-serif";
           ctx.fillText('ปกติ ', ox, ly + 1);
-          ox += ctx.measureText('ปกติ ').width;
-          const origStr = `${ciUnitPrice.toLocaleString()}.-`;
+          ox += labelW;
           ctx.fillText(origStr, ox, ly + 1);
-          const ow = ctx.measureText(origStr).width;
           ctx.strokeStyle = CI_C.inkFaint; ctx.lineWidth = 2;
-          ctx.beginPath(); ctx.moveTo(ox, ly + 1); ctx.lineTo(ox + ow, ly + 1); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(ox, ly + 1); ctx.lineTo(ox + origW, ly + 1); ctx.stroke();
         }
       } else {
+        const avgTxt = `เฉลี่ย ${t.avg.toLocaleString()}.-/${ciUnit}`;
+        const sumTxt = `(รวม ${t.total.toLocaleString()}.-)`;
+        ctx.font = "800 26px 'Prompt', Arial, sans-serif";
+        const aw = ctx.measureText(avgTxt).width;
+        ctx.font = "600 21px 'Prompt', Arial, sans-serif";
+        const sw = ctx.measureText(sumTxt).width;
+        const px = badgeRight - (aw + 14 + sw);   // ชิดขวา
         ctx.fillStyle = CI_C.ink;
         ctx.font = "800 26px 'Prompt', Arial, sans-serif";
-        const avgTxt = `เฉลี่ย ${t.avg.toLocaleString()}.-/${ciUnit}`;
-        ctx.fillText(avgTxt, priceX, ly);
-        const aw = ctx.measureText(avgTxt).width;
+        ctx.fillText(avgTxt, px, ly);
         ctx.fillStyle = CI_C.inkSoft;
         ctx.font = "600 21px 'Prompt', Arial, sans-serif";
-        ctx.fillText(`(รวม ${t.total.toLocaleString()}.-)`, priceX + aw + 14, ly + 1);
+        ctx.fillText(sumTxt, px + aw + 14, ly + 1);
       }
     });
     // ── บรรทัดส่งฟรี ──
