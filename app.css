@@ -1832,3 +1832,20 @@
     @media(max-height:700px){
       .ci-modal{max-height:100%}
     }
+
+    /* ── ราคาป้าย (ราคาปกติ) เทียบกับราคาขาย ──
+       row[13] = ราคาป้าย ตั้งในหน้า Admin · row[2] = ราคาขายจริง */
+    .detail-tagprice{
+      font-size:.9em;font-weight:600;color:var(--muted);
+      margin-bottom:2px;
+    }
+    .detail-tagprice s{text-decoration-thickness:2px;opacity:.85}
+    .detail-price-tag{
+      font-size:.42em;font-weight:800;vertical-align:middle;
+      background:var(--pink);color:#fff;
+      padding:3px 9px;border-radius:20px;margin-left:6px;
+    }
+    .pcard-tagprice{
+      color:var(--muted);font-weight:600;opacity:.8;
+      margin-right:3px;
+    }

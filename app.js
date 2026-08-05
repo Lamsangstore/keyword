@@ -904,7 +904,7 @@ const COPY_TEMPLATES = [
   {
     key: 'close',
     label: '🎯 ปิดการขาย (ครบจบ)',
-    text: '{name}\nราคาปกติ {price}\n\n{tierPricing}\n\n{shipping}\n{footer}'
+    text: '{name}\n{priceLine}\n\n{tierPricing}\n\n{shipping}\n{footer}'
   },
   {
     key: 'allcolors',
@@ -942,6 +942,8 @@ function fillTemplate(tplText, row) {
   return String(tplText||'')
     .replace(/\{name\}/g, row[0] || '')
     .replace(/\{price\}/g, row[2] || '')
+    .replace(/\{tagPrice\}/g, tagPriceNum(row) ? tagPriceNum(row).toLocaleString() : '')
+    .replace(/\{priceLine\}/g, priceLineText(row))
     .replace(/\{detail\}/g, row[3] || '')
     .replace(/\{sku\}/g, row[6] || '')
     .replace(/\{sizes\}/g, sizes.join(', '))
@@ -1521,7 +1523,7 @@ function renderProductGrid(rows){
           <div class="pcard-overlay">
             <span class="pcard-type">${esc(item.type||'')}</span>
             <div class="pcard-name">${esc(item.name)}</div>
-            <div class="pcard-price">${esc(item.price)}</div>
+            <div class="pcard-price">${tagPriceNum(productRows[item.i]) ? `<s class="pcard-tagprice">${tagPriceNum(productRows[item.i]).toLocaleString()}</s> ` : ''}${esc(item.price)}</div>
           </div>
         </div>
         <div class="pcard-actions">
@@ -1756,7 +1758,8 @@ function showProductDetail(idx,push=true){
         <div class="detail-name">${esc(row[0])}${sold?' <span style="color:#d92626;font-size:.6em;background:rgba(217,38,38,.1);padding:3px 10px;border-radius:10px;vertical-align:middle">SOLD OUT</span>':''}</div>
         ${row[6]?`<div class="detail-sku">SKU: ${esc(row[6])}</div>`:''}
         <div class="detail-type">${esc(row[1])}</div>
-        <div class="detail-price">${esc(row[2])}</div>
+        ${tagPriceNum(row) ? `<div class="detail-tagprice">ราคาปกติ <s>${tagPriceNum(row).toLocaleString()}.-</s></div>` : ''}
+        <div class="detail-price">${esc(row[2])}${tagPriceNum(row) ? ' <span class="detail-price-tag">ราคาขาย</span>' : ''}</div>
         ${buildTierPricingHtml(row, idx)}
         <div id="stock-sync-status" class="stock-sync-status" style="display:none"></div>
         ${variants.length ? `<div id="detail-color-stock-area"></div>` : ''}
@@ -2257,7 +2260,7 @@ window.renderProductGrid = function(rows){
           <div class="pcard-overlay">
             <span class="pcard-type">${esc(row[1]||'')}</span>
             <div class="pcard-name">${esc(row[0])}</div>
-            <div class="pcard-price">${esc(row[2])}</div>
+            <div class="pcard-price">${tagPriceNum(row) ? `<s class="pcard-tagprice">${tagPriceNum(row).toLocaleString()}</s> ` : ''}${esc(row[2])}</div>
           </div>
         </div>
         <div class="pcard-actions">
@@ -2509,6 +2512,23 @@ function _ciStrikeOffset(ctx, fontSize) {
 
 // บรรทัดส่งฟรีบนรูป — เอามาจากค่าที่ตั้งไว้ในหน้า Admin (โปรโมชั่น → บรรทัด "ส่งฟรี")
 // ตัดอิโมจินำหน้าและย่อให้พอดีบรรทัดเดียว ถ้าไม่ได้ตั้งไว้ก็ไม่ต้องแสดง
+// ── ราคาป้าย (row[13]) ───────────────────────────────────────
+// row[2] = ราคาขายจริง · row[13] = ราคาป้าย (ตั้งในหน้า Admin, ไม่ใส่ก็ได้)
+// เวลาแสดงผล: ราคาป้าย = "ราคาปกติ" (ขีดฆ่า) · row[2] = "ราคาขาย"
+function priceNumOf(v){ return parseInt(String(v == null ? '' : v).replace(/[^0-9]/g, '')) || 0; }
+function tagPriceNum(row){
+  const tag = priceNumOf(row && row[13]);
+  const sell = priceNumOf(row && row[2]);
+  return (tag > 0 && tag > sell) ? tag : 0;   // นับเฉพาะที่มีป้ายและแพงกว่าราคาขายจริง
+}
+// บรรทัดราคาสำหรับข้อความ copy
+function priceLineText(row){
+  const tag = tagPriceNum(row);
+  const sell = priceNumOf(row && row[2]);
+  if (tag) return `ราคาปกติ ${tag.toLocaleString()}.-\nราคาขาย ${sell.toLocaleString()}.-`;
+  return `ราคาปกติ ${(row && row[2]) || ''}`;
+}
+
 function _ciShippingLine() {
   const raw = String((typeof _promoConfig !== 'undefined' && _promoConfig?.shipping) || '').trim();
   if (!raw) return '';
@@ -2829,12 +2849,31 @@ async function _ciDrawToCanvas(canvas, g, r) {
     ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
     ctx.fillText('★ ดีลพิเศษเฉพาะในแชท · ยิ่งซื้อยิ่งคุ้ม', innerX, bandTop + 30);
 
-    // ราคาปกติ — ชิดขวาแถวหัวข้อ (ช่องว่างที่ไม่ได้ใช้อยู่แล้ว)
-    // เมื่อก่อนราคาโผล่เฉพาะตอนมีขั้น "1 เส้น" พอตัดขั้นนั้นออก ราคาสินค้าเลยหายไปทั้งรูป
+    // ราคา — ชิดขวาแถวหัวข้อ (ช่องว่างที่ไม่ได้ใช้อยู่แล้ว)
+    // มีราคาป้าย → "ราคาปกติ <ป้าย>" ขีดฆ่า แล้วตามด้วย "ราคาขาย <ราคาจริง>"
+    // ไม่มีราคาป้าย → แสดงราคาขายเป็นราคาปกติตามเดิม
+    const ciTagPrice = tagPriceNum(r);
     if (ciUnitPrice > 0) {
-      ctx.fillStyle = '#8a6472';
-      ctx.font = "700 23px 'Prompt', Arial, sans-serif";
-      ciText(ctx, `ราคาปกติ ${ciUnitPrice.toLocaleString()}.-`, badgeRight, bandTop + 30, 'right');
+      let px = badgeRight;
+      // ราคาขาย (ขวาสุด)
+      ctx.fillStyle = '#C63D60';
+      ctx.font = "800 25px 'Prompt', Arial, sans-serif";
+      const sellTxt = `${ciTagPrice ? 'ราคาขาย' : 'ราคาปกติ'} ${ciUnitPrice.toLocaleString()}.-`;
+      ciText(ctx, sellTxt, px, bandTop + 30, 'right');
+      px -= ctx.measureText(sellTxt).width + 14;
+      // ราคาป้าย ขีดฆ่า (ซ้ายของราคาขาย)
+      if (ciTagPrice) {
+        ctx.fillStyle = '#a58a95';
+        ctx.font = "600 22px 'Prompt', Arial, sans-serif";
+        const tagTxt = `ราคาปกติ ${ciTagPrice.toLocaleString()}.-`;
+        const tw2 = ctx.measureText(tagTxt).width;
+        ciText(ctx, tagTxt, px, bandTop + 30, 'right');
+        ctx.strokeStyle = '#c19aa8'; ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(px - tw2, bandTop + 30);
+        ctx.lineTo(px, bandTop + 30);
+        ctx.stroke();
+      }
     }
 
     // Tier rows — aligned columns: [qty pill] [price] ............ [discount]

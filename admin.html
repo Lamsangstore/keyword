@@ -517,8 +517,10 @@
         <select id="bulk-field" onchange="onBulkFieldChange()" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--pink-light)">
           <option value="">— เลือก —</option>
           <option value="category">ประเภท / หมวดหมู่</option>
-          <option value="price-set">ราคา (ตั้งใหม่)</option>
-          <option value="price-mult">ราคา (คูณ % เช่น 1.1 = ขึ้น 10%)</option>
+          <option value="price-set">ราคาขาย (ตั้งใหม่)</option>
+          <option value="price-mult">ราคาขาย (คูณ % เช่น 1.1 = ขึ้น 10%)</option>
+          <option value="tag-set">ราคาป้าย (ตั้งใหม่)</option>
+          <option value="tag-mult">ราคาป้าย = ราคาขาย × ตัวคูณ</option>
           <option value="shopee">Link Shopee</option>
           <option value="tiktok">Link TikTok</option>
           <option value="lazada">Link Lazada</option>
@@ -912,8 +914,12 @@
       <div><label>ประเภท *</label><input type="text" id="p-type" placeholder="เช่น กางเกง กระบอก, เสื้อยืด"></div>
     </div>
     <div class="form-row">
-      <div><label>ราคา</label><input type="text" id="p-price" placeholder="เช่น 490"></div>
+      <div><label>ราคาขาย *</label><input type="text" id="p-price" placeholder="เช่น 490"></div>
+      <div><label>ราคาป้าย (ถ้ามี)</label><input type="text" id="p-tagprice" placeholder="เช่น 690 — ปล่อยว่างถ้าไม่มีป้าย"></div>
+    </div>
+    <div class="form-row">
       <div><label>Parent SKU</label><input type="text" id="p-sku" placeholder="เช่น B17295911..."></div>
+      <div></div>
     </div>
     <div class="form-row">
       <div><label>🛒 Link Shopee</label><input type="text" id="p-shopee" placeholder="https://shopee.co.th/..."></div>
@@ -1739,14 +1745,16 @@ function onBulkFieldChange() {
   const f = document.getElementById('bulk-field').value;
   const inp = document.getElementById('bulk-value');
   if (f === 'price-mult') inp.placeholder = 'เช่น 1.10 = ขึ้น 10% • 0.9 = ลด 10%';
-  else if (f === 'price-set') inp.placeholder = 'ราคาใหม่';
+  else if (f === 'price-set') inp.placeholder = 'ราคาขายใหม่';
+  else if (f === 'tag-set') inp.placeholder = 'ราคาป้ายใหม่ (ปล่อยว่างไม่ได้ — ใช้ 0 เพื่อล้าง)';
+  else if (f === 'tag-mult') inp.placeholder = 'เช่น 1.30 = ราคาป้ายสูงกว่าราคาขาย 30%';
   else inp.placeholder = 'ค่าใหม่';
 }
 async function applyBulkEdit() {
   const field = document.getElementById('bulk-field').value;
   const value = document.getElementById('bulk-value').value.trim();
   if (!field || !value) { toast('กรอกข้อมูลให้ครบ','warn'); return; }
-  const fieldMap = { category:1, 'price-set':2, shopee:7, tiktok:8, lazada:10, page365:11 };
+  const fieldMap = { category:1, 'price-set':2, shopee:7, tiktok:8, lazada:10, page365:11, 'tag-set':13 };
 
   try {
     await _preSyncBackup(`ก่อน bulk edit ${_bulkSelected.size} สินค้า`);
@@ -1757,11 +1765,18 @@ async function applyBulkEdit() {
     const row = allProducts[key];
     if (!row) continue;
     const newRow = [...row];
-    while (newRow.length < 13) newRow.push('');
+    while (newRow.length < 14) newRow.push('');   // ถึง index 13 = ราคาป้าย
     if (field === 'price-mult') {
       const mult = Number(value) || 1;
       const cur = parseInt(String(newRow[2]||'').replace(/[^0-9]/g,''))||0;
       newRow[2] = String(Math.round(cur * mult));
+    } else if (field === 'tag-mult') {
+      // ตั้งราคาป้ายจากราคาขาย เช่น 1.3 = ป้ายแพงกว่าราคาขาย 30%
+      const mult = Number(value) || 1;
+      const cur = parseInt(String(newRow[2]||'').replace(/[^0-9]/g,''))||0;
+      newRow[13] = cur ? String(Math.round(cur * mult)) : '';
+    } else if (field === 'tag-set' && (value === '0' || value === '')) {
+      newRow[13] = '';                            // ใส่ 0 = ล้างราคาป้ายทิ้ง
     } else if (field in fieldMap) {
       newRow[fieldMap[field]] = value;
     }
@@ -3078,7 +3093,7 @@ function openProductModal(key = null) {
   editProductKey = key;
   if (key) markEditing(key);
   document.getElementById('product-modal-title').textContent = key ? '✏️ แก้ไขสินค้า' : '➕ เพิ่มสินค้า';
-  const fields = ['p-name','p-type','p-price','p-sku','p-shopee','p-tiktok','p-lazada','p-page365','p-link','p-img1','p-img2','p-detail','p-note'];
+  const fields = ['p-name','p-type','p-price','p-tagprice','p-sku','p-shopee','p-tiktok','p-lazada','p-page365','p-link','p-img1','p-img2','p-detail','p-note'];
   fields.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   [1,2].forEach(n => { document.getElementById(`upload-preview-${n}`).style.display='none'; document.getElementById(`upload-status-${n}`).textContent=''; });
 
@@ -3089,6 +3104,7 @@ function openProductModal(key = null) {
     document.getElementById('p-name').value    = r[0]  || '';
     document.getElementById('p-type').value    = r[1]  || '';
     document.getElementById('p-price').value   = r[2]  || '';
+    document.getElementById('p-tagprice').value = r[13] || '';
     document.getElementById('p-detail').value  = r[3]  || '';
     document.getElementById('p-img1').value    = r[4]  || '';
     document.getElementById('p-img2').value    = r[5]  || '';
@@ -3275,6 +3291,7 @@ async function saveProduct() {
   const name   = document.getElementById('p-name').value.trim();
   const type   = document.getElementById('p-type').value.trim();
   const price  = document.getElementById('p-price').value.trim();
+  const tagPrice = document.getElementById('p-tagprice').value.trim();
   const detail = document.getElementById('p-detail').value.trim();
   const img1   = document.getElementById('p-img1').value.trim();
   const img2   = document.getElementById('p-img2').value.trim();
@@ -3286,10 +3303,10 @@ async function saveProduct() {
   const page365= document.getElementById('p-page365').value.trim();
   if (!name || !type) { toast('กรุณากรอกชื่อสินค้าและประเภท','warn'); return; }
 
-  // [0]ชื่อ [1]ประเภท [2]ราคา [3]รายละเอียด [4]รูปหลัก [5]รูปไซส์
-  // [6]SKU [7]Shopee [8]TikTok [9]พิกัด [10]Lazada [11]Page365 [12]variants[]
+  // [0]ชื่อ [1]ประเภท [2]ราคาขาย [3]รายละเอียด [4]รูปหลัก [5]รูปไซส์
+  // [6]SKU [7]Shopee [8]TikTok [9]พิกัด [10]Lazada [11]Page365 [12]variants[] [13]ราคาป้าย
   const variants = collectVariants();
-  const row = [name, type, price, detail, img1, img2, sku, shopee, tiktok, loc, lazada, page365, variants];
+  const row = [name, type, price, detail, img1, img2, sku, shopee, tiktok, loc, lazada, page365, variants, tagPrice];
   const btn = document.getElementById('save-product-btn');
   btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
 
@@ -3900,7 +3917,7 @@ function closeModal(id) {
 }
 
 function hasProductFormData() {
-  const fields = ['p-name','p-type','p-price','p-sku','p-shopee','p-tiktok','p-lazada','p-page365','p-link','p-detail','p-img1','p-img2'];
+  const fields = ['p-name','p-type','p-price','p-tagprice','p-sku','p-shopee','p-tiktok','p-lazada','p-page365','p-link','p-detail','p-img1','p-img2'];
   return fields.some(id => { const el = document.getElementById(id); return el && el.value.trim() !== ''; });
 }
 function hasGeneralFormData() {
@@ -4995,7 +5012,8 @@ async function syncStockFromPage365() {
       const row = snap.val();
       if (Array.isArray(row) || (row && typeof row === 'object')) {
         const r = Array.isArray(row) ? [...row] : (() => {
-          const arr = []; for (let i=0; i<13; i++) arr.push(row[i] != null ? row[i] : '');
+          // ต้องถึง index 13 (ราคาป้าย) ไม่งั้น sync variants แล้วราคาป้ายหาย
+          const arr = []; for (let i=0; i<14; i++) arr.push(row[i] != null ? row[i] : '');
           return arr;
         })();
         while (r.length < 13) r.push('');
