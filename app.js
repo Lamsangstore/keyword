@@ -1759,7 +1759,7 @@ function showProductDetail(idx,push=true){
         ${row[6]?`<div class="detail-sku">SKU: ${esc(row[6])}</div>`:''}
         <div class="detail-type">${esc(row[1])}</div>
         ${tagPriceNum(row) ? `<div class="detail-tagprice">ราคาปกติ <s>${tagPriceNum(row).toLocaleString()}.-</s></div>` : ''}
-        <div class="detail-price">${esc(row[2])}${tagPriceNum(row) ? ' <span class="detail-price-tag">ราคาขาย</span>' : ''}</div>
+        <div class="detail-price">${esc(row[2])}${tagPriceNum(row) ? ' <span class="detail-price-tag">ราคาพิเศษ</span>' : ''}</div>
         ${buildTierPricingHtml(row, idx)}
         <div id="stock-sync-status" class="stock-sync-status" style="display:none"></div>
         ${variants.length ? `<div id="detail-color-stock-area"></div>` : ''}
@@ -2542,7 +2542,7 @@ function tagPriceNum(row){
 function priceLineText(row){
   const tag = tagPriceNum(row);
   const sell = priceNumOf(row && row[2]);
-  if (tag) return `ราคาปกติ ${tag.toLocaleString()}.-\nราคาขาย ${sell.toLocaleString()}.-`;
+  if (tag) return `ราคาปกติ ${tag.toLocaleString()}.-\nราคาพิเศษ ${sell.toLocaleString()}.-`;
   return `ราคาปกติ ${(row && row[2]) || ''}`;
 }
 
@@ -2902,7 +2902,7 @@ async function _ciDrawToCanvas(canvas, g, r) {
       // ราคาขาย (ขวาสุด)
       ctx.fillStyle = CI_C.ink;
       ctx.font = "800 25px 'Prompt', Arial, sans-serif";
-      const sellTxt = `${ciTagPrice ? 'ราคาขาย' : 'ราคาปกติ'} ${ciUnitPrice.toLocaleString()}.-`;
+      const sellTxt = `${ciTagPrice ? 'ราคาพิเศษ' : 'ราคาปกติ'} ${ciUnitPrice.toLocaleString()}.-`;
       ciText(ctx, sellTxt, px, bandTop + 30, 'right');
       px -= ctx.measureText(sellTxt).width + 14;
       // ราคาป้าย ขีดฆ่า (ซ้ายของราคาขาย)
@@ -2995,10 +2995,33 @@ async function _ciDrawToCanvas(canvas, g, r) {
     const codY = bandTop + 72 + ciTiers.length * 40 + 6;
     const shipLine = _ciShippingLine();
     if (shipLine) {
-      ctx.fillStyle = CI_C.inkSoft;
-      ctx.font = "700 22px 'Prompt', Arial, sans-serif";
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ciText(ctx, shipLine, W/2, codY, 'center');
+      // เน้นคำว่า "ส่งฟรี" ให้เด่นกว่าส่วนอื่นของบรรทัด
+      // (วาดทีละท่อนแล้วจัดกึ่งกลางจากความกว้างรวม)
+      const KEY = 'ส่งฟรี';
+      const NORMAL = "600 22px 'Prompt', Arial, sans-serif";
+      const STRONG = "800 27px 'Prompt', Arial, sans-serif";
+      const at = shipLine.indexOf(KEY);
+      ctx.textBaseline = 'middle';
+      if (at < 0) {
+        ctx.fillStyle = CI_C.inkSoft; ctx.font = NORMAL;
+        ciText(ctx, shipLine, W/2, codY, 'center');
+      } else {
+        const before = shipLine.slice(0, at);
+        const after  = shipLine.slice(at + KEY.length);
+        ctx.font = NORMAL;
+        const bW = ctx.measureText(before).width;
+        const aW = ctx.measureText(after).width;
+        ctx.font = STRONG;
+        const kW = ctx.measureText(KEY).width;
+        let px = W/2 - (bW + kW + aW) / 2;
+        ctx.textAlign = 'left';
+        ctx.fillStyle = CI_C.inkSoft; ctx.font = NORMAL;
+        ctx.fillText(before, px, codY); px += bW;
+        ctx.fillStyle = CI_C.ink;     ctx.font = STRONG;
+        ctx.fillText(KEY, px, codY);  px += kW;
+        ctx.fillStyle = CI_C.inkSoft; ctx.font = NORMAL;
+        ctx.fillText(after, px, codY);
+      }
     }
   } else {
     // Compact footer: price + SKU
