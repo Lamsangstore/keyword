@@ -602,10 +602,13 @@ function tierPricingText(row) {
   const tiers = buildTierPricing(row?.[2]);
   if (!tiers.length) return '';
   const u = counterWord(row);
-  const lines = tiers.map(t => t.qty === 1
-    ? `${t.qty} ${u} ราคา ${t.total.toLocaleString()}฿${t.pct>0?` (ลด ${t.pct}%)`:''}`
-    : `${t.qty} ${u} ราคาเฉลี่ย${u}ละ ${t.avg.toLocaleString()}฿ (รวม ${t.total.toLocaleString()}฿${t.pct>0?` ลด ${t.pct}%`:''})`
-  );
+  // ส่วนลดอยู่ติดกับจำนวน (เหมือนบนรูป) ไม่ใช่ซ่อนท้ายในวงเล็บ
+  const lines = tiers.map(t => {
+    const disc = t.pct > 0 ? ` ลด ${t.pct}%` : '';
+    return t.qty === 1
+      ? `${t.qty} ${u}${disc} ราคา ${t.total.toLocaleString()}฿`
+      : `${t.qty} ${u}${disc} ราคาเฉลี่ย${u}ละ ${t.avg.toLocaleString()}฿ (รวม ${t.total.toLocaleString()}฿)`;
+  });
   return '💰 ยิ่งซื้อเยอะ ยิ่งคุ้ม:\n' + lines.join('\n');
 }
 
