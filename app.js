@@ -2485,6 +2485,23 @@ function _ciEnsureFonts() {
   return _ciFontsReady;
 }
 
+// ── โทนสีรูปชุดส่งลูกค้า ─────────────────────────────────────
+// เดิมเป็นชมพู+แดง+เขียว ซึ่งดึงสายตาหลายจุดและอ่านว่าเป็นแฟชั่นตลาดทั่วไป
+// ปรับเป็นมินิมอล: พื้นเทาอ่อน/ขาวมุก · ตัวหนังสือเทาเข้ม · เน้นด้วยทองด้าน
+const CI_C = {
+  ink:      '#2E2A28',            // เทาเข้มเกือบดำ — ตัวหนังสือหลัก
+  inkSoft:  '#6E6862',            // เทาอุ่น — ข้อความรอง
+  inkFaint: '#9A938C',            // จาง — ชื่อสีที่หมด / แบรนด์
+  line:     '#E6E1DA',            // เส้นขอบ
+  bandA:    '#FAF9F7',            // พื้นแบนเนอร์ (บน)
+  bandB:    '#F1EEE9',            // พื้นแบนเนอร์ (ล่าง)
+  well:     '#F6F4F1',            // พื้นกรอบรูปสินค้า
+  gold:     '#B08D57',            // ทองด้าน — จุดเน้น
+  ok:       '#5A7A62',            // เขียวเซจ — พร้อมส่ง
+  out:      '#9B6A6A',            // แดงอิฐจาง — หมด
+  low:      '#A8823F',            // เหลืองทองเข้ม — เหลือน้อย
+};
+
 // ── วาดข้อความโดยไม่พึ่ง ctx.textAlign ─────────────────────
 // บน WebKit บางเครื่อง fillText ไม่ใช้ค่า ctx.textAlign ที่ตั้งไว้ (แต่ measureText ใช้)
 // ผลคือข้อความที่ควรอยู่กึ่งกลางกรอบ ถูกวาดจากจุดกึ่งกลางแล้วยื่นไปทางขวา
@@ -2539,23 +2556,40 @@ function _ciShippingLine() {
   return clean.length > 64 ? clean.slice(0, 63) + '…' : clean;
 }
 
-function ciDrawSoldStamp(ctx, cx, cy, w) {
+function ciDrawSoldOut(ctx, x, y, w, h) {
+  // เดิมเป็นตราแดงสดเอียงทับกลางสินค้า — บดบังตัวสินค้าจนดูรายละเอียดไม่ออก
+  // ใหม่: หรี่รูปลงบาง ๆ แล้ววางคำกลางกรอบด้วยตัวบางเว้นระยะ
+  // ยังเห็นสินค้าชัด และคุมโทนให้เข้ากับส่วนอื่นของภาพ
   ctx.save();
-  ctx.translate(cx, cy);
-  ctx.rotate(-Math.PI / 12);
-  const h = w * 0.32;
-  ctx.fillStyle = 'rgba(217, 38, 38, 0.92)';
-  ctx.beginPath();
-  ctx.rect(-w/2, -h/2, w, h);
-  ctx.fill();
-  ctx.strokeStyle = '#fff';
-  ctx.lineWidth = Math.max(2, w * 0.012);
-  ctx.strokeRect(-w/2 + 6, -h/2 + 6, w - 12, h - 12);
-  ctx.fillStyle = '#fff';
-  ctx.font = `900 ${w * 0.20}px 'Prompt', Arial, sans-serif`;
-  ctx.textAlign = 'center';
+  rr(x, y, w, h, 16); ctx.clip();
+  ctx.fillStyle = 'rgba(255,255,255,0.58)';       // หรี่รูป
+  ctx.fillRect(x, y, w, h);
+
+  const cx = x + w/2, cy = y + h/2;
+  const fs = Math.max(13, Math.min(26, w * 0.078));
+  ctx.font = `600 ${fs}px 'Prompt', Arial, sans-serif`;
   ctx.textBaseline = 'middle';
-  ciText(ctx, 'SOLD OUT', 0, 0, 'center');
+
+  // เว้นระยะตัวอักษรเองเพื่อให้ดูโปร่ง (canvas ไม่รองรับ letter-spacing ทุกเบราว์เซอร์)
+  const word = 'SOLD OUT';
+  const gap = fs * 0.34;
+  const chars = word.split('');
+  let total = 0;
+  chars.forEach(ch => { total += ctx.measureText(ch).width + gap; });
+  total -= gap;
+
+  // เส้นคาดบาง ๆ บน-ล่างคำ ให้ดูเป็นป้ายโดยไม่ต้องใช้กล่องทึบ
+  ctx.strokeStyle = 'rgba(46,42,40,0.30)';
+  ctx.lineWidth = 1;
+  const lw = total + fs * 1.6;
+  [cy - fs * 1.15, cy + fs * 1.15].forEach(ly => {
+    ctx.beginPath(); ctx.moveTo(cx - lw/2, ly); ctx.lineTo(cx + lw/2, ly); ctx.stroke();
+  });
+
+  ctx.fillStyle = CI_C.ink;
+  ctx.textAlign = 'left';
+  let px = cx - total/2;
+  chars.forEach(ch => { ctx.fillText(ch, px, cy); px += ctx.measureText(ch).width + gap; });
   ctx.restore();
 }
 
@@ -2671,10 +2705,10 @@ async function _ciDrawToCanvas(canvas, g, r) {
   ctx.fillRect(0, 0, W, H);
   // Soft vertical sheen (lighter band across the middle)
   const sheen = ctx.createLinearGradient(0, 0, 0, H);
-  sheen.addColorStop(0,   '#f3f1f6');
+  sheen.addColorStop(0,   '#F5F3F0');
   sheen.addColorStop(0.45,'#ffffff');
   sheen.addColorStop(0.55,'#ffffff');
-  sheen.addColorStop(1,   '#ececf2');
+  sheen.addColorStop(1,   '#EEEBE6');
   ctx.fillStyle = sheen;
   ctx.fillRect(0, 0, W, H);
   // Subtle radial spotlight from top-left for glossy highlight
@@ -2685,17 +2719,17 @@ async function _ciDrawToCanvas(canvas, g, r) {
   ctx.fillRect(0, 0, W, H);
 
   // top accent bar
-  ctx.fillStyle = '#E87A90';
+  ctx.fillStyle = CI_C.gold;
   ctx.fillRect(0, 0, W, 6);
 
   // Brand (small)
-  ctx.fillStyle = '#999';
+  ctx.fillStyle = CI_C.inkFaint;
   ctx.font = "600 16px 'Prompt', Arial, sans-serif";
   ctx.textAlign = 'center'; ctx.textBaseline = 'top';
   ciText(ctx, 'LAMSANGSTORE', W/2, 18, 'center');
 
   // Title (smaller)
-  ctx.fillStyle = '#352F44';
+  ctx.fillStyle = CI_C.ink;
   ctx.font = "800 38px 'Prompt', Arial, sans-serif";
   ciText(ctx, String(g.title).slice(0, 40), W/2, 38, 'center');
 
@@ -2707,7 +2741,7 @@ async function _ciDrawToCanvas(canvas, g, r) {
     const bw = ctx.measureText(txt).width + 36;
     const by = 84;
     const bx = (W - bw) / 2;
-    ctx.fillStyle = '#E87A90';
+    ctx.fillStyle = CI_C.gold;
     ctx.beginPath();
     if (ctx.roundRect) ctx.roundRect(bx, by, bw, 34, 17); else ctx.rect(bx, by, bw, 34);
     ctx.fill();
@@ -2769,16 +2803,16 @@ async function _ciDrawToCanvas(canvas, g, r) {
     ctx.save();
     ctx.shadowColor = 'rgba(90,50,100,0.10)';
     ctx.shadowBlur = 16; ctx.shadowOffsetY = 5;
-    ctx.fillStyle = sold ? '#f7f4f8' : '#ffffff';
+    ctx.fillStyle = sold ? '#FBFAF9' : '#ffffff';
     rr(cardX, cardY, cellW, cellH, 22); ctx.fill();
     ctx.restore();
-    ctx.strokeStyle = '#efe4f1'; ctx.lineWidth = 1.5;
+    ctx.strokeStyle = CI_C.line; ctx.lineWidth = 1.5;
     rr(cardX, cardY, cellW, cellH, 22); ctx.stroke();
 
     // image well
     const ix = cardX + (cellW - wellW)/2;
     const iy = cardY + pad;
-    ctx.fillStyle = '#f3eef8';
+    ctx.fillStyle = CI_C.well;
     rr(ix, iy, wellW, wellH, 16); ctx.fill();
     const vi = vImgs[i];
     if (vi) {
@@ -2790,12 +2824,12 @@ async function _ciDrawToCanvas(canvas, g, r) {
       ctx.drawImage(vi, ix + (wellW-dw)/2, iy + (wellH-dh)/2, dw, dh);
       ctx.restore();
     }
-    if (sold) ciDrawSoldStamp(ctx, ix + wellW/2, iy + wellH/2, Math.min(wellW,wellH)*0.86);
+    if (sold) ciDrawSoldOut(ctx, ix, iy, wellW, wellH);
 
     // color name
     const colorName = v._color || v.name || '';
-    ctx.fillStyle = sold ? '#aaa' : '#352F44';
-    ctx.font = `800 ${nameFont}px 'Prompt', Arial, sans-serif`;
+    ctx.fillStyle = sold ? CI_C.inkFaint : CI_C.ink;
+    ctx.font = `600 ${nameFont}px 'Prompt', Arial, sans-serif`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'top';
     const nameY = iy + wellH + 8;
     ciText(ctx, colorName, cxC, nameY, 'center');
@@ -2804,7 +2838,7 @@ async function _ciDrawToCanvas(canvas, g, r) {
       // เดิมวางเส้นที่ nameFont/2 ซึ่งเป็นการเดาจากขนาดฟอนต์ ไม่ใช่ตำแหน่งหมึกจริง
       // ทำให้บางเครื่องเส้นไปอยู่ค่อนไปทางบนของตัวอักษร
       // วัดจากตัว 'ก' (ไม่มีวรรณยุกต์ลอยสูงมากวนค่า) แล้วใช้กึ่งกลางหมึกจริงของเครื่องนั้น
-      ctx.strokeStyle = '#bbb'; ctx.lineWidth = Math.max(1.5, nameFont*0.07);
+      ctx.strokeStyle = CI_C.inkFaint; ctx.lineWidth = Math.max(1.2, nameFont*0.05);
       const lineY = nameY + _ciStrikeOffset(ctx, nameFont);
       ctx.beginPath();
       ctx.moveTo(cxC - tw/2, lineY);
@@ -2817,9 +2851,9 @@ async function _ciDrawToCanvas(canvas, g, r) {
     const isLow = !sold && stockN > 0 && stockN <= 3;
     ctx.font = `700 ${statusFont}px 'Prompt', Arial, sans-serif`;
     const statusY = nameY + nameFont + 4;
-    if (sold) { ctx.fillStyle = '#d92626'; ciText(ctx, '● หมด', cxC, statusY, 'center'); }
-    else if (isLow) { ctx.fillStyle = '#d68910'; ciText(ctx, '⚠ เหลือน้อย', cxC, statusY, 'center'); }
-    else { ctx.fillStyle = '#1a6e3f'; ciText(ctx, '● พร้อมส่ง', cxC, statusY, 'center'); }
+    if (sold) { ctx.fillStyle = CI_C.out; ciText(ctx, '● หมด', cxC, statusY, 'center'); }
+    else if (isLow) { ctx.fillStyle = CI_C.low; ciText(ctx, '⚠ เหลือน้อย', cxC, statusY, 'center'); }
+    else { ctx.fillStyle = CI_C.ok; ciText(ctx, '● พร้อมส่ง', cxC, statusY, 'center'); }
   }
 
   // Footer
@@ -2831,10 +2865,10 @@ async function _ciDrawToCanvas(canvas, g, r) {
     const innerX = padX + 28;
     // soft gradient background + border
     const bg = ctx.createLinearGradient(0, bandTop, 0, bandTop + bandH);
-    bg.addColorStop(0, '#FDEAF0'); bg.addColorStop(1, '#FBDCE6');
+    bg.addColorStop(0, CI_C.bandA); bg.addColorStop(1, CI_C.bandB);
     ctx.fillStyle = bg;
     rr(padX, bandTop, W - padX*2, bandH, 24); ctx.fill();
-    ctx.strokeStyle = '#F4C7D6'; ctx.lineWidth = 2;
+    ctx.strokeStyle = CI_C.line; ctx.lineWidth = 2;
     rr(padX, bandTop, W - padX*2, bandH, 24); ctx.stroke();
 
     // เดิมเว้นจากขอบกรอบแค่ 28px (ให้สมมาตรกับ innerX ด้านซ้าย) — วาดถูกต้อง
@@ -2844,7 +2878,7 @@ async function _ciDrawToCanvas(canvas, g, r) {
     const badgeRight = W - padX - 56;
 
     // Title
-    ctx.fillStyle = '#C63D60';
+    ctx.fillStyle = CI_C.ink;
     ctx.font = "800 27px 'Prompt', Arial, sans-serif";
     ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
     ctx.fillText('★ ดีลพิเศษเฉพาะในแชท · ยิ่งซื้อยิ่งคุ้ม', innerX, bandTop + 30);
@@ -2856,19 +2890,19 @@ async function _ciDrawToCanvas(canvas, g, r) {
     if (ciUnitPrice > 0) {
       let px = badgeRight;
       // ราคาขาย (ขวาสุด)
-      ctx.fillStyle = '#C63D60';
+      ctx.fillStyle = CI_C.ink;
       ctx.font = "800 25px 'Prompt', Arial, sans-serif";
       const sellTxt = `${ciTagPrice ? 'ราคาขาย' : 'ราคาปกติ'} ${ciUnitPrice.toLocaleString()}.-`;
       ciText(ctx, sellTxt, px, bandTop + 30, 'right');
       px -= ctx.measureText(sellTxt).width + 14;
       // ราคาป้าย ขีดฆ่า (ซ้ายของราคาขาย)
       if (ciTagPrice) {
-        ctx.fillStyle = '#a58a95';
+        ctx.fillStyle = CI_C.inkFaint;
         ctx.font = "600 22px 'Prompt', Arial, sans-serif";
         const tagTxt = `ราคาปกติ ${ciTagPrice.toLocaleString()}.-`;
         const tw2 = ctx.measureText(tagTxt).width;
         ciText(ctx, tagTxt, px, bandTop + 30, 'right');
-        ctx.strokeStyle = '#c19aa8'; ctx.lineWidth = 2;
+        ctx.strokeStyle = CI_C.inkFaint; ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(px - tw2, bandTop + 30);
         ctx.lineTo(px, bandTop + 30);
@@ -2883,7 +2917,7 @@ async function _ciDrawToCanvas(canvas, g, r) {
     ciTiers.forEach((t, i) => {
       const ly = bandTop + 72 + i*40;
       // qty pill
-      ctx.fillStyle = '#E87A90';
+      ctx.fillStyle = CI_C.ink;
       rr(pillX, ly - pillH/2, pillW, pillH, pillH/2); ctx.fill();
       ctx.fillStyle = '#fff';
       ctx.font = "800 22px 'Prompt', Arial, sans-serif";
@@ -2892,7 +2926,7 @@ async function _ciDrawToCanvas(canvas, g, r) {
       // price text
       ctx.textAlign = 'left';
       if (t.qty === 1) {
-        ctx.fillStyle = '#352F44';
+        ctx.fillStyle = CI_C.ink;
         ctx.font = "800 27px 'Prompt', Arial, sans-serif";
         const disc = `${t.total.toLocaleString()}.-`;
         ctx.fillText(disc, priceX, ly);
@@ -2900,23 +2934,23 @@ async function _ciDrawToCanvas(canvas, g, r) {
         if (ciUnitPrice > t.total) {
           const dw = ctx.measureText(disc).width;
           let ox = priceX + dw + 16;
-          ctx.fillStyle = '#9c8aa3';
+          ctx.fillStyle = CI_C.inkSoft;
           ctx.font = "600 22px 'Prompt', Arial, sans-serif";
           ctx.fillText('ปกติ ', ox, ly + 1);
           ox += ctx.measureText('ปกติ ').width;
           const origStr = `${ciUnitPrice.toLocaleString()}.-`;
           ctx.fillText(origStr, ox, ly + 1);
           const ow = ctx.measureText(origStr).width;
-          ctx.strokeStyle = '#c98ba0'; ctx.lineWidth = 2;
+          ctx.strokeStyle = CI_C.inkFaint; ctx.lineWidth = 2;
           ctx.beginPath(); ctx.moveTo(ox, ly + 1); ctx.lineTo(ox + ow, ly + 1); ctx.stroke();
         }
       } else {
-        ctx.fillStyle = '#352F44';
+        ctx.fillStyle = CI_C.ink;
         ctx.font = "800 26px 'Prompt', Arial, sans-serif";
         const avgTxt = `เฉลี่ย ${t.avg.toLocaleString()}.-/${ciUnit}`;
         ctx.fillText(avgTxt, priceX, ly);
         const aw = ctx.measureText(avgTxt).width;
-        ctx.fillStyle = '#9c8aa3';
+        ctx.fillStyle = CI_C.inkSoft;
         ctx.font = "600 21px 'Prompt', Arial, sans-serif";
         ctx.fillText(`(รวม ${t.total.toLocaleString()}.-)`, priceX + aw + 14, ly + 1);
       }
@@ -2926,7 +2960,7 @@ async function _ciDrawToCanvas(canvas, g, r) {
         ctx.font = "800 21px 'Prompt', Arial, sans-serif";
         const bw = ctx.measureText(bt).width + 34;   // เผื่อขอบในป้ายให้ '%' ไม่ชิดขอบเขียว
         const bx = badgeRight - bw;
-        ctx.fillStyle = '#1a8f4f';
+        ctx.fillStyle = CI_C.gold;
         rr(bx, ly - 17, bw, 34, 17); ctx.fill();
         ctx.fillStyle = '#fff';
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -2939,7 +2973,7 @@ async function _ciDrawToCanvas(canvas, g, r) {
     const codY = bandTop + 72 + ciTiers.length * 40 + 6;
     const shipLine = _ciShippingLine();
     if (shipLine) {
-      ctx.fillStyle = '#7a5c68';
+      ctx.fillStyle = CI_C.inkSoft;
       ctx.font = "700 22px 'Prompt', Arial, sans-serif";
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ciText(ctx, shipLine, W/2, codY, 'center');
@@ -2947,20 +2981,20 @@ async function _ciDrawToCanvas(canvas, g, r) {
   } else {
     // Compact footer: price + SKU
     if (r[2]) {
-      ctx.fillStyle = '#E87A90';
+      ctx.fillStyle = CI_C.ink;
       ctx.font = "800 24px 'Prompt', Arial, sans-serif";
       ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
       ctx.fillText(String(r[2]) + '.-', 30, H - 14);
     }
     if (r[6]) {
-      ctx.fillStyle = '#999';
+      ctx.fillStyle = CI_C.inkFaint;
       ctx.font = "500 13px 'Prompt', Arial, sans-serif";
       ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
       ciText(ctx, 'SKU: ' + String(r[6]).slice(-20), W - 30, H - 14, 'right');
     }
   }
   // bottom accent bar
-  ctx.fillStyle = '#E87A90';
+  ctx.fillStyle = CI_C.gold;
   ctx.fillRect(0, H-6, W, 6);
 }
 
