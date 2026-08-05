@@ -2910,10 +2910,17 @@ async function _ciDrawToCanvas(canvas, g, r) {
       }
     }
 
-    // Tier rows — aligned columns: [qty pill] [price] ............ [discount]
+    // Tier rows — เรียงคอลัมน์: [เม็ดจำนวน] [ป้ายส่วนลด] .......... [ราคา]
     const pillW = 104, pillH = 36;
     const pillX = innerX;
-    const priceX = pillX + pillW + 22;
+    const badgeX = pillX + pillW + 22;
+    // วัดป้ายส่วนลดที่กว้างที่สุดก่อน เพื่อให้คอลัมน์ราคาของทุกแถวเริ่มตรงกัน
+    ctx.font = "800 21px 'Prompt', Arial, sans-serif";
+    let maxBadgeW = 0;
+    ciTiers.forEach(t => {
+      if (t.pct > 0) maxBadgeW = Math.max(maxBadgeW, ctx.measureText(`ลด ${t.pct}%`).width + 34);
+    });
+    const priceX = badgeX + (maxBadgeW ? maxBadgeW + 40 : 0);
     ciTiers.forEach((t, i) => {
       const ly = bandTop + 72 + i*40;
       // qty pill
@@ -2923,7 +2930,18 @@ async function _ciDrawToCanvas(canvas, g, r) {
       ctx.font = "800 22px 'Prompt', Arial, sans-serif";
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ciText(ctx, `${t.qty} ${ciUnit}`, pillX + pillW/2, ly + 1, 'center');
-      // price text
+      // ป้ายส่วนลด — ถัดจากเม็ดจำนวน
+      if (t.pct > 0) {
+        const bt = `ลด ${t.pct}%`;
+        ctx.font = "800 21px 'Prompt', Arial, sans-serif";
+        const bw = ctx.measureText(bt).width + 34;
+        ctx.fillStyle = CI_C.gold;
+        rr(badgeX, ly - 17, bw, 34, 17); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ciText(ctx, bt, badgeX + bw/2, ly + 1, 'center');
+      }
+      // ราคา — คอลัมน์ขวา
       ctx.textAlign = 'left';
       if (t.qty === 1) {
         ctx.fillStyle = CI_C.ink;
@@ -2953,18 +2971,6 @@ async function _ciDrawToCanvas(canvas, g, r) {
         ctx.fillStyle = CI_C.inkSoft;
         ctx.font = "600 21px 'Prompt', Arial, sans-serif";
         ctx.fillText(`(รวม ${t.total.toLocaleString()}.-)`, priceX + aw + 14, ly + 1);
-      }
-      // discount badge — right-aligned column
-      if (t.pct > 0) {
-        const bt = `ลด ${t.pct}%`;
-        ctx.font = "800 21px 'Prompt', Arial, sans-serif";
-        const bw = ctx.measureText(bt).width + 34;   // เผื่อขอบในป้ายให้ '%' ไม่ชิดขอบเขียว
-        const bx = badgeRight - bw;
-        ctx.fillStyle = CI_C.gold;
-        rr(bx, ly - 17, bw, 34, 17); ctx.fill();
-        ctx.fillStyle = '#fff';
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ciText(ctx, bt, bx + bw/2, ly + 1, 'center');
       }
     });
     // ── บรรทัดส่งฟรี ──
