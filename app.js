@@ -637,7 +637,7 @@ function copyTierPricing(idx, btn) {
   if (!row) return;
   const txt = tierPricingText(row);
   if (!txt) { showSyncToast('สินค้านี้ไม่มีราคาหลายชิ้น', 'error'); return; }
-  copyToClipboard(`${row[0]||''}\n${txt}`);
+  copyToClipboard(`${row[0]||''}\n${priceLineText(row)}\n${txt}`);
   showSyncToast('📋 Copy ราคาหลายชิ้นแล้ว', 'success');
   _customerAudit('copy-tier-pricing', row[0]||'', '');
 }
@@ -2565,8 +2565,9 @@ function tagPriceNum(row){
 function priceLineText(row){
   const tag = tagPriceNum(row);
   const sell = priceNumOf(row && row[2]);
-  if (tag) return `ราคาปกติ ${tag.toLocaleString()}.-\nราคาพิเศษ ${sell.toLocaleString()}.-`;
-  return `ราคาปกติ ${(row && row[2]) || ''}`;
+  // ใช้ ฿ ให้ตรงกับบรรทัดราคาหลายชิ้นในข้อความเดียวกัน
+  if (tag) return `ราคาปกติ ${tag.toLocaleString()}฿\nราคาพิเศษ ${sell.toLocaleString()}฿`;
+  return `ราคาปกติ ${sell.toLocaleString()}฿`;
 }
 
 function _ciShippingLine() {
