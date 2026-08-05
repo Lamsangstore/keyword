@@ -2507,6 +2507,18 @@ function _ciStrikeOffset(ctx, fontSize) {
   return fontSize * 0.48;             // เผื่อเบราว์เซอร์ที่ไม่มี actualBoundingBox
 }
 
+// บรรทัดส่งฟรีบนรูป — เอามาจากค่าที่ตั้งไว้ในหน้า Admin (โปรโมชั่น → บรรทัด "ส่งฟรี")
+// ตัดอิโมจินำหน้าและย่อให้พอดีบรรทัดเดียว ถ้าไม่ได้ตั้งไว้ก็ไม่ต้องแสดง
+function _ciShippingLine() {
+  const raw = String((typeof _promoConfig !== 'undefined' && _promoConfig?.shipping) || '').trim();
+  if (!raw) return '';
+  const clean = raw
+    .replace(/^[^฀-๿a-zA-Z0-9]+/, '')   // ตัดอิโมจิ/เครื่องหมายนำหน้า
+    .replace(/\s+/g, ' ')
+    .trim();
+  return clean.length > 64 ? clean.slice(0, 63) + '…' : clean;
+}
+
 function ciDrawSoldStamp(ctx, cx, cy, w) {
   ctx.save();
   ctx.translate(cx, cy);
@@ -2805,21 +2817,30 @@ async function _ciDrawToCanvas(canvas, g, r) {
     ctx.strokeStyle = '#F4C7D6'; ctx.lineWidth = 2;
     rr(padX, bandTop, W - padX*2, bandH, 24); ctx.stroke();
 
+    // เดิมเว้นจากขอบกรอบแค่ 28px (ให้สมมาตรกับ innerX ด้านซ้าย) — วาดถูกต้อง
+    // แต่พอรูป 1080px ถูกย่อลงมาแสดงบนจอมือถือ (~750px) แล้วโดนบีบอัดตอนส่ง LINE
+    // ช่องว่าง 28px เหลือไม่ถึง 20px จริง ขอบป้ายเขียวกับขอบกรอบชมพูกลืนกัน
+    // จนดูเหมือนป้ายทะลุออกนอกกรอบ — เว้นให้กว้างขึ้นเพื่อให้ทนการย่อ/บีบอัด
+    const badgeRight = W - padX - 56;
+
     // Title
     ctx.fillStyle = '#C63D60';
     ctx.font = "800 27px 'Prompt', Arial, sans-serif";
     ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
     ctx.fillText('★ ดีลพิเศษเฉพาะในแชท · ยิ่งซื้อยิ่งคุ้ม', innerX, bandTop + 30);
 
+    // ราคาปกติ — ชิดขวาแถวหัวข้อ (ช่องว่างที่ไม่ได้ใช้อยู่แล้ว)
+    // เมื่อก่อนราคาโผล่เฉพาะตอนมีขั้น "1 เส้น" พอตัดขั้นนั้นออก ราคาสินค้าเลยหายไปทั้งรูป
+    if (ciUnitPrice > 0) {
+      ctx.fillStyle = '#8a6472';
+      ctx.font = "700 23px 'Prompt', Arial, sans-serif";
+      ciText(ctx, `ราคาปกติ ${ciUnitPrice.toLocaleString()}.-`, badgeRight, bandTop + 30, 'right');
+    }
+
     // Tier rows — aligned columns: [qty pill] [price] ............ [discount]
     const pillW = 104, pillH = 36;
     const pillX = innerX;
     const priceX = pillX + pillW + 22;
-    // เดิมเว้นจากขอบกรอบแค่ 28px (ให้สมมาตรกับ innerX ด้านซ้าย) — วาดถูกต้อง
-    // แต่พอรูป 1080px ถูกย่อลงมาแสดงบนจอมือถือ (~750px) แล้วโดนบีบอัดตอนส่ง LINE
-    // ช่องว่าง 28px เหลือไม่ถึง 20px จริง ขอบป้ายเขียวกับขอบกรอบชมพูกลืนกัน
-    // จนดูเหมือนป้ายทะลุออกนอกกรอบ — เว้นให้กว้างขึ้นเพื่อให้ทนการย่อ/บีบอัด
-    const badgeRight = W - padX - 56;
     ciTiers.forEach((t, i) => {
       const ly = bandTop + 72 + i*40;
       // qty pill
@@ -2873,12 +2894,17 @@ async function _ciDrawToCanvas(canvas, g, r) {
         ciText(ctx, bt, bx + bw/2, ly + 1, 'center');
       }
     });
-    // ── ส่งฟรี + เก็บปลายทาง ──
+    // ── บรรทัดส่งฟรี ──
+    // เดิมเขียนตายตัวว่า "เก็บปลายทาง +20 บาท" ทำให้แก้ในหน้า Admin แล้วรูปไม่เปลี่ยนตาม
+    // ตอนนี้ใช้ข้อความเดียวกับที่ตั้งไว้ใน Admin → โปรโมชั่นกับรูปตรงกันเสมอ
     const codY = bandTop + 72 + ciTiers.length * 40 + 6;
-    ctx.fillStyle = '#7a5c68';
-    ctx.font = "700 22px 'Prompt', Arial, sans-serif";
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ciText(ctx, 'ส่งฟรีทั่วไทย · เก็บปลายทาง +20 บาท', W/2, codY, 'center');
+    const shipLine = _ciShippingLine();
+    if (shipLine) {
+      ctx.fillStyle = '#7a5c68';
+      ctx.font = "700 22px 'Prompt', Arial, sans-serif";
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ciText(ctx, shipLine, W/2, codY, 'center');
+    }
   } else {
     // Compact footer: price + SKU
     if (r[2]) {
