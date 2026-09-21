@@ -887,6 +887,8 @@
     .btn-laz:hover{background:#f97316;color:#fff;border-color:#f97316}
     .btn-p365{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
     .btn-p365:hover{background:#2563eb;color:#fff;border-color:#2563eb}
+    .btn-web{background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0}
+    .btn-web:hover{background:#16a34a;color:#fff;border-color:#16a34a}
     .btn.copied{background:#dcfce7!important;color:#15803d!important;border-color:#86efac!important}
 
     /* ── DETAIL VIEW ── */
