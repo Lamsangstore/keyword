@@ -3988,25 +3988,37 @@ document.addEventListener('keydown', e => { if(e.key==='Escape') { if (editProdu
 // ═══════════════════════════════════════════════
 //  PAGE365 PHOTO PICKER
 // ═══════════════════════════════════════════════
-const P365_CORS_PROXIES = [
-  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-];
+// สต๊อก/รูป/รายละเอียดของ Page365 อ่านจาก Hub ของร้าน (lamsangstore.com)
+// เว็บร้านเป็นผู้ดึงจาก Page365 รายเดียว — หน้านี้ไม่ยิง Page365 ผ่าน CORS proxy อีก
+// ข้อมูลโครงสร้างเดียวกับ JSON ของ Page365 โค้ดเดิมข้างล่างจึงใช้ได้เหมือนเดิม
+// กุญแจเดียวกับหน้าคีย์ลัด (app.js) — ผูกกับ origin https://key.lamsangstore.com · ไม่เห็นต้นทุน
+const HUB_STOCK_URL = 'https://lamsangstore.com/api/hub/v1/stock';
+const HUB_KEY = 'lsh_zPQVpfgbTLclUCdpEgcAXPBF0hkLYY9KTRKndcavWM4';
 let p365Cache = {shop:null, list:[], detail:{}};
 let p365CurrentProduct = null;
 
+async function _hubGet(url) {
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${HUB_KEY}` }, cache: 'no-store' });
+  if (!res.ok) throw new Error('Hub HTTP ' + res.status);
+  return res.json();
+}
+
+/**
+ * แทนการยิง Page365 — รับ URL แบบเดิมแล้วตอบจาก Hub ในรูปแบบเดียวกับ Page365
+ *   products.json?page=N → รายการทั้งร้าน (หน้าแรกได้ครบ หน้าถัดไปว่าง)
+ *   products/<id>.json   → รายตัว + คำอธิบาย และให้ Hub ดึงตัวนั้นจาก Page365 ใหม่
+ *                          (ไม่ถี่กว่า 30 วินาที) — ตัวเลขที่เขียนลงฐานข้อมูลจึงสดเสมอ
+ */
 async function p365Fetch(url) {
-  // bust upstream cache for Page365 so CORS proxies don't serve stale stock
-  if (/page365\.net/i.test(url)) url += (url.includes('?') ? '&' : '?') + '_cb=' + Date.now();
-  let lastErr;
-  for (const proxy of P365_CORS_PROXIES) {
-    try {
-      const res = await fetch(proxy(url), { cache: 'no-store' });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      return await res.json();
-    } catch(e) { lastErr = e; }
+  const list = url.match(/page365\.net\/products\.json(?:\?page=(\d+))?/);
+  if (list) {
+    if (Number(list[1] || 1) !== 1) return { items: [] };
+    const d = await _hubGet(HUB_STOCK_URL);
+    return { items: d.items, count: d.count };
   }
-  throw lastErr || new Error('CORS proxy failed');
+  const one = url.match(/page365\.net\/products\/(\d+)\.json/);
+  if (one) return (await _hubGet(`${HUB_STOCK_URL}?id=${one[1]}&refresh=1`)).product;
+  throw new Error('ไม่รองรับ URL นี้: ' + url);
 }
 
 async function openPage365Picker() {

@@ -330,34 +330,58 @@ async function initFirebase(){
 }
 
 // ── CUSTOMER-SIDE PAGE365 SYNC ─────────────────────────────
-const CUSTOMER_P365_PROXIES = [
-  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-  url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-  url => `https://cors.lol/?url=${encodeURIComponent(url)}`,
-  url => `https://thingproxy.freeboard.io/fetch/${url}`,
-];
+// สต๊อก Page365 อ่านจาก Hub ของร้าน (lamsangstore.com) — เว็บร้านเป็นผู้ดึงจาก Page365 รายเดียว
+// (เดิมหน้านี้ยิง Page365 เองผ่าน CORS proxy สาธารณะ 5 ตัว ช้าและพังบ่อย)
+// ข้อมูลโครงสร้างเดียวกับ JSON ของ Page365 — ตัวจับคู่ด้านล่างจึงใช้ได้เหมือนเดิมทุกอย่าง
+//   รายการ:     /api/hub/v1/stock?lite=1           (Hub ดึงทุก 15 นาที)
+//   รายตัว:     /api/hub/v1/stock?id=<id>&refresh=1 (Hub ดึงตัวนั้นใหม่ถ้าเก่ากว่า 30 วินาที)
+const HUB_STOCK_URL = HUB_URL.replace(/\/products(\?.*)?$/, '/stock');
 const CUSTOMER_SYNC_STALE_MS = 10 * 60 * 1000; // auto-sync if older than 10 min
 let customerLastSyncAt = 0;
 let customerSyncing = false;
+let _hubStockCache = null; // { ts, data }
 
-async function _customerFetch(url) {
-  // bust upstream cache for Page365 so CORS proxies don't serve stale stock
-  if (/page365\.net/i.test(url)) url += (url.includes('?') ? '&' : '?') + '_cb=' + Date.now();
-  let lastErr;
-  for (const proxy of CUSTOMER_P365_PROXIES) {
-    try {
-      const ctrl = new AbortController();
-      const to = setTimeout(() => ctrl.abort(), 12000);
-      const res = await fetch(proxy(url), { signal: ctrl.signal, cache: 'no-store' });
-      clearTimeout(to);
-      if (!res.ok) throw new Error('HTTP '+res.status);
-      const txt = await res.text();
-      try { return JSON.parse(txt); }
-      catch { throw new Error('non-JSON'); }
-    } catch(e) { lastErr = e; }
+async function _hubGet(url) {
+  if (!HUB_KEY) throw new Error('ยังไม่ได้ตั้งกุญแจ Hub');
+  const ctrl = new AbortController();
+  const to = setTimeout(() => ctrl.abort(), 15000);
+  try {
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${HUB_KEY}` }, signal: ctrl.signal, cache: 'no-store' });
+    if (!res.ok) throw new Error('Hub HTTP ' + res.status);
+    return await res.json();
+  } finally { clearTimeout(to); }
+}
+
+async function _hubStockList() {
+  if (_hubStockCache && Date.now() - _hubStockCache.ts < 60 * 1000) return _hubStockCache.data;
+  const data = await _hubGet(`${HUB_STOCK_URL}?lite=1`);
+  _hubStockCache = { ts: Date.now(), data };
+  return data;
+}
+
+/**
+ * แทนการยิง Page365 — รับ URL แบบเดิม (products.json?page=N / products/<id>.json)
+ * แล้วตอบจาก Hub ในรูปแบบเดียวกับ Page365 โค้ดที่เรียกอยู่จึงไม่ต้องแก้
+ * opts.refresh = ให้ Hub ดึงสินค้านั้นจาก Page365 ใหม่ (ใช้ตอนเปิดการ์ด)
+ */
+async function _customerFetch(url, opts = {}) {
+  const list = url.match(/page365\.net\/products\.json(?:\?page=(\d+))?/);
+  if (list) {
+    const d = await _hubStockList();
+    // Hub ส่งมาครบในหน้าเดียว — หน้าถัดไปว่างเพื่อให้ลูปเดิมหยุดเอง
+    return Number(list[1] || 1) === 1 ? { items: d.items, count: d.count } : { items: [], count: d.count };
   }
-  throw lastErr || new Error('CORS proxy failed');
+  const one = url.match(/page365\.net\/products\/(\d+)\.json/);
+  if (one) {
+    if (!opts.refresh) {
+      const d = await _hubStockList();
+      const hit = d.items.find(p => String(p.id) === one[1]);
+      if (hit) return hit;
+    }
+    const r = await _hubGet(`${HUB_STOCK_URL}?id=${one[1]}${opts.refresh ? '&refresh=1' : ''}`);
+    return r.product;
+  }
+  throw new Error('ไม่รองรับ URL นี้: ' + url);
 }
 
 function _custNormName(s){
@@ -1641,7 +1665,7 @@ async function autoSyncProductStock(idx){
     }
     if (!p365) return; // ไม่เจอใน Page365 — ปล่อยตามเดิม
     _setStockSyncStatus('🔄 กำลังอัปเดตสต๊อกล่าสุด...');
-    const detail = await _customerFetch(`https://${shop}.page365.net/products/${p365.id}.json`);
+    const detail = await _customerFetch(`https://${shop}.page365.net/products/${p365.id}.json`, { refresh: true });
     const p365Vs = detail.variants || [];
     let cur = Array.isArray(row[12]) ? [...row[12]] : [];
     let changed = 0;
