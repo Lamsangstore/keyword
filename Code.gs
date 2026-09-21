@@ -4,7 +4,8 @@
 //  ฉบับ MERGE-SAFE (preserve images + variants) + รองรับ manual p365Map + cache-buster
 //
 //  ทิศทางข้อมูล (Firebase = หลัก / Sheet = backup เท่านั้น):
-//    Page365  ──30 นาที──▶  Firebase     (autoSyncStockFromPage365 — อัปเดต stock)
+//    Page365 ─▶ เว็บร้าน (Hub) ──30 นาที──▶ Firebase  (autoSyncStockFromPage365 — อัปเดต stock)
+//    *** สคริปต์นี้ไม่ยิง Page365 เอง — อ่านจาก Hub (ตั้งกุญแจด้วย setupHubKey() ครั้งเดียว) ***
 //    Firebase ──5 นาที───▶  Sheet         (autoSync — มิเรอร์ไว้เป็น backup)
 //    Sheet    ──manual──▶   Firebase      (restoreSheetToFirebase — กู้คืนตอนฉุกเฉินเท่านั้น)
 //  *** Sheet ไม่เขียนทับ Firebase อัตโนมัติ — doGet ปกติเป็น read/ping ไม่ push ***
@@ -384,7 +385,7 @@ function testProducts() {
 
 
 // ════════════════════════════════════════════════════════════════
-//  AUTO-SYNC STOCK FROM PAGE365 — ทุก 30 นาที (preserve รูป + variants)
+//  AUTO-SYNC STOCK FROM PAGE365 (ผ่าน Hub ของร้าน) — ทุก 30 นาที (preserve รูป + variants)
 //  • รองรับ manual matching map (_adminSettings/p365Map) ให้ตรงกับฝั่งแอป
 //  • cache-buster กัน Page365/CDN cache ค่าสต๊อกเก่า
 // ════════════════════════════════════════════════════════════════
@@ -400,16 +401,51 @@ function _autoNormPName(s) {
     .replace(/[\s\-_\.|\/\\()\[\]{}'"`,:;!?@#$%^&*+=~]+/g,'')
     .replace(/lamsang/g,'');
 }
-function _p365Fetch(url) {
-  // cache-buster กัน Page365/CDN ส่งค่าเก่า (ให้ตรงกับสต๊อกสดจริง)
-  if (/page365\.net/i.test(url)) url += (url.indexOf('?') >= 0 ? '&' : '?') + '_cb=' + Date.now();
+// ── สต๊อก Page365 อ่านจาก Hub ของร้าน (lamsangstore.com) ─────────────
+// เว็บร้านเป็นผู้ดึงจาก Page365 รายเดียว (ทุก 15 นาที) — สคริปต์นี้ไม่ยิง Page365 เองอีก
+// ข้อมูลโครงสร้างเดียวกับ JSON ของ Page365 โค้ดจับคู่ข้างล่างจึงใช้ได้เหมือนเดิม
+//
+// กุญแจ Hub เก็บใน Script Properties (ไม่ฝังในโค้ด เพราะไฟล์นี้อยู่บน GitHub และกุญแจนี้ไม่ผูก origin)
+//   ตั้งครั้งเดียว: แก้ค่าใน setupHubKey() → Run → ลบกุญแจออกจากโค้ดแล้ว Save
+//   ออกกุญแจที่ หลังบ้านเว็บ → Hub เชื่อมแอป (ไม่ใส่ origin · ไม่เปิดต้นทุน)
+const HUB_STOCK_URL = 'https://lamsangstore.com/api/hub/v1/stock';
+
+function setupHubKey() {
+  const key = 'PASTE-HUB-KEY-HERE';
+  if (key.indexOf('lsh_') !== 0) throw new Error('ใส่กุญแจที่ขึ้นต้นด้วย lsh_ ก่อน');
+  PropertiesService.getScriptProperties().setProperty('HUB_KEY', key);
+  Logger.log('✅ ตั้งกุญแจ Hub แล้ว — อย่าลืมลบกุญแจออกจากโค้ดแล้ว Save');
+}
+
+let _hubStockList = null; // อ่านครั้งเดียวต่อรอบการทำงาน
+
+function _hubGet(url) {
+  const key = PropertiesService.getScriptProperties().getProperty('HUB_KEY');
+  if (!key) throw new Error('ยังไม่ได้ตั้งกุญแจ Hub — รัน setupHubKey() ก่อน');
   const resp = UrlFetchApp.fetch(url, {
-    method:'GET', muteHttpExceptions: true,
-    headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+    method: 'GET', muteHttpExceptions: true,
+    headers: { Authorization: 'Bearer ' + key }
   });
   const code = resp.getResponseCode();
-  if (code !== 200) throw new Error('Page365 HTTP ' + code);
+  if (code !== 200) throw new Error('Hub HTTP ' + code);
   return JSON.parse(resp.getContentText());
+}
+
+/** แทนการยิง Page365 — รับ URL แบบเดิม ตอบจาก Hub ในรูปแบบเดียวกับ Page365 */
+function _p365Fetch(url) {
+  const list = url.match(/page365\.net\/products\.json(?:\?page=(\d+))?/);
+  if (list) {
+    if (Number(list[1] || 1) !== 1) return { items: [] };
+    _hubStockList = _hubGet(HUB_STOCK_URL);
+    return { items: _hubStockList.items, count: _hubStockList.count };
+  }
+  const one = url.match(/page365\.net\/products\/(\d+)\.json/);
+  if (one) {
+    if (!_hubStockList) _hubStockList = _hubGet(HUB_STOCK_URL);
+    const hit = _hubStockList.items.filter(function(p) { return String(p.id) === one[1]; })[0];
+    return hit || _hubGet(HUB_STOCK_URL + '?id=' + one[1]).product;
+  }
+  throw new Error('ไม่รองรับ URL นี้: ' + url);
 }
 
 function autoSyncStockFromPage365() {
