@@ -201,6 +201,55 @@ function selectCatPill(cat, el) {
   window.renderProductGrid(productRows);
 }
 
+
+// ── HUB ชื่อย่อสินค้า (lamsangstore.com) ─────────────────────
+// ชื่อย่อกลางของร้าน เช่น "B21 Charming" — ตั้ง/แก้ที่หลังบ้านเว็บ (หน้าแก้ไขสินค้า)
+// จับคู่ด้วย SKU ของตัวเลือก (row[12][].sku = SKU เดียวกับ Page365 และเว็บ)
+//
+// ⚠️ ใช้กับ "การแสดงผล" เท่านั้น — ห้ามเขียนทับ row[0]
+//    row[0] เป็นกุญแจของรายการโปรด/ที่ดูล่าสุดใน localStorage (`${r[0]}__${r[1]}`)
+//    และใช้เทียบชื่อกับ Page365 ตอนดึงสต๊อก — เปลี่ยนเมื่อไรของพวกนั้นหลุดหมด
+//    ข้อความที่ Copy ส่งลูกค้าก็ยังใช้ row[0] เหมือนเดิม
+//
+// กุญแจออกที่ หลังบ้านเว็บ → Hub เชื่อมแอป (origin https://key.lamsangstore.com · ไม่เปิดต้นทุน)
+// เว้นว่าง / Hub ล่ม = ใช้ชื่อเดิมใน row[0] ทุกที่ ไม่ทำให้หน้าพัง
+const HUB_URL = 'https://lamsangstore.com/api/hub/v1/products?inactive=1';
+const HUB_KEY = '';
+const HUB_CACHE_KEY = 'hub_short_names_v1';
+let hubShortBySku = (() => {
+  try { return JSON.parse(localStorage.getItem(HUB_CACHE_KEY) || '{}').names || {}; }
+  catch(e) { return {}; }
+})();
+
+async function loadHubShortNames() {
+  if (!HUB_KEY) return;
+  try {
+    const res = await fetch(HUB_URL, { headers: { Authorization: `Bearer ${HUB_KEY}` } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    const names = {};
+    (json.items || []).forEach(it => { if (it.sku && it.shortName) names[String(it.sku).trim()] = it.shortName; });
+    hubShortBySku = names;
+    try { localStorage.setItem(HUB_CACHE_KEY, JSON.stringify({ at: Date.now(), names })); } catch(e) {}
+    if (currentTab === 'product' && productRows.length) window.renderProductGrid(productRows);
+    renderRecentRow();
+    renderFreqRow();
+  } catch(e) {
+    console.warn('[hub] โหลดชื่อย่อไม่ได้ ใช้ชื่อเดิม', e);
+  }
+}
+
+/** ชื่อที่โชว์บนการ์ด/หน้ารายละเอียด — ชื่อย่อจาก Hub ถ้ามี ไม่งั้นชื่อเดิม */
+function displayName(row) {
+  if (!row) return '';
+  const skus = [row[6], ...((Array.isArray(row[12]) ? row[12] : []).map(v => v && v.sku))];
+  for (const sku of skus) {
+    const name = sku && hubShortBySku[String(sku).trim()];
+    if (name) return name;
+  }
+  return row[0] || '';
+}
+
 // ── FIREBASE ────────────────────────────────────────────────
 let _customerDb = null;
 let _customerP365Map = {};   // manual Page365 product↔product mapping (set in admin)
@@ -221,6 +270,7 @@ async function initFirebase(){
     console.error('Anonymous auth failed:', e);
     showSyncToast('⚠️ Firebase auth ล้ม — เปิด Anonymous Auth ใน Console ก่อน', 'error');
   }
+  loadHubShortNames();
   db.ref('products').on('value', snap => {
     const raw = snap.val() || {};
     // Normalize: Firebase may return arrays as numeric-keyed objects
@@ -823,7 +873,7 @@ function openAddToCartPicker(idx) {
   const colors = Object.keys(byColor);
 
   const body = document.getElementById('cart-picker-body');
-  document.getElementById('cart-picker-title').textContent = `🛒 ${row[0] || 'เพิ่มลงตะกร้า'}`;
+  document.getElementById('cart-picker-title').textContent = `🛒 ${displayName(row) || 'เพิ่มลงตะกร้า'}`;
   body.innerHTML = colors.map(c => {
     const g = byColor[c];
     return `<div style="margin-bottom:14px">
@@ -1059,7 +1109,8 @@ function _smartSearchMatch(row, q) {
   if (q === '=หมด' || q === 'sold') return isSoldOut(row);
   if (q === '=น้อย' || q === '=เหลือน้อย' || q === 'low') return hasLowStock(row);
   // Normal text match — try includes first, then fuzzy
-  const name = (row[0]||'').toLowerCase();
+  // ค้นได้ทั้งชื่อเดิมและชื่อย่อจาก Hub
+  const name = `${row[0]||''} ${displayName(row)}`.toLowerCase();
   const type = (row[1]||'').toLowerCase();
   const sku  = (row[6]||'').toLowerCase();
   if (name.includes(q) || type.includes(q) || sku.includes(q)) return true;
@@ -1477,7 +1528,7 @@ function renderProductGrid(rows){
     const i = productRows.indexOf(r);
     const t = r[1]||'ไม่ระบุ';
     if (!map[t]) map[t]=[];
-    const base = {i, name:r[0], type:r[1], price:r[2], priceNum:parsePrice(r[2]), sku:r[6]};
+    const base = {i, name:displayName(r), type:r[1], price:r[2], priceNum:parsePrice(r[2]), sku:r[6]};
     // color filter active → one card per matching shade (with that shade's image)
     const shades = selectedColor ? variantsForColor(r, selectedColor) : [];
     if (selectedColor && shades.length) {
@@ -1758,7 +1809,7 @@ function showProductDetail(idx,push=true){
       </div>
       <div class="detail-body">
         ${getProductNote(idx) ? `<div class="product-note">${esc(getProductNote(idx))}</div>` : ''}
-        <div class="detail-name">${esc(row[0])}${sold?' <span style="color:#d92626;font-size:.6em;background:rgba(217,38,38,.1);padding:3px 10px;border-radius:10px;vertical-align:middle">SOLD OUT</span>':''}</div>
+        <div class="detail-name">${esc(displayName(row))}${sold?' <span style="color:#d92626;font-size:.6em;background:rgba(217,38,38,.1);padding:3px 10px;border-radius:10px;vertical-align:middle">SOLD OUT</span>':''}</div>
         ${row[6]?`<div class="detail-sku">SKU: ${esc(row[6])}</div>`:''}
         <div class="detail-type">${esc(row[1])}</div>
         ${tagPriceNum(row) ? `<div class="detail-tagprice">ราคาปกติ <s>${tagPriceNum(row).toLocaleString()}.-</s></div>` : ''}
@@ -2127,7 +2178,7 @@ function renderRecentRow(){
     return `<div class="recent-chip" onclick="showProductDetail(${i})">
       ${r[4]?`<img class="recent-chip-img" src="${r[4]}" onerror="this.style.display='none'">`:'<div class="recent-chip-img" style="display:flex;align-items:center;justify-content:center;font-size:1.2em">📦</div>'}
       <div class="recent-chip-info">
-        <div class="recent-chip-name">${esc(r[0])}</div>
+        <div class="recent-chip-name">${esc(displayName(r))}</div>
         <div class="recent-chip-price">${esc(r[2])}</div>
       </div>
     </div>`;
@@ -2163,7 +2214,7 @@ function renderFreqRow(){
     return `<div class="recent-chip" onclick="showProductDetail(${i})">
       ${r[4]?`<img class="recent-chip-img" src="${r[4]}" onerror="this.style.display='none'">`:'<div class="recent-chip-img" style="display:flex;align-items:center;justify-content:center;font-size:1.2em">📦</div>'}
       <div class="recent-chip-info">
-        <div class="recent-chip-name">${esc(r[0])}</div>
+        <div class="recent-chip-name">${esc(displayName(r))}</div>
         <div class="recent-chip-price">${esc(r[2])} <span class="freq-count">เข้า ${c}×</span></div>
       </div>
     </div>`;
@@ -2262,7 +2313,7 @@ window.renderProductGrid = function(rows){
           <button class="fav-btn faved" onclick="event.stopPropagation();toggleFav(${i},this)">⭐</button>
           <div class="pcard-overlay">
             <span class="pcard-type">${esc(row[1]||'')}</span>
-            <div class="pcard-name">${esc(row[0])}</div>
+            <div class="pcard-name">${esc(displayName(row))}</div>
             <div class="pcard-price">${tagPriceNum(row) ? `<s class="pcard-tagprice">${tagPriceNum(row).toLocaleString()}</s> ` : ''}${esc(row[2])}</div>
           </div>
         </div>
