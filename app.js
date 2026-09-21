@@ -202,24 +202,55 @@ function selectCatPill(cat, el) {
 }
 
 
-// ── HUB ชื่อย่อสินค้า (lamsangstore.com) ─────────────────────
-// ชื่อย่อกลางของร้าน เช่น "B21 Charming" — ตั้ง/แก้ที่หลังบ้านเว็บ (หน้าแก้ไขสินค้า)
+// ── HUB ข้อมูลสินค้าจากเว็บ (lamsangstore.com) ─────────────────
+// ชื่อย่อ · รูปปก · รูปตารางไซส์ · รูปประจำสี · ราคาขาย · ราคาป้าย · ลิงก์หน้าสินค้า
+// แก้ที่หลังบ้านเว็บที่เดียว (หน้าแก้ไขสินค้า)
 // จับคู่ด้วย SKU ของตัวเลือก (row[12][].sku = SKU เดียวกับ Page365 และเว็บ)
 //
-// ⚠️ ใช้กับ "การแสดงผล" เท่านั้น — ห้ามเขียนทับ row[0]
+// ⚠️ ชื่อย่อใช้กับ "การแสดงผล" เท่านั้น — ห้ามเขียนทับ row[0]
 //    row[0] เป็นกุญแจของรายการโปรด/ที่ดูล่าสุดใน localStorage (`${r[0]}__${r[1]}`)
 //    และใช้เทียบชื่อกับ Page365 ตอนดึงสต๊อก — เปลี่ยนเมื่อไรของพวกนั้นหลุดหมด
 //    ข้อความที่ Copy ส่งลูกค้าก็ยังใช้ row[0] เหมือนเดิม
 //
 // กุญแจออกที่ หลังบ้านเว็บ → Hub เชื่อมแอป (origin https://key.lamsangstore.com · ไม่เปิดต้นทุน)
-// เว้นว่าง / Hub ล่ม = ใช้ชื่อเดิมใน row[0] ทุกที่ ไม่ทำให้หน้าพัง
+// เว้นว่าง / Hub ล่ม = ใช้ข้อมูลเดิมของคีย์ลัดทุกอย่าง ไม่ทำให้หน้าพัง
 const HUB_URL = 'https://lamsangstore.com/api/hub/v1/products?inactive=1';
 const HUB_KEY = 'lsh_zPQVpfgbTLclUCdpEgcAXPBF0hkLYY9KTRKndcavWM4';
-const HUB_CACHE_KEY = 'hub_short_names_v1';
-let hubShortBySku = (() => {
-  try { return JSON.parse(localStorage.getItem(HUB_CACHE_KEY) || '{}').names || {}; }
-  catch(e) { return {}; }
+const HUB_CACHE_KEY = 'hub_catalog_v2';
+
+// ข้อมูลจาก Hub แบบย่อ (เก็บใน localStorage ด้วย หน้าแรกจะได้ไม่กระพริบรอบหน้า)
+//   products: { productId: { short, cover, chart, url, price, tag, active } }   ← ราคาเป็นบาท (ตัวเลข) · null = ไม่มี
+//   skus:     { sku: [productId, colorImageUrl|null] }
+let hubCatalog = (() => {
+  try {
+    const c = JSON.parse(localStorage.getItem(HUB_CACHE_KEY) || '{}');
+    return { products: c.products || {}, skus: c.skus || {} };
+  } catch(e) { return { products: {}, skus: {} }; }
 })();
+
+/**
+ * ย่อข้อมูลจาก /api/hub/v1/products ให้เหลือเท่าที่หน้านี้ใช้
+ * ราคา = **ราคาสูงสุด** ของตัวเลือกที่เปิดขาย (ร้านตัดสินใจ 21 ก.ย. 2569) · ราคาปกติบนเว็บ ไม่รวมโปรฯ ของเว็บ
+ * สินค้าที่ปิดขายบนเว็บทั้งตัว → ไม่มีราคา (ใช้ราคาในคีย์ลัดเหมือนเดิม)
+ */
+function _buildHubCatalog(items) {
+  const products = {}, skus = {};
+  items.forEach(it => {
+    const pid = it.productId;
+    const p = products[pid] || (products[pid] = {
+      short: it.shortName || null, cover: it.coverUrl || null, chart: it.sizeChartUrl || null,
+      url: it.url || null, price: null, tag: null, active: false,
+    });
+    if (it.isActive) {
+      p.active = true;
+      const price = it.price / 100, tag = it.compareAtPrice ? it.compareAtPrice / 100 : null;
+      if (p.price === null || price > p.price) p.price = price;
+      if (tag !== null && (p.tag === null || tag > p.tag)) p.tag = tag;
+    }
+    if (it.sku) skus[String(it.sku).trim()] = [pid, it.colorImageUrl || null];
+  });
+  return { products, skus };
+}
 
 async function loadHubShortNames() {
   if (!HUB_KEY) return;
@@ -227,27 +258,71 @@ async function loadHubShortNames() {
     const res = await fetch(HUB_URL, { headers: { Authorization: `Bearer ${HUB_KEY}` } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
-    const names = {};
-    (json.items || []).forEach(it => { if (it.sku && it.shortName) names[String(it.sku).trim()] = it.shortName; });
-    hubShortBySku = names;
-    try { localStorage.setItem(HUB_CACHE_KEY, JSON.stringify({ at: Date.now(), names })); } catch(e) {}
-    if (currentTab === 'product' && productRows.length) window.renderProductGrid(productRows);
+    hubCatalog = _buildHubCatalog(json.items || []);
+    try { localStorage.setItem(HUB_CACHE_KEY, JSON.stringify({ at: Date.now(), ...hubCatalog })); } catch(e) {}
+    try { localStorage.removeItem('hub_short_names_v1'); } catch(e) {} // ที่เก็บแบบเก่า
+    if (productRows.length) {
+      productRows = productRows.map(applyHubOverlay);
+      if (currentTab === 'product') window.renderProductGrid(productRows);
+      if (typeof currentDetailIdx === 'number' && currentDetailIdx >= 0
+          && document.getElementById('product-details-view')?.style.display === 'block') {
+        showProductDetail(currentDetailIdx, false);
+      }
+    }
     renderRecentRow();
     renderFreqRow();
   } catch(e) {
-    console.warn('[hub] โหลดชื่อย่อไม่ได้ ใช้ชื่อเดิม', e);
+    console.warn('[hub] โหลดข้อมูลจากเว็บไม่ได้ ใช้ข้อมูลเดิมของคีย์ลัด', e);
   }
+}
+
+/** สินค้าบนเว็บที่ตรงกับแถวนี้ (จับคู่ด้วย SKU) — null = ไม่มีบนเว็บ */
+function hubProductOf(row) {
+  if (!row) return null;
+  const skus = [row[6], ...((Array.isArray(row[12]) ? row[12] : []).map(v => v && v.sku))];
+  for (const sku of skus) {
+    const hit = sku && hubCatalog.skus[String(sku).trim()];
+    if (hit) return hubCatalog.products[hit[0]] || null;
+  }
+  return null;
+}
+
+/**
+ * ทับรูปปก · รูปตารางไซส์ · รูปประจำสี · ราคาขาย · ราคาป้าย ด้วยค่าจากเว็บ (Salepage)
+ * **ในหน่วยความจำเท่านั้น** — หน้านี้อ่านอย่างเดียว ไม่เขียนกลับ Firebase
+ * ค่าไหนเว็บไม่มี (เช่นยังไม่ได้ตั้งรูปประจำสีบนเว็บ) ใช้ของคีย์ลัดเหมือนเดิม
+ * ห้ามแตะ row[0] (กุญแจรายการโปรด + ใช้เทียบชื่อ Page365) และสต๊อก (มาจากงานดึงสต๊อก)
+ */
+function applyHubOverlay(row) {
+  const p = hubProductOf(row);
+  // ปิดขายบนเว็บ = ไม่เอาอะไรจากเว็บมาทับ (ยังเป็นของที่ร้านขายในแชทอยู่ ข้อมูลในคีย์ลัดคือของจริง)
+  if (!p || !p.active || !Array.isArray(row)) return row;
+  const r = [...row];
+  while (r.length < 14) r.push('');
+  if (p.cover) r[4] = p.cover;
+  if (p.chart) r[5] = p.chart;
+  if (p.price !== null) {
+    r[2] = String(p.price);
+    r[13] = p.tag !== null && p.tag > p.price ? String(p.tag) : '';
+  }
+  if (Array.isArray(r[12])) {
+    r[12] = r[12].map(v => {
+      const hit = v && v.sku && hubCatalog.skus[String(v.sku).trim()];
+      return hit && hit[1] ? { ...v, image: hit[1] } : v;
+    });
+  }
+  return r;
+}
+
+/** ลิงก์หน้าสินค้าบนเว็บ (เข้ารหัสภาษาไทยแล้ว วางในแชทได้) — '' ถ้าไม่มีบนเว็บ */
+function webLinkOf(row) {
+  const p = hubProductOf(row);
+  return p && p.active ? p.url || '' : ''; // ปิดขายบนเว็บ = ลูกค้าเปิดไปก็ซื้อไม่ได้ ไม่ให้ลิงก์
 }
 
 /** ชื่อที่โชว์บนการ์ด/หน้ารายละเอียด — ชื่อย่อจาก Hub ถ้ามี ไม่งั้นชื่อเดิม */
 function displayName(row) {
-  if (!row) return '';
-  const skus = [row[6], ...((Array.isArray(row[12]) ? row[12] : []).map(v => v && v.sku))];
-  for (const sku of skus) {
-    const name = sku && hubShortBySku[String(sku).trim()];
-    if (name) return name;
-  }
-  return row[0] || '';
+  return hubProductOf(row)?.short || (row && row[0]) || '';
 }
 
 // ── FIREBASE ────────────────────────────────────────────────
@@ -291,7 +366,7 @@ async function initFirebase(){
         }
       }
       return r;
-    });
+    }).map(applyHubOverlay); // รูป/ราคาจากเว็บ (ในหน่วยความจำ) — ดู applyHubOverlay
     buildCatPills(productRows);
     buildColorChips(productRows);
     updateHideSoldBtn();
@@ -988,6 +1063,11 @@ const COPY_TEMPLATES = [
     label: '🖼️ ส่งรูปทุกสี',
     text: '{name} ราคา {price} ค่ะ\n\nรูปแต่ละสี:\n{colorImages}'
   },
+  {
+    key: 'weblink',
+    label: '🔗 ลิงก์สั่งบนเว็บ',
+    text: '{name} ราคา {price} ค่ะ\nดูรายละเอียด/สั่งซื้อบนเว็บได้เลยนะคะ 👉 {webLink}'
+  },
 ];
 
 function fillTemplate(tplText, row) {
@@ -1029,7 +1109,8 @@ function fillTemplate(tplText, row) {
     .replace(/\{tierPricing\}/g, tierPricingText(row))
     .replace(/\{shipping\}/g, (_promoConfig?.shipping) || '')
     .replace(/\{footer\}/g, (_promoConfig?.footer) || '')
-    .replace(/\{colorImages\}/g, colorImageLines);
+    .replace(/\{colorImages\}/g, colorImageLines)
+    .replace(/\{webLink\}|\{ลิงก์เว็บ\}/g, webLinkOf(row));
 }
 
 function copyWithTemplate(idx, key) {
@@ -1709,6 +1790,7 @@ function showProductDetail(idx,push=true){
 
   const copyTxt=`ชื่อสินค้า: ${row[0]}\nประเภท: ${row[1]}\nราคา: ${row[2]}\nรายละเอียด: ${row[3]}`;
   const shopee=row[7]||'', tiktok=row[8]||'', loc=row[9]||'', lazada=row[10]||'', page365=row[11]||'';
+  const webLink = webLinkOf(row); // ลิงก์เข้ารหัสแล้ว ไม่มีเครื่องหมาย ' ให้ต้องหลบ
 
   const sold = isSoldOut(row);
   const variants = getVariants(row);
@@ -1850,6 +1932,7 @@ function showProductDetail(idx,push=true){
           ${tiktok?`<button class="btn btn-tiktok" onclick="openLink('${tiktok}')">♪ TikTok</button>`:''}
           ${lazada?`<button class="btn btn-laz" onclick="openLink('${lazada}')">🟠 Lazada</button>`:''}
           ${page365?`<button class="btn btn-p365" onclick="openLink('${page365}')">📄 Page365</button>`:''}
+          ${webLink?`<button class="btn btn-web" onclick="openLink('${webLink}')">🌐 เว็บ</button><button class="btn btn-web" onclick="copyToClipboard('${webLink}');showSyncToast('✓ คัดลอกลิงก์เว็บแล้ว','success')">📋 ลิงก์เว็บ</button>`:''}
           ${loc?`<button class="btn btn-loc" onclick="openLink('${loc}')">📍 พิกัด</button>`:''}
           ${variants.length && !hasSizeDimension(variants)?`<button class="btn btn-info" onclick="openCompositeImage(${idx})">📷 รูปรวม</button>`:''}
           <button class="btn btn-share" onclick="shareProduct(${idx})">↗ แชร์</button>
