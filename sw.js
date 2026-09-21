@@ -2,7 +2,7 @@
 // ⚠️ เวลาแก้ app.css / app.js ต้อง bump ทั้ง ASSET_VER ที่นี่
 //    และ ?v= ใน index.html ให้ตรงกัน ไม่งั้นลูกค้าจะได้ไฟล์เก่าค้าง
 //    (asset เป็น cache-first — ต่างจาก HTML ที่เป็น network-first)
-const ASSET_VER = '56';
+const ASSET_VER = '57';
 const CACHE = 'lamsang-v' + ASSET_VER;  // ← bump version ทุกครั้งที่ deploy ใหม่
 const PRECACHE = [
   './',
@@ -30,6 +30,12 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const url = e.request.url;
+
+  // ข้อมูลสด (สต๊อก/ชื่อย่อจาก Hub ของร้าน) — ห้ามแคชเด็ดขาด ปล่อยให้เบราว์เซอร์ยิงเอง
+  // ⚠️ เคยพลาด: ไม่มีบรรทัดนี้ คำขอ /api/hub ตกไปที่ "cache first" ข้างล่าง
+  //    ทุกเครื่องเห็นสต๊อกชุดแรกที่โหลดไปตลอดจนกว่าจะ bump ASSET_VER
+  //    (แคชจับคู่ด้วย URL อย่างเดียว ?lite=1 กับ ?id=…&refresh=1 จึงได้ของเก่าทุกครั้ง)
+  if (url.includes('/api/')) return;
 
   // Firebase, Cloudinary, googleapis — network only
   if (url.includes('firebasedatabase') ||
