@@ -214,7 +214,7 @@ function selectCatPill(cat, el) {
 // กุญแจออกที่ หลังบ้านเว็บ → Hub เชื่อมแอป (origin https://key.lamsangstore.com · ไม่เปิดต้นทุน)
 // เว้นว่าง / Hub ล่ม = ใช้ชื่อเดิมใน row[0] ทุกที่ ไม่ทำให้หน้าพัง
 const HUB_URL = 'https://lamsangstore.com/api/hub/v1/products?inactive=1';
-const HUB_KEY = '';
+const HUB_KEY = 'lsh_zPQVpfgbTLclUCdpEgcAXPBF0hkLYY9KTRKndcavWM4';
 const HUB_CACHE_KEY = 'hub_short_names_v1';
 let hubShortBySku = (() => {
   try { return JSON.parse(localStorage.getItem(HUB_CACHE_KEY) || '{}').names || {}; }
