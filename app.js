@@ -216,10 +216,10 @@ function selectCatPill(cat, el) {
 // เว้นว่าง / Hub ล่ม = ใช้ข้อมูลเดิมของคีย์ลัดทุกอย่าง ไม่ทำให้หน้าพัง
 const HUB_URL = 'https://lamsangstore.com/api/hub/v1/products?inactive=1';
 const HUB_KEY = 'lsh_zPQVpfgbTLclUCdpEgcAXPBF0hkLYY9KTRKndcavWM4';
-const HUB_CACHE_KEY = 'hub_catalog_v2';
+const HUB_CACHE_KEY = 'hub_catalog_v3';
 
 // ข้อมูลจาก Hub แบบย่อ (เก็บใน localStorage ด้วย หน้าแรกจะได้ไม่กระพริบรอบหน้า)
-//   products: { productId: { short, cover, chart, url, price, tag, active } }   ← ราคาเป็นบาท (ตัวเลข) · null = ไม่มี
+//   products: { productId: { short, cover, chart, cat, url, price, tag, active } }   ← ราคาเป็นบาท (ตัวเลข) · null = ไม่มี
 //   skus:     { sku: [productId, colorImageUrl|null] }
 let hubCatalog = (() => {
   try {
@@ -239,7 +239,7 @@ function _buildHubCatalog(items) {
     const pid = it.productId;
     const p = products[pid] || (products[pid] = {
       short: it.shortName || null, cover: it.coverUrl || null, chart: it.sizeChartUrl || null,
-      url: it.url || null, price: null, tag: null, active: false,
+      cat: it.category || null, url: it.url || null, price: null, tag: null, active: false,
     });
     if (it.isActive) {
       p.active = true;
@@ -260,7 +260,7 @@ async function loadHubShortNames() {
     const json = await res.json();
     hubCatalog = _buildHubCatalog(json.items || []);
     try { localStorage.setItem(HUB_CACHE_KEY, JSON.stringify({ at: Date.now(), ...hubCatalog })); } catch(e) {}
-    try { localStorage.removeItem('hub_short_names_v1'); } catch(e) {} // ที่เก็บแบบเก่า
+    try { localStorage.removeItem('hub_short_names_v1'); localStorage.removeItem('hub_catalog_v2'); } catch(e) {} // ที่เก็บแบบเก่า
     if (productRows.length) {
       productRows = productRows.map(applyHubOverlay);
       if (currentTab === 'product') window.renderProductGrid(productRows);
@@ -314,14 +314,23 @@ function applyHubOverlay(row) {
   return r;
 }
 
+/** สินค้าตัวนี้เป็นเสื้อไหม — ดูจากหมวดหมู่บนเว็บ (ทุกหมวดเสื้อขึ้นต้นด้วยคำว่า "เสื้อ") */
+function isShirt(row) {
+  const p = hubProductOf(row);
+  return !!(p && p.active && /เสื้อ/.test(p.cat || ''));
+}
+
 /**
  * รูปที่ใช้เป็น "รูปแรก" ของสินค้า — **ตารางไซส์มาก่อน** (ร้านสั่ง 23 ก.ย. 2569)
  * แอดมินส่งตารางไซส์ให้ลูกค้าบ่อยที่สุด จะได้ไม่ต้องเลื่อนหา
+ * **ยกเว้นเสื้อ ใช้รูปปกก่อน** (ร้านสั่ง 23 ก.ย. 2569) — เสื้อเลือกไซส์จากทรง/แบบเป็นหลัก
+ * ดูจากหมวดหมู่บนเว็บ สินค้าตัวไหนสลับข้างให้ย้ายหมวดที่หลังบ้านเว็บได้เลย ไม่ต้องแก้แอป
  * ไม่มีตารางไซส์ (เข็มขัด · สินค้าทั่วไป) = ใช้รูปสินค้าเหมือนเดิม
  * ตอนกรองสีอยู่ การ์ดยังโชว์รูปของสีนั้น ไม่งั้นเลือกสีแล้วเห็นแต่ตารางไซส์
  */
 function firstImageOf(row) {
-  return (row && (row[5] || row[4])) || '';
+  if (!row) return '';
+  return (isShirt(row) ? row[4] || row[5] : row[5] || row[4]) || '';
 }
 
 /** ลิงก์หน้าสินค้าบนเว็บ (เข้ารหัสภาษาไทยแล้ว วางในแชทได้) — '' ถ้าไม่มีบนเว็บ */
