@@ -314,6 +314,16 @@ function applyHubOverlay(row) {
   return r;
 }
 
+/**
+ * รูปที่ใช้เป็น "รูปแรก" ของสินค้า — **ตารางไซส์มาก่อน** (ร้านสั่ง 23 ก.ย. 2569)
+ * แอดมินส่งตารางไซส์ให้ลูกค้าบ่อยที่สุด จะได้ไม่ต้องเลื่อนหา
+ * ไม่มีตารางไซส์ (เข็มขัด · สินค้าทั่วไป) = ใช้รูปสินค้าเหมือนเดิม
+ * ตอนกรองสีอยู่ การ์ดยังโชว์รูปของสีนั้น ไม่งั้นเลือกสีแล้วเห็นแต่ตารางไซส์
+ */
+function firstImageOf(row) {
+  return (row && (row[5] || row[4])) || '';
+}
+
 /** ลิงก์หน้าสินค้าบนเว็บ (เข้ารหัสภาษาไทยแล้ว วางในแชทได้) — '' ถ้าไม่มีบนเว็บ */
 function webLinkOf(row) {
   const p = hubProductOf(row);
@@ -1642,7 +1652,7 @@ function renderProductGrid(rows){
         map[t].push({...base, img: vc.img||r[4], colorName: vc.name, colorStock: vc.stock, sold: !vc.avail});
       });
     } else {
-      map[t].push({...base, img:r[4], colorName:'', sold:isSoldOut(r)});
+      map[t].push({...base, img:firstImageOf(r), colorName:'', sold:isSoldOut(r)});
     }
   });
   // in-stock first, then the chosen sort → sold-out items sink to the bottom
@@ -1795,13 +1805,19 @@ function showProductDetail(idx,push=true){
   const sold = isSoldOut(row);
   const variants = getVariants(row);
   const baseFn = `${_ciFileBase(row)} ${_ciDateStamp()}`;
-  const heroActions = row[4] ? `
+  /* รูปใหญ่ = ตารางไซส์ถ้ามี (ร้านสั่ง 23 ก.ย. 2569) — รูปสินค้าย้ายไปอยู่กรอบข้าง ๆ
+     ไม่มีตารางไซส์ = รูปใหญ่เป็นรูปสินค้าเหมือนเดิม */
+  const heroImg = firstImageOf(row);
+  const heroIsChart = !!row[5];
+  const heroLabel = heroIsChart ? 'ตารางไซส์' : 'ภาพสินค้า';
+  const heroFile = heroIsChart ? `${_ciFileBase(row)} ตารางไซส์ ${_ciDateStamp()}` : baseFn;
+  const heroActions = heroImg ? `
     <div class="img-actions-row">
-      <button class="img-action-btn copy" onclick="copyImageFromUrl('${row[4]}',this)">📋 Copy</button>
-      <button class="img-action-btn dl" onclick="downloadImageFromUrl('${row[4]}','${baseFn}.png',this)">⬇️ Download</button>
+      <button class="img-action-btn copy" onclick="copyImageFromUrl('${heroImg}',this)">📋 Copy</button>
+      <button class="img-action-btn dl" onclick="downloadImageFromUrl('${heroImg}','${heroFile}.png',this)">⬇️ Download</button>
     </div>` : '';
-  const imgHtml = row[4]
-    ? `<div class="detail-img-wrap" style="position:relative">${sold?soldStampHTML():''}<img src="${row[4]}" onload="onImgLoad(this)" loading="lazy" onclick="openLightbox('${row[4]}','ภาพสินค้า: ${esc(row[0])}')" ${sold?'style="filter:grayscale(.6) brightness(.85)"':''}></div>${heroActions}`
+  const imgHtml = heroImg
+    ? `<div class="detail-img-wrap" style="position:relative">${sold?soldStampHTML():''}<img src="${heroImg}" onload="onImgLoad(this)" loading="lazy" onclick="openLightbox('${heroImg}','${heroLabel}: ${esc(row[0])}')" ${sold?'style="filter:grayscale(.6) brightness(.85)"':''}></div>${heroActions}`
     : `<div class="detail-img-wrap" style="position:relative">${sold?soldStampHTML():''}<div class="detail-img-none">📦</div></div>`;
 
   // Per-color images (one representative image per color) with a Copy button each
@@ -1903,12 +1919,12 @@ function showProductDetail(idx,push=true){
     <div class="detail-page">
       <div class="detail-layout">
         ${imgHtml}
-        ${(row[5]||colorImagesHtml)?`<div class="size-section">
-          ${row[5]?`<div class="size-section-title">📏 ตารางไซส์</div>
-          <img class="size-img" src="${row[5]}" onload="onImgLoad(this)" loading="lazy" onclick="openLightbox('${row[5]}','ตารางไซส์: ${esc(row[0])}')">
+        ${((heroIsChart && row[4])||colorImagesHtml)?`<div class="size-section">
+          ${heroIsChart && row[4]?`<div class="size-section-title">🛍️ รูปสินค้า</div>
+          <img class="size-img" src="${row[4]}" onload="onImgLoad(this)" loading="lazy" onclick="openLightbox('${row[4]}','ภาพสินค้า: ${esc(row[0])}')">
           <div class="img-actions-row">
-            <button class="img-action-btn copy" onclick="copyImageFromUrl('${row[5]}',this)">📋 Copy</button>
-            <button class="img-action-btn dl" onclick="downloadImageFromUrl('${row[5]}','${_ciFileBase(row)} ตารางไซส์ ${_ciDateStamp()}.png',this)">⬇️ Download</button>
+            <button class="img-action-btn copy" onclick="copyImageFromUrl('${row[4]}',this)">📋 Copy</button>
+            <button class="img-action-btn dl" onclick="downloadImageFromUrl('${row[4]}','${baseFn}.png',this)">⬇️ Download</button>
           </div>`:''}
           ${colorImagesHtml}
         </div>`:''}
@@ -2407,7 +2423,7 @@ window.renderProductGrid = function(rows){
     let delay=0;
     favCards.forEach(item=>{
       const i=item.i, row=productRows[i], d=(delay%8)*60, hasPikad=!!row[9];
-      const img=item.img, colorName=item.colorName, sold=item.sold;
+      const img=item.img||firstImageOf(row), colorName=item.colorName, sold=item.sold;
       const low=colorName ? (!sold && item.colorStock>0 && item.colorStock<=3) : hasLowStock(row);
       const copyBtn = img
         ? `<button class="btn btn-info" onclick="event.stopPropagation();copyImageFromUrl('${img.replace(/'/g,"\\'")}',this)">🖼️ Copy รูป</button>`
