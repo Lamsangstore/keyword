@@ -229,6 +229,30 @@ let hubCatalog = (() => {
 })();
 
 /**
+ * รหัสรุ่นจากชื่อ เช่น "B13 | Twin-Glow Belt" → B13 · "Lamsang K05 เสื้อไหมพรม…" → K05
+ * ตัวอักษร 1-3 ตัวติดตัวเลข 1-3 ตัว แบบเดียวกับที่เว็บใช้ทำลิงก์สั้น (/s/B21)
+ */
+function _modelCode(text) {
+  const m = String(text || '').toUpperCase().match(/\b([A-Z]{1,3}\d{1,3})\b/);
+  return m ? m[1] : null;
+}
+
+/** รหัสรุ่น → สินค้าบนเว็บ (เฉพาะที่เปิดขายและรหัสไม่ซ้ำ) — รหัสซ้ำเมื่อไรตัดทิ้ง ไม่เดา */
+function _buildCodeIndex(products) {
+  const byCode = {};
+  Object.values(products).forEach(p => {
+    if (!p.active) return;
+    const c = _modelCode(p.short);
+    if (c) (byCode[c] = byCode[c] || []).push(p);
+  });
+  const index = {};
+  Object.entries(byCode).forEach(([c, list]) => { if (list.length === 1) index[c] = list[0]; });
+  return index;
+}
+
+let hubCodes = _buildCodeIndex(hubCatalog.products);
+
+/**
  * ย่อข้อมูลจาก /api/hub/v1/products ให้เหลือเท่าที่หน้านี้ใช้
  * ราคา = **ราคาสูงสุด** ของตัวเลือกที่เปิดขาย (ร้านตัดสินใจ 21 ก.ย. 2569) · ราคาปกติบนเว็บ ไม่รวมโปรฯ ของเว็บ
  * สินค้าที่ปิดขายบนเว็บทั้งตัว → ไม่มีราคา (ใช้ราคาในคีย์ลัดเหมือนเดิม)
@@ -259,6 +283,7 @@ async function loadHubShortNames() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     hubCatalog = _buildHubCatalog(json.items || []);
+    hubCodes = _buildCodeIndex(hubCatalog.products);
     try { localStorage.setItem(HUB_CACHE_KEY, JSON.stringify({ at: Date.now(), ...hubCatalog })); } catch(e) {}
     try { localStorage.removeItem('hub_short_names_v1'); localStorage.removeItem('hub_catalog_v2'); } catch(e) {} // ที่เก็บแบบเก่า
     if (productRows.length) {
@@ -276,7 +301,15 @@ async function loadHubShortNames() {
   }
 }
 
-/** สินค้าบนเว็บที่ตรงกับแถวนี้ (จับคู่ด้วย SKU) — null = ไม่มีบนเว็บ */
+/**
+ * สินค้าบนเว็บที่ตรงกับแถวนี้ — null = ไม่มีบนเว็บ
+ *
+ * **จับคู่ 2 ชั้น ห้ามสลับลำดับ** (กติกาเดียวกับที่เว็บจับคู่กับ Page365)
+ * 1. SKU — ของแน่นอนที่สุด ใช้ได้เมื่อแถวนี้กรอก SKU ไว้
+ * 2. รหัสรุ่นในชื่อ — บางแถวในคีย์ลัดไม่ได้กรอก SKU รายสีเลย (เข็มขัด 6 ตัว · K02 · K05)
+ *    ชั้นนี้**รับเฉพาะตอนที่เว็บมีรหัสนั้นตัวเดียว** กำกวมเมื่อไรปล่อยผ่าน ดีกว่าจับผิดตัว
+ *    (ตรวจกับของจริงแล้ว: 45 แถวที่จับคู่ด้วย SKU ได้ รหัสในชื่อไม่เคยขัดกับเว็บสักแถว)
+ */
 function hubProductOf(row) {
   if (!row) return null;
   const skus = [row[6], ...((Array.isArray(row[12]) ? row[12] : []).map(v => v && v.sku))];
@@ -284,7 +317,8 @@ function hubProductOf(row) {
     const hit = sku && hubCatalog.skus[String(sku).trim()];
     if (hit) return hubCatalog.products[hit[0]] || null;
   }
-  return null;
+  const code = _modelCode(row[0]);
+  return (code && hubCodes[code]) || null;
 }
 
 /**
