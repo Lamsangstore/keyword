@@ -279,7 +279,9 @@ function _buildHubCatalog(items) {
 async function loadHubShortNames() {
   if (!HUB_KEY) return;
   try {
-    const res = await fetch(HUB_URL, { headers: { Authorization: `Bearer ${HUB_KEY}` } });
+    let res = await fetch(HUB_URL, { headers: { Authorization: `Bearer ${HubLogin.auth(HUB_KEY)}` } });
+    /* โทเค็นของคนใช้ไม่ได้แล้ว — ถ้าเว็บร้านบังคับล็อกอินอยู่ ประตูจะปิดเอง ไม่งั้นถอยไปใช้กุญแจของแอป */
+    if (res.status === 401 && await HubLogin.denied(res)) res = await fetch(HUB_URL, { headers: { Authorization: `Bearer ${HUB_KEY}` } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     hubCatalog = _buildHubCatalog(json.items || []);
@@ -474,7 +476,8 @@ async function _hubGet(url) {
   const ctrl = new AbortController();
   const to = setTimeout(() => ctrl.abort(), 15000);
   try {
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${HUB_KEY}` }, signal: ctrl.signal, cache: 'no-store' });
+    let res = await fetch(url, { headers: { Authorization: `Bearer ${HubLogin.auth(HUB_KEY)}` }, signal: ctrl.signal, cache: 'no-store' });
+    if (res.status === 401 && await HubLogin.denied(res)) res = await fetch(url, { headers: { Authorization: `Bearer ${HUB_KEY}` }, signal: ctrl.signal, cache: 'no-store' });
     if (!res.ok) throw new Error('Hub HTTP ' + res.status);
     return await res.json();
   } finally { clearTimeout(to); }
@@ -3696,3 +3699,24 @@ window.addEventListener('resize', () => {
   };
 })();
 document.addEventListener('DOMContentLoaded', updateFilterBar);
+
+
+/* ---------------------------------------------------------------------------
+   ล็อกอินกลาง — ปุ่ม 👤 บนแถบบน (ก้อน HubLogin อยู่ใน hub-login.js)
+   ยังไม่ล็อกอิน = ค้างหน้าเข้าสู่ระบบ (ร้านสั่ง 30 ก.ย. 2569)
+--------------------------------------------------------------------------- */
+function hubRenderChip(u) {
+  const el = document.getElementById('hub-chip');
+  if (!el) return;
+  el.textContent = u ? ('👤 ' + u.name) : '👤';
+  el.title = u ? (u.name + ' — กดเพื่อออกจากระบบเครื่องนี้') : 'เข้าสู่ระบบด้วยบัญชีร้าน';
+}
+async function hubChipClick() {
+  const u = HubLogin.user();
+  if (!u) { location.href = HubLogin.loginHref(); return; }
+  if (!confirm('ออกจากระบบของ ' + u.name + ' บนเครื่องนี้?')) return;
+  await HubLogin.signOut();
+  HubLogin.enforce(HUB_KEY);   // ไม่มีโทเค็นแล้ว = ประตูปิด
+}
+HubLogin.onChange(hubRenderChip);
+HubLogin.enforce(HUB_KEY);
