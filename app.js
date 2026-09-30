@@ -3705,18 +3705,16 @@ document.addEventListener('DOMContentLoaded', updateFilterBar);
    ล็อกอินกลาง — ปุ่ม 👤 บนแถบบน (ก้อน HubLogin อยู่ใน hub-login.js)
    ยังไม่ล็อกอิน = ค้างหน้าเข้าสู่ระบบ (ร้านสั่ง 30 ก.ย. 2569)
 --------------------------------------------------------------------------- */
-function hubRenderChip(u) {
-  const el = document.getElementById('hub-chip');
-  if (!el) return;
-  el.textContent = u ? ('👤 ' + u.name) : '👤';
-  el.title = u ? (u.name + ' — กดเพื่อออกจากระบบเครื่องนี้') : 'เข้าสู่ระบบด้วยบัญชีร้าน';
-}
-async function hubChipClick() {
-  const u = HubLogin.user();
-  if (!u) { location.href = HubLogin.loginHref(); return; }
-  if (!confirm('ออกจากระบบของ ' + u.name + ' บนเครื่องนี้?')) return;
-  await HubLogin.signOut();
-  HubLogin.enforce(HUB_KEY);   // ไม่มีโทเค็นแล้ว = ประตูปิด
-}
-HubLogin.onChange(hubRenderChip);
+/* ปุ่มบัญชีแบบ App Store — วงกลมไล่สีม่วงชมพูของแอป ไม่มีตัวหนังสือ (ชื่ออยู่ในเมนู)
+   เมนูพื้นทึบ (แบบโปร่งเคยลองแล้ว ตัวหนังสือข้างหลังทะลุ อ่านยาก) · สีใช้ตัวแปรของแอป โหมดมืดเปลี่ยนตามเอง */
+HubLogin.mountAccount(document.getElementById('hub-account'), {
+  font: "'Prompt',sans-serif",
+  showName: false,
+  trigger: { pad: '0', radius: '50%', height: '34px' },
+  avatar: { size: 34, bg: 'linear-gradient(135deg,#E0C7EE 0%,#B894D8 60%,#9a7cc4 100%)', color: '#fff',
+            shadow: '0 0 0 2px var(--surface), 0 3px 10px rgba(124,90,165,.28)' },
+  menu: { bg: 'var(--surface)', border: '1px solid var(--border)', radius: 'var(--r)',
+          shadow: '0 16px 44px rgba(58,44,84,.20)', color: 'var(--ink)', sub: 'var(--muted)', divider: 'var(--border)',
+          danger: '#d0507a', badgeBg: 'var(--pale)', badgeColor: 'var(--ink2)', hover: 'rgba(184,148,216,.12)' }
+});
 HubLogin.enforce(HUB_KEY);

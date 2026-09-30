@@ -161,6 +161,184 @@ window.HubLogin = (function () {
     return true;
   }
 
+  /* ---- ปุ่มบัญชีมุมขวาบน (30 ก.ย. 2569) --------------------------------------------
+     วงกลมอักษรย่อ + ชื่อเล่น · กดแล้วเปิดเมนู: ชื่อเต็ม · ตำแหน่ง · ออกจากระบบ
+     **ตรรกะอยู่ที่นี่ที่เดียว แต่หน้าตาเป็นของแต่ละแอป** — แอปส่งชุดสี/ฟอนต์/มุมโค้งของตัวเอง
+     มาทาง theme (ใช้ตัวแปร CSS ของแอปนั้นได้เลย เช่น 'var(--accent)') จะได้กลืนกับแอปเดิม
+     ร้านติว่าปุ่ม 👤 แบบเดิม "ดูโบราณ ไม่เข้ากับแอปไหนเลย" */
+  const ROLE_TH = { OWNER: 'เจ้าของร้าน', MANAGER: 'ผู้จัดการ', STAFF: 'พนักงาน' };
+
+  /** อักษรย่อบนวงกลม — ชื่อไทยที่ขึ้นต้นด้วยสระหน้า (เ แ โ ใ ไ) เอา 2 ตัว ไม่งั้นเหลือแต่สระ */
+  function initials(u) {
+    const n = String((u && (u.nickname || u.name)) || '').trim();
+    if (!n) return '?';
+    return /^[เแโใไ]/.test(n) ? n.slice(0, 2) : n.slice(0, 1).toUpperCase();
+  }
+  /** ชื่อบนปุ่ม — ชื่อเล่นจาก HRIS ก่อน ไม่มีค่อยใช้คำแรกของชื่อจริง */
+  function shortName(u) {
+    if (!u) return '';
+    return String(u.nickname || (u.name || '').split(/\s+/)[0] || '').trim();
+  }
+  function css(el, o) { Object.keys(o).forEach(function (k) { if (o[k] != null) el.style[k] = o[k]; }); return el; }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return '&#' + c.charCodeAt(0) + ';'; }); }
+
+  let menuEl = null;
+  function closeMenu() { if (menuEl) { menuEl.remove(); menuEl = null; } }
+
+  /**
+   * วางปุ่มบัญชีลงใน host (ตำแหน่งที่แอปเลือก) — เรียกซ้ำได้ ปุ่มจะวาดใหม่ตามคนที่ล็อกอิน
+   * theme: {
+   *   font, showName, reverse (ชื่ออยู่ซ้ายวงกลม),
+   *   trigger: { bg, border, radius, shadow, color, pad, height, hover },
+   *   avatar:  { size, radius, bg, color, shadow },
+   *   menu:    { bg, border, radius, shadow, color, sub, divider, danger, badgeBg, badgeColor, blur }
+   * }
+   */
+  function mountAccount(host, theme) {
+    if (!host) return;
+    const t = theme || {};
+    const tr = t.trigger || {}, av = t.avatar || {}, mn = t.menu || {};
+    const size = av.size || 30;
+
+    function avatar(px) {
+      const a = document.createElement('span');
+      css(a, {
+        width: px + 'px', height: px + 'px', minWidth: px + 'px', borderRadius: av.radius || '50%',
+        background: av.bg || '#18181b', color: av.color || '#fff', boxShadow: av.shadow || 'none',
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: Math.round(px * 0.42) + 'px', fontWeight: '700', lineHeight: '1', letterSpacing: '0'
+      });
+      a.textContent = initials(window.HubLogin.user());
+      return a;
+    }
+
+    function openMenu(btn) {
+      closeMenu();
+      const u = window.HubLogin.user();
+      if (!u) return;
+      const r = btn.getBoundingClientRect();
+      const m = document.createElement('div');
+      m.setAttribute('role', 'menu');
+      css(m, {
+        position: 'fixed', zIndex: '2147483500',
+        top: Math.round(r.bottom + 8) + 'px',
+        /* ปกติเปิดชิดขวาของปุ่ม (ปุ่มบัญชีมักอยู่มุมขวา) — ถ้าปุ่มอยู่ฝั่งซ้ายจนเมนูจะล้นจอ ให้ชิดซ้ายของปุ่มแทน */
+        right: r.right - 248 >= 8 ? Math.max(8, Math.round(window.innerWidth - r.right)) + 'px' : null,
+        left: r.right - 248 >= 8 ? null : Math.max(8, Math.round(r.left)) + 'px',
+        width: '248px', maxWidth: 'calc(100vw - 16px)', boxSizing: 'border-box',
+        background: mn.bg || '#fff', color: mn.color || '#18181b',
+        border: mn.border || '1px solid rgba(0,0,0,.08)', borderRadius: mn.radius || '14px',
+        boxShadow: mn.shadow || '0 12px 32px rgba(0,0,0,.14)',
+        fontFamily: t.font || 'inherit', overflow: 'hidden', textAlign: 'left',
+        backdropFilter: mn.blur ? 'blur(18px) saturate(1.4)' : null,
+        WebkitBackdropFilter: mn.blur ? 'blur(18px) saturate(1.4)' : null,
+        transformOrigin: r.right - 248 >= 8 ? 'top right' : 'top left', transition: 'opacity .14s ease, transform .14s ease',
+        opacity: '0', transform: 'scale(.96) translateY(-4px)'
+      });
+      const role = u.position || ROLE_TH[u.role] || '';
+      const days = u.expiresAt ? Math.max(0, Math.ceil((new Date(u.expiresAt) - Date.now()) / 864e5)) : null;
+      const divider = mn.divider || 'rgba(0,0,0,.07)';
+
+      const head = css(document.createElement('div'), {
+        display: 'flex', alignItems: 'center', gap: '12px', padding: '16px 16px 14px'
+      });
+      head.appendChild(avatar(40));
+      const who = document.createElement('div');
+      css(who, { minWidth: '0', flex: '1' });
+      who.innerHTML =
+        '<div style="font-weight:700;font-size:14px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' +
+          esc(u.name) + '</div>' +
+        (role ? '<span style="display:inline-block;margin-top:5px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;' +
+          'background:' + (mn.badgeBg || 'rgba(0,0,0,.06)') + ';color:' + (mn.badgeColor || 'inherit') + '">' + esc(role) + '</span>' : '');
+      head.appendChild(who);
+      m.appendChild(head);
+
+      const info = css(document.createElement('div'), {
+        padding: '10px 16px', fontSize: '12px', color: mn.sub || '#71717a',
+        borderTop: '1px solid ' + divider, lineHeight: '1.5'
+      });
+      info.textContent = 'กำลังใช้ ' + (APP_NAMES[APP] || 'แอปของร้าน') +
+        (days != null ? ' · ต้องเข้าสู่ระบบใหม่ในอีก ' + days + ' วัน' : '');
+      m.appendChild(info);
+
+      const out = document.createElement('button');
+      out.type = 'button';
+      out.setAttribute('role', 'menuitem');
+      css(out, {
+        display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '12px 16px',
+        background: 'transparent', border: '0', borderTop: '1px solid ' + divider, cursor: 'pointer',
+        color: mn.danger || '#dc2626', fontFamily: 'inherit', fontSize: '14px', fontWeight: '600', textAlign: 'left'
+      });
+      out.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" ' +
+        'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>' +
+        '<polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>ออกจากระบบ';
+      out.onmouseenter = function () { out.style.background = mn.hover || 'rgba(0,0,0,.04)'; };
+      out.onmouseleave = function () { out.style.background = 'transparent'; };
+      out.onclick = async function () {
+        out.disabled = true;
+        out.lastChild.textContent = 'กำลังออกจากระบบ…';
+        await window.HubLogin.signOut();
+        closeMenu();
+        lock();                                  // ไม่มีโทเค็นแล้ว = ค้างหน้าเข้าสู่ระบบ
+      };
+      m.appendChild(out);
+
+      document.body.appendChild(m);
+      menuEl = m;
+      /* บังคับวาดสถานะเริ่มก่อน แล้วค่อยเปลี่ยน — ไม่ใช้ requestAnimationFrame เพราะแท็บที่ไม่ได้อยู่หน้าจอ
+         (หรือเครื่องที่ประหยัดแบต) อาจไม่เดินเฟรม เมนูจะค้างโปร่งใสมองไม่เห็น */
+      void m.offsetWidth;
+      m.style.opacity = '1'; m.style.transform = 'none';
+    }
+
+    function render() {
+      const u = window.HubLogin.user();
+      host.innerHTML = '';
+      if (!u) return;                            // ยังไม่รู้ว่าเป็นใคร (ประตูปิดอยู่) — ไม่ต้องโชว์อะไร
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.title = u.name + ' — บัญชีของฉัน';
+      btn.setAttribute('aria-haspopup', 'menu');
+      css(btn, {
+        display: 'inline-flex', alignItems: 'center', gap: '8px',
+        flexDirection: t.reverse ? 'row-reverse' : 'row',
+        height: tr.height || 'auto', padding: tr.pad || '3px 12px 3px 3px',
+        background: tr.bg || 'transparent', border: tr.border || '0', borderRadius: tr.radius || '999px',
+        boxShadow: tr.shadow || 'none', color: tr.color || 'inherit', cursor: 'pointer',
+        fontFamily: t.font || 'inherit', fontSize: '13px', fontWeight: '600', lineHeight: '1',
+        maxWidth: '180px', transition: 'transform .12s ease, box-shadow .12s ease, background .12s ease',
+        WebkitTapHighlightColor: 'transparent'
+      });
+      btn.appendChild(avatar(size));
+      if (t.showName !== false) {
+        const nm = css(document.createElement('span'), {
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: '0'
+        });
+        nm.textContent = shortName(u);
+        if (t.nameClass) nm.className = t.nameClass;
+        btn.appendChild(nm);
+      }
+      btn.onmouseenter = function () { if (tr.hover) btn.style.background = tr.hover; };
+      btn.onmouseleave = function () { btn.style.background = tr.bg || 'transparent'; btn.style.transform = 'none'; };
+      btn.onmousedown = function () { btn.style.transform = 'scale(.97)'; };
+      btn.onmouseup = function () { btn.style.transform = 'none'; };
+      btn.onclick = function (e) {
+        e.stopPropagation();
+        if (menuEl && !menuEl.isConnected) menuEl = null;
+        menuEl ? closeMenu() : openMenu(btn);
+      };
+      host.appendChild(btn);
+    }
+
+    /* เรียกตอนแอปโหลดเสร็จแล้ว (window.HubLogin มีแล้ว) — ชื่อเปลี่ยนเมื่อไรปุ่มวาดใหม่เอง */
+    window.HubLogin.onChange(render);
+  }
+
+  document.addEventListener('click', function (e) { if (menuEl && !menuEl.contains(e.target)) closeMenu(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeMenu(); });
+  window.addEventListener('resize', closeMenu);
+  window.addEventListener('scroll', closeMenu, true);
+
   return {
     app: APP,
     user: function () { return user; },
@@ -183,6 +361,8 @@ window.HubLogin = (function () {
     loginHref: loginHref,
     lock: lock,
     enforce: enforce,
+    /** วางปุ่มบัญชี (วงกลมอักษรย่อ + ชื่อเล่น + เมนู) ในที่ที่แอปเลือก — ดู mountAccount ข้างบน */
+    mountAccount: mountAccount,
     async signOut() {
       if (!token) return;
       try {
