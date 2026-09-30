@@ -480,7 +480,7 @@
   </style>
 </head>
 <body>
-<script src="hub-login.js?v=64"></script>
+<script src="hub-login.js?v=65"></script>
 <script>HubLogin.enforce();</script>
 
 <!-- ── COMMAND PALETTE (Cmd+K) ── -->
@@ -560,9 +560,14 @@
     <div style="font-size:2.5em;margin-bottom:8px">🔐</div>
     <h1>Admin Panel</h1>
     <p>คีย์ลัดสินค้า — ระบบจัดการข้อมูล</p>
-    <input id="email-input" class="login-input" type="email" placeholder="อีเมล Admin" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('pw-input').focus()">
-    <input id="pw-input" class="login-input" type="password" placeholder="รหัสผ่าน" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
-    <button class="login-btn" onclick="doLogin()">เข้าสู่ระบบ</button>
+    <!-- ล็อกอินกลาง (30 ก.ย. 2569): เข้าด้วยบัญชีร้านแล้วระบบพาเข้าบัญชีคีย์ลัดให้เอง ไม่ต้องกรอกรหัสซ้ำ -->
+    <div id="hub-bridge-status" style="color:var(--purple-mid);font-size:.95em;margin-bottom:12px">กำลังเข้าสู่ระบบคีย์ลัด…</div>
+    <!-- ทางสำรองตอนเว็บร้านล่ม เท่านั้น — ซ่อนไว้ปกติ -->
+    <div id="legacy-login" style="display:none">
+      <input id="email-input" class="login-input" type="email" placeholder="อีเมล Admin" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('pw-input').focus()">
+      <input id="pw-input" class="login-input" type="password" placeholder="รหัสผ่าน" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+      <button class="login-btn" onclick="doLogin()">เข้าสู่ระบบด้วยรหัสคีย์ลัดเดิม</button>
+    </div>
     <div class="login-error" id="login-error">รหัสผ่านไม่ถูกต้อง</div>
   </div>
 </div>
@@ -893,13 +898,9 @@
             เข้าสู่ระบบด้วย <strong id="settings-email" style="color:var(--pink)">—</strong><br>
             <span style="font-size:.9em">UID: <code id="settings-uid" style="font-size:.95em;user-select:all">—</code>
             <button class="btn btn-ghost" style="padding:3px 9px;font-size:.75em;margin-left:6px" onclick="copyMyUid(this)">📋 ก๊อป</button></span><br>
-            <span style="font-size:.85em;opacity:.8">ใช้ UID นี้เพิ่มแอดมินคนใหม่ที่ <code>_admins/&lt;UID&gt; = true</code> ใน Firebase Console</span>
+            <span style="font-size:.85em;opacity:.8">ใช้ UID นี้เพิ่มแอดมินคนใหม่ที่ <code>_admins/&lt;UID&gt; = true</code> ใน Firebase Console</span><br>
+            <span style="font-size:.85em;opacity:.8">เข้าสู่ระบบด้วยบัญชีร้าน (อีเมล+รหัสเดียวกับ HRIS) — เปลี่ยนรหัสผ่านที่ระบบ HR</span>
           </div>
-          <div class="form-row">
-            <div><label>รหัสผ่านใหม่</label><input type="password" id="new-pw" placeholder="รหัสผ่านใหม่"></div>
-            <div><label>ยืนยันรหัสผ่าน</label><input type="password" id="new-pw2" placeholder="ยืนยัน"></div>
-          </div>
-          <button class="btn btn-pink" onclick="changePw()">บันทึกรหัสผ่าน</button>
         </div>
       </div>
 
@@ -1476,8 +1477,59 @@ function getSettings() { return JSON.parse(localStorage.getItem('admin_settings'
 // ตอนนี้ล็อกอินจริงผ่าน Firebase → rules ฝั่ง server เป็นคนกันการเขียนให้
 let _authReady = false;
 
+/* ---------------------------------------------------------------------------
+   ล็อกอินกลาง → บัญชี Firebase เดิม (ร้านสั่ง 30 ก.ย. 2569)
+   เข้าด้วยบัญชีร้านแล้ว (hub-login.js ปิดประตูให้ถ้ายังไม่เข้า) หน้านี้เอาโทเค็นไปแลกที่เว็บร้าน
+   → ได้ custom token เป็น "บัญชี Firebase เดิมของคนนั้น" (จับคู่ด้วยอีเมล) → signInWithCustomToken
+   rules ของฐานข้อมูลไม่ต้องแก้ · ใครไม่ได้อยู่ใน _admins เว็บร้านไม่ออกให้
+   ไม่เก็บ session Firebase ไว้ในเครื่อง (Persistence.NONE) — เปิดหน้าใหม่ทุกครั้งต้องผ่านล็อกอินกลางใหม่
+   ออกจากระบบ/ถูกตัดสิทธิ์ที่ร้านจึงมีผลกับหน้านี้ด้วย
+--------------------------------------------------------------------------- */
+const HUB_FIREBASE_TOKEN_URL = 'https://lamsangstore.com/api/hub/v1/firebase-token';
+
+function _bridgeStatus(msg, isError) {
+  const el = document.getElementById('hub-bridge-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = isError ? 'var(--red)' : 'var(--purple-mid)';
+}
+
+async function _hubFirebaseLogin() {
+  const t = HubLogin.token();
+  if (!t) return;                               // ยังไม่ล็อกอินกลาง — ประตูของ hub-login.js ปิดอยู่แล้ว
+  _bridgeStatus('กำลังเข้าสู่ระบบคีย์ลัด…');
+  let res;
+  try {
+    res = await fetch(HUB_FIREBASE_TOKEN_URL, { method: 'POST', headers: { Authorization: 'Bearer ' + t }, cache: 'no-store' });
+  } catch (e) {
+    /* เว็บร้านเข้าไม่ถึง — เปิดทางสำรองให้ใช้รหัสคีย์ลัดเดิมได้ งานไม่สะดุด */
+    _bridgeStatus('ต่อเว็บร้านไม่ได้ — ใช้รหัสคีย์ลัดเดิมเข้าไปก่อนได้', true);
+    document.getElementById('legacy-login').style.display = 'block';
+    return;
+  }
+  const body = await res.json().catch(() => ({}));
+  if (res.status === 401) { await HubLogin.denied(res); return; }
+  if (res.status === 403) { _bridgeStatus(body.error || 'บัญชีนี้ไม่ได้เป็นแอดมินของคีย์ลัด', true); return; }
+  if (!res.ok || !body.token) {
+    _bridgeStatus((body.error || 'เข้าสู่ระบบคีย์ลัดไม่สำเร็จ') + ' — ใช้รหัสคีย์ลัดเดิมเข้าไปก่อนได้', true);
+    document.getElementById('legacy-login').style.display = 'block';
+    return;
+  }
+  try {
+    await firebase.auth().signInWithCustomToken(body.token);
+    // onAuthStateChanged เปิดหน้า app ให้เอง
+  } catch (e) {
+    _bridgeStatus('เข้าสู่ระบบคีย์ลัดไม่สำเร็จ: ' + (e.code || e.message), true);
+    document.getElementById('legacy-login').style.display = 'block';
+  }
+}
+
 function _bootAuth() {
   if (!firebase.apps.length) firebase.initializeApp(window.FIREBASE_CONFIG);
+  /* ไม่จำ session Firebase ข้ามการเปิดหน้า — ทุกครั้งต้องผ่านล็อกอินกลางก่อน */
+  firebase.auth().setPersistence(firebase.auth.Auth.Persistence.NONE)
+    .catch(() => {})
+    .then(_hubFirebaseLogin);
   firebase.auth().onAuthStateChanged(user => {
     const loginScreen = document.getElementById('login-screen');
     const app = document.getElementById('app');
@@ -1535,7 +1587,9 @@ function copyMyUid(btn){
     .catch(() => toast('ก๊อปไม่สำเร็จ — กดค้างที่ UID เพื่อเลือกเองได้','warn'));
 }
 async function doLogout() {
+  /* ออกทั้งสองชั้น — Firebase ของคีย์ลัด และล็อกอินกลางของเครื่องนี้ */
   try { await firebase.auth().signOut(); } catch(e) {}
+  try { await HubLogin.signOut(); } catch(e) {}
   location.reload();
 }
 async function changePw() {
