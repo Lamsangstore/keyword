@@ -32,9 +32,10 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <script src="firebase-config.js"></script>
-  <link rel="stylesheet" href="app.css?v=61">
+  <link rel="stylesheet" href="app.css?v=62">
 </head>
 <body>
+<script src="hub-login.js?v=62"></script>
 
 <!-- APP STORE TOPBAR -->
 <header class="as-topbar" id="main-topbar">
@@ -55,6 +56,7 @@
   <button class="cart-btn" onclick="openCartDrawer()" title="ตะกร้าออเดอร์ (Shift+T)">
     🛒<span class="cart-badge">0</span>
   </button>
+  <button id="hub-chip" onclick="hubChipClick()" title="เข้าสู่ระบบด้วยบัญชีร้าน" style="max-width:140px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:12px;font-weight:600">👤</button>
   <button id="dark-toggle" onclick="toggleDark()" title="Dark Mode">🌙</button>
   <a href="admin.html" class="as-settings" title="Admin">⚙️</a>
 </header>
@@ -281,7 +283,7 @@
   </div><!-- /page-inner -->
 </div><!-- /page -->
 
-<script src="app.js?v=61"></script>
+<script src="app.js?v=62"></script>
 
 <!-- COMPOSITE IMAGE MODAL -->
 <div class="ci-modal-overlay" id="ci-modal-overlay" onclick="if(event.target===this)closeCompositeImage()">

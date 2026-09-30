@@ -480,6 +480,8 @@
   </style>
 </head>
 <body>
+<script src="hub-login.js?v=62"></script>
+<script>HubLogin.enforce();</script>
 
 <!-- ── COMMAND PALETTE (Cmd+K) ── -->
 <div id="cmd-palette">
@@ -3998,7 +4000,8 @@ let p365Cache = {shop:null, list:[], detail:{}};
 let p365CurrentProduct = null;
 
 async function _hubGet(url) {
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${HUB_KEY}` }, cache: 'no-store' });
+  let res = await fetch(url, { headers: { Authorization: `Bearer ${HubLogin.auth(HUB_KEY)}` }, cache: 'no-store' });
+  if (res.status === 401 && await HubLogin.denied(res)) res = await fetch(url, { headers: { Authorization: `Bearer ${HUB_KEY}` }, cache: 'no-store' });
   if (!res.ok) throw new Error('Hub HTTP ' + res.status);
   return res.json();
 }

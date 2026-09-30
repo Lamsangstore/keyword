@@ -2,7 +2,7 @@
 // ⚠️ เวลาแก้ app.css / app.js ต้อง bump ทั้ง ASSET_VER ที่นี่
 //    และ ?v= ใน index.html ให้ตรงกัน ไม่งั้นลูกค้าจะได้ไฟล์เก่าค้าง
 //    (asset เป็น cache-first — ต่างจาก HTML ที่เป็น network-first)
-const ASSET_VER = '61';
+const ASSET_VER = '62';
 const CACHE = 'lamsang-v' + ASSET_VER;  // ← bump version ทุกครั้งที่ deploy ใหม่
 const PRECACHE = [
   './',
@@ -12,6 +12,7 @@ const PRECACHE = [
   './manifest.json',
   './app.css?v=' + ASSET_VER,
   './app.js?v=' + ASSET_VER,
+  './hub-login.js?v=' + ASSET_VER,
 ];
 
 self.addEventListener('install', e => {
