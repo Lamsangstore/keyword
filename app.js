@@ -1206,9 +1206,9 @@ function toggleTemplateMenu(idx, btn) {
   ).join('');
   document.body.appendChild(menu);
   if (document.body.classList.contains('dark')) {
-    menu.style.background = '#2a2640';
-    menu.style.borderColor = '#3a3458';
-    menu.style.color = '#e4dfff';
+    menu.style.background = '#3a3833';
+    menu.style.borderColor = '#44403c';
+    menu.style.color = '#e7e5e4';
   }
   const r = btn.getBoundingClientRect();
   menu.style.left = Math.min(r.left + window.scrollX, window.innerWidth - 180) + 'px';
@@ -1569,7 +1569,7 @@ function showSyncToast(msg, type) {
   el.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
     background:${bg};color:#fff;padding:12px 20px;
     border-radius:12px;font-weight:600;font-size:.9em;z-index:9999;
-    box-shadow:0 6px 20px rgba(0,0,0,.25);font-family:'Prompt',sans-serif`;
+    box-shadow:0 6px 20px rgba(0,0,0,.25);font-family:var(--font)`;
   document.body.appendChild(el);
   setTimeout(() => el.remove(), 3500);
 }
@@ -1958,7 +1958,7 @@ function showProductDetail(idx,push=true){
   }
 
   const favStyle = isFav(idx)
-    ? 'background:rgba(255,59,107,.15);color:var(--pink);border:1px solid rgba(255,59,107,.3)'
+    ? 'background:rgba(168,133,63,.15);color:var(--pink);border:1px solid rgba(168,133,63,.3)'
     : 'background:rgba(0,0,0,.05);color:var(--muted);border:1px solid var(--border)';
 
   document.getElementById('product-details-view').innerHTML=`
@@ -2422,7 +2422,7 @@ function toggleFavDetail(idx, btn){
   if(btn){
     btn.textContent=nowFav?'⭐ โปรด':'☆ บันทึก';
     btn.style.cssText=nowFav
-      ?'background:rgba(255,59,107,.15);color:var(--pink);border:1px solid rgba(255,59,107,.3)'
+      ?'background:rgba(168,133,63,.15);color:var(--pink);border:1px solid rgba(168,133,63,.3)'
       :'background:rgba(0,0,0,.05);color:var(--muted);border:1px solid var(--border)';
   }
   updateFavPill();
@@ -2593,14 +2593,14 @@ function showInstallBanner() {
   banner.innerHTML = `
     <div style="
       position:fixed;bottom:16px;left:50%;transform:translateX(-50%);
-      background:linear-gradient(135deg,#1e1e35,#2a1a35);
+      background:linear-gradient(135deg,#1c1b19,#2a2825);
       color:#fff;border-radius:16px;
       padding:14px 20px;
       display:flex;align-items:center;gap:12px;
       box-shadow:0 8px 32px rgba(0,0,0,.4);
-      border:1px solid rgba(255,59,107,.3);
+      border:1px solid rgba(168,133,63,.3);
       z-index:9999;max-width:340px;width:90%;
-      font-family:'Prompt',sans-serif;font-size:.85em;
+      font-family:var(--font);font-size:.85em;
       animation:slideUp .4s cubic-bezier(.22,1,.36,1) both;
     ">
       <img src="icon-192.png" style="width:40px;height:40px;border-radius:10px;flex-shrink:0" 
@@ -2610,9 +2610,9 @@ function showInstallBanner() {
         <div style="opacity:.7;font-size:.8em">เพิ่มลงหน้าจอหลัก</div>
       </div>
       <button onclick="doInstall()" style="
-        background:linear-gradient(135deg,#E0C7EE,#B894D8);
+        background:linear-gradient(135deg,#bf9c4f,#a8853f);
         color:#fff;border:none;border-radius:10px;
-        padding:8px 14px;font-family:'Prompt',sans-serif;
+        padding:8px 14px;font-family:var(--font);
         font-weight:700;font-size:.82em;cursor:pointer;
         white-space:nowrap;
       ">ติดตั้ง</button>
@@ -3705,16 +3705,16 @@ document.addEventListener('DOMContentLoaded', updateFilterBar);
    ล็อกอินกลาง — ปุ่ม 👤 บนแถบบน (ก้อน HubLogin อยู่ใน hub-login.js)
    ยังไม่ล็อกอิน = ค้างหน้าเข้าสู่ระบบ (ร้านสั่ง 30 ก.ย. 2569)
 --------------------------------------------------------------------------- */
-/* ปุ่มบัญชีแบบ App Store — วงกลมไล่สีม่วงชมพูของแอป ไม่มีตัวหนังสือ (ชื่ออยู่ในเมนู)
+/* ปุ่มบัญชีแบบ App Store — วงกลมไล่สีทองธีมกลาง ไม่มีตัวหนังสือ (ชื่ออยู่ในเมนู)
    เมนูพื้นทึบ (แบบโปร่งเคยลองแล้ว ตัวหนังสือข้างหลังทะลุ อ่านยาก) · สีใช้ตัวแปรของแอป โหมดมืดเปลี่ยนตามเอง */
 HubLogin.mountAccount(document.getElementById('hub-account'), {
-  font: "'Prompt',sans-serif",
+  font: 'var(--font)',
   showName: false,
   trigger: { pad: '0', radius: '50%', height: '34px' },
-  avatar: { size: 34, bg: 'linear-gradient(135deg,#E0C7EE 0%,#B894D8 60%,#9a7cc4 100%)', color: '#fff',
-            shadow: '0 0 0 2px var(--surface), 0 3px 10px rgba(124,90,165,.28)' },
+  avatar: { size: 34, bg: 'linear-gradient(135deg,#d9bf7d 0%,#a8853f 60%,#886a32 100%)', color: '#fff',
+            shadow: '0 0 0 2px var(--surface), 0 3px 10px rgba(168,133,63,.28)' },
   menu: { bg: 'var(--surface)', border: '1px solid var(--border)', radius: 'var(--r)',
-          shadow: '0 16px 44px rgba(58,44,84,.20)', color: 'var(--ink)', sub: 'var(--muted)', divider: 'var(--border)',
-          danger: '#d0507a', badgeBg: 'var(--pale)', badgeColor: 'var(--ink2)', hover: 'rgba(184,148,216,.12)' }
+          shadow: '0 16px 44px rgba(15,23,42,.20)', color: 'var(--ink)', sub: 'var(--muted)', divider: 'var(--border)',
+          danger: '#dc2626', badgeBg: 'var(--pale)', badgeColor: 'var(--ink2)', hover: 'rgba(168,133,63,.12)' }
 });
 HubLogin.enforce(HUB_KEY);

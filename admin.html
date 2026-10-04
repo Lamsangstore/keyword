@@ -4,7 +4,9 @@
   <meta charset="UTF-8">
   <title>Admin Panel — คีย์ลัดสินค้า</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- canvas (รูปชุดส่งลูกค้า) ใช้น้ำหนัก 500/800/900 ด้วย ถ้าไม่ประกาศไว้
+  <!-- ฟอนต์ UI ธีมกลาง Lamsang -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Prompt เก็บไว้ให้ canvas เท่านั้น · canvas (รูปชุดส่งลูกค้า) ใช้น้ำหนัก 500/800/900 ด้วย ถ้าไม่ประกาศไว้
        เบราว์เซอร์จะปลอมตัวหนาเอง แล้วออกมาไม่เหมือนกันในแต่ละเบราว์เซอร์ -->
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -14,23 +16,26 @@
   <script src="firebase-config.js"></script>
   <style>
     :root{
-      --pink:#E87A90;--pink-light:#FFD1DC;--pink-pale:#FFF0F3;
-      --purple:#5C5470;--purple-mid:#B9B4C7;--purple-pale:#EADDFB;
-      --bg:#FFFBF5;--white:#FFFFFF;--text:#352F44;
+      /* ธีมกลาง Lamsang (ดู App/LAMSANG-THEME.md) — ชื่อตัวแปรเดิม ค่าใหม่เป็นทอง/เทา */
+      --pink:#a8853f;--pink-light:#e7d5a8;--pink-pale:#faf6ec;   /* brand-600 / 200 / 50 */
+      --brand-500:#bf9c4f;--brand-700:#886a32;
+      --purple:#334155;--purple-mid:#64748b;--purple-pale:#cbd5e1; /* text-body / muted / border-strong */
+      --bg:#f8fafc;--white:#FFFFFF;--text:#0f172a;--border:#e2e8f0;--hover:#f1f5f9;
       --green:#27ae60;--red:#e74c3c;--orange:#f39c12;
-      --radius:14px;--shadow:0 4px 20px rgba(92,84,112,.12);
+      --font:'Noto Sans Thai',system-ui,-apple-system,sans-serif;
+      --radius:14px;--shadow:0 4px 20px rgba(15,23,42,.08);
     }
     html{font-size:16px}*{box-sizing:border-box;margin:0;padding:0}
-    body{background:#f0eef8;font-family:'Prompt',sans-serif;color:var(--text)}
+    body{background:var(--bg);font-family:var(--font);color:var(--text)}
 
     /* ── LOGIN OVERLAY ── */
-    #login-screen{position:fixed;inset:0;background:linear-gradient(135deg,#EADDFB,#FFD1DC);display:flex;align-items:center;justify-content:center;z-index:9999}
-    .login-box{background:var(--white);border-radius:24px;padding:48px 40px;box-shadow:0 20px 60px rgba(92,84,112,.2);text-align:center;max-width:380px;width:90%}
+    #login-screen{position:fixed;inset:0;background:linear-gradient(135deg,#1c1b19,#2a2825);display:flex;align-items:center;justify-content:center;z-index:9999}
+    .login-box{background:var(--white);border-radius:24px;padding:48px 40px;box-shadow:0 20px 60px rgba(15,23,42,.2);text-align:center;max-width:380px;width:90%}
     .login-box h1{font-size:1.8em;color:var(--pink);margin-bottom:8px}
     .login-box p{color:var(--purple-mid);font-size:.9em;margin-bottom:28px}
-    .login-input{width:100%;padding:14px 18px;border:2px solid var(--purple-pale);border-radius:12px;font-family:'Prompt',sans-serif;font-size:1em;color:var(--text);margin-bottom:14px;transition:border-color .2s}
+    .login-input{width:100%;padding:14px 18px;border:2px solid var(--purple-pale);border-radius:12px;font-family:var(--font);font-size:1em;color:var(--text);margin-bottom:14px;transition:border-color .2s}
     .login-input:focus{outline:none;border-color:var(--pink)}
-    .login-btn{width:100%;padding:14px;background:linear-gradient(90deg,var(--pink-light),var(--pink));border:none;border-radius:12px;color:var(--white);font-family:'Prompt',sans-serif;font-size:1.05em;font-weight:700;cursor:pointer;transition:filter .2s}
+    .login-btn{width:100%;padding:14px;background:linear-gradient(90deg,var(--brand-500),var(--pink));border:none;border-radius:12px;color:var(--white);font-family:var(--font);font-size:1.05em;font-weight:700;cursor:pointer;transition:filter .2s}
     .login-btn:hover{filter:brightness(1.06)}
     .login-error{color:var(--red);font-size:.85em;margin-top:8px;display:none}
 
@@ -42,7 +47,7 @@
     .live-dot{display:inline-flex;align-items:center;gap:5px;font-size:.75em;font-weight:600;color:var(--green);background:#eafaf1;border:1px solid #a9dfbf;padding:4px 10px;border-radius:20px}
     .live-dot::before{content:'';width:7px;height:7px;background:var(--green);border-radius:50%;animation:pulse 1.5s infinite}
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-    .logout-btn{padding:8px 16px;background:var(--purple-pale);border:none;border-radius:10px;color:var(--purple);font-family:'Prompt',sans-serif;font-weight:600;cursor:pointer;font-size:.85em}
+    .logout-btn{padding:8px 16px;background:var(--purple-pale);border:none;border-radius:10px;color:var(--purple);font-family:var(--font);font-weight:600;cursor:pointer;font-size:.85em}
 
     .main-layout{display:flex;min-height:calc(100vh - 64px)}
     .sidebar{width:220px;background:var(--white);padding:20px 12px;box-shadow:2px 0 10px rgba(0,0,0,.05);flex-shrink:0}
@@ -75,20 +80,20 @@
     .alert-item img{width:24px;height:24px;border-radius:4px;object-fit:cover;flex-shrink:0}
     .alert-item-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
     .alert-item-meta{color:var(--purple-mid);font-size:.92em;font-weight:600;flex-shrink:0}
-    body.dark .alert-card{background:#1e1c2e;border-color:#2a2640}
-    body.dark .alert-item{background:#2a2640;color:#e4dfff}
-    body.dark .alert-item:hover{background:#3a3458}
+    body.dark .alert-card{background:#2a2825;border-color:#3a3833}
+    body.dark .alert-item{background:#3a3833;color:#e7e5e4}
+    body.dark .alert-item:hover{background:#44403c}
     /* Audit log */
     .audit-entry{display:flex;gap:10px;padding:8px 12px;background:#fafafa;border-radius:8px;align-items:flex-start}
     .audit-time{font-family:monospace;font-size:.78em;color:var(--purple-mid);flex-shrink:0;width:70px}
     .audit-user{font-weight:700;color:var(--pink)}
     .audit-action{flex:1;line-height:1.4}
-    body.dark .audit-entry{background:#2a2640;color:#e4dfff}
+    body.dark .audit-entry{background:#3a3833;color:#e7e5e4}
     /* User name overlay */
     #user-name-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:none;align-items:center;justify-content:center;padding:20px}
     #user-name-overlay.open{display:flex}
     #user-name-overlay .un-card{background:#fff;border-radius:14px;padding:22px 26px;max-width:380px;width:100%;text-align:center}
-    body.dark #user-name-overlay .un-card{background:#1e1c2e;color:#e4dfff}
+    body.dark #user-name-overlay .un-card{background:#2a2825;color:#e7e5e4}
     #user-name-overlay h3{margin:0 0 8px;font-size:1.1em}
     #user-name-overlay p{font-size:.85em;color:var(--purple-mid);margin:0 0 14px}
     #user-name-overlay input{width:100%;padding:10px 14px;border:1px solid var(--pink-light);border-radius:10px;font-family:inherit;font-size:1em;margin-bottom:12px}
@@ -104,11 +109,11 @@
     .cmd-input-wrap{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--pink-light)}
     .cmd-icon{font-size:1.15em}
     #cmd-input{flex:1;border:none;outline:none;font-size:1em;font-family:inherit;color:inherit;background:transparent}
-    .cmd-kbd{padding:3px 8px;border-radius:6px;background:#f0ebf8;color:var(--purple-mid);font-size:.72em;font-weight:700;font-family:monospace}
+    .cmd-kbd{padding:3px 8px;border-radius:6px;background:var(--hover);color:var(--purple-mid);font-size:.72em;font-weight:700;font-family:monospace}
     .cmd-results{flex:1;overflow-y:auto;padding:6px}
     .cmd-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;cursor:pointer}
     .cmd-item.active,.cmd-item:hover{background:var(--pink-pale)}
-    .cmd-item-img{width:36px;height:36px;border-radius:6px;background:#f0ebf8;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;font-size:1.1em}
+    .cmd-item-img{width:36px;height:36px;border-radius:6px;background:var(--hover);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;font-size:1.1em}
     .cmd-item-img img{width:100%;height:100%;object-fit:cover}
     .cmd-item-info{flex:1;min-width:0}
     .cmd-item-name{font-weight:600;font-size:.92em;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -121,14 +126,14 @@
     .order-time{font-family:monospace;font-size:.78em;color:var(--purple-mid);width:80px}
     .order-info{flex:1}
     .order-total{font-weight:700;color:var(--pink)}
-    body.dark .order-row{background:#2a2640;color:#e4dfff}
+    body.dark .order-row{background:#3a3833;color:#e7e5e4}
     .panel-title{font-size:1.15em;font-weight:700;color:var(--text);margin-bottom:18px;display:flex;align-items:center;gap:8px}
     .panel-title .badge{font-size:.7em;font-weight:600;background:var(--pink-pale);color:var(--pink);padding:2px 8px;border-radius:20px}
 
     /* ── SYNC BAR ── */
     .sync-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
-    .btn{padding:10px 20px;border:none;border-radius:10px;cursor:pointer;font-family:'Prompt',sans-serif;font-weight:700;font-size:.9em;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
-    .btn-pink{background:linear-gradient(90deg,var(--pink-light),var(--pink));color:var(--white)}
+    .btn{padding:10px 20px;border:none;border-radius:10px;cursor:pointer;font-family:var(--font);font-weight:700;font-size:.9em;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+    .btn-pink{background:linear-gradient(90deg,var(--brand-500),var(--pink));color:var(--white)}
     .btn-pink:hover{filter:brightness(1.06)}
     .btn-green{background:#d5f5e3;color:#1a6e3f;border:1px solid #a9dfbf}
     .btn-green:hover{background:#c3edd8}
@@ -136,8 +141,8 @@
     .btn-blue:hover{background:#c3dff5}
     .btn-orange{background:#fdebd0;color:#784212;border:1px solid #f0b27a}
     .btn-orange:hover{background:#fad7a0}
-    .btn-purple{background:#e8daef;color:#5b2c6f;border:1px solid #d2b4de}
-    .btn-purple:hover{background:#d7bde2}
+    .btn-purple{background:var(--pink-pale);color:var(--brand-700);border:1px solid var(--pink-light)}
+    .btn-purple:hover{background:#f3ead4}
     .btn-red{background:#fadbd8;color:#7b241c;border:1px solid #f1948a}
     .btn-danger{background:var(--red);color:var(--white)}
     .btn-danger:hover{filter:brightness(.9)}
@@ -150,8 +155,8 @@
     .table-wrap{overflow-x:auto;margin-top:16px}
     table{width:100%;border-collapse:collapse;font-size:.88em}
     thead th{background:var(--pink-pale);color:var(--pink);font-weight:700;padding:12px 14px;text-align:left;white-space:nowrap}
-    tbody tr{border-bottom:1px solid #f3eff8;transition:background .15s}
-    tbody tr:hover{background:#fdf8ff}
+    tbody tr{border-bottom:1px solid var(--border);transition:background .15s}
+    tbody tr:hover{background:var(--hover)}
     tbody td{padding:10px 14px;vertical-align:middle}
     .td-img{width:54px;height:54px;object-fit:cover;border-radius:8px;border:2px solid var(--purple-pale)}
     .td-name{font-weight:600;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -159,14 +164,14 @@
     .td-actions{display:flex;gap:6px;white-space:nowrap}
 
     /* ── MODAL ── */
-    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(92,84,112,.5);z-index:500;align-items:center;justify-content:center;padding:16px}
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:500;align-items:center;justify-content:center;padding:16px}
     .modal-overlay.open{display:flex}
     .modal{background:var(--white);border-radius:20px;padding:28px;max-width:680px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
     .modal-title{font-size:1.3em;font-weight:700;color:var(--pink);margin-bottom:20px}
     .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
     .form-row.full{grid-template-columns:1fr}
     label{display:block;font-size:.8em;font-weight:700;color:var(--purple-mid);margin-bottom:5px}
-    input[type=text],input[type=number],textarea,select{width:100%;padding:11px 14px;border:2px solid var(--purple-pale);border-radius:10px;font-family:'Prompt',sans-serif;font-size:.9em;color:var(--text);transition:border-color .2s;resize:vertical}
+    input[type=text],input[type=number],textarea,select{width:100%;padding:11px 14px;border:2px solid var(--purple-pale);border-radius:10px;font-family:var(--font);font-size:.9em;color:var(--text);transition:border-color .2s;resize:vertical}
     input:focus,textarea:focus,select:focus{outline:none;border-color:var(--pink)}
     textarea{min-height:80px}
     .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;flex-wrap:wrap}
@@ -220,7 +225,7 @@
     .copy-img-info{font-size:.85em;color:var(--purple-mid);margin:10px 0;text-align:center}
     .copy-img-nav{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:12px}
     .cig-tab{padding:6px 14px;border:1px solid var(--purple-pale);background:#fff;color:var(--text);
-      border-radius:18px;cursor:pointer;font-family:'Prompt',sans-serif;font-weight:600;font-size:.8em;transition:all .15s}
+      border-radius:18px;cursor:pointer;font-family:var(--font);font-weight:600;font-size:.8em;transition:all .15s}
     .cig-tab:hover{background:var(--pink-pale);border-color:var(--pink)}
     .cig-tab.active{background:var(--pink);color:#fff;border-color:var(--pink)}
     .cig-tab.cig-download-all{background:#27ae60;color:#fff;border-color:#27ae60;margin-left:8px}
@@ -228,10 +233,10 @@
 
     /* ── SYNC ALL FROM PAGE365 ── */
     .sync-all-banner{display:flex;align-items:center;gap:16px;padding:18px 20px;border-radius:14px;
-      background:linear-gradient(135deg,#a8e6cf 0%,#7fcdbb 100%);
-      color:#0d5e3f;margin-bottom:16px;cursor:pointer;transition:all .2s;border:none;width:100%;text-align:left;
-      font-family:'Prompt',sans-serif;box-shadow:0 4px 14px rgba(127,205,187,.3)}
-    .sync-all-banner:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(127,205,187,.45)}
+      background:linear-gradient(135deg,#f3ead4 0%,#e7d5a8 100%);
+      color:#6b5329;margin-bottom:16px;cursor:pointer;transition:all .2s;border:none;width:100%;text-align:left;
+      font-family:var(--font);box-shadow:0 4px 14px rgba(168,133,63,.2)}
+    .sync-all-banner:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(168,133,63,.3)}
     .sync-all-banner:disabled{opacity:.55;cursor:wait}
     .sync-all-banner .sa-icon{font-size:2em;flex-shrink:0;animation:none}
     .sync-all-banner.syncing .sa-icon{animation:spin 1.5s linear infinite}
@@ -242,7 +247,7 @@
 
     .sync-progress{background:#fff;border-radius:10px;padding:14px;margin:10px 0;font-size:.85em;max-height:340px;overflow-y:auto}
     .sync-progress .sp-bar{height:8px;background:#eee;border-radius:4px;overflow:hidden;margin-bottom:10px}
-    .sync-progress .sp-fill{height:100%;background:linear-gradient(90deg,var(--pink-light),var(--pink));width:0%;transition:width .3s}
+    .sync-progress .sp-fill{height:100%;background:linear-gradient(90deg,var(--brand-500),var(--pink));width:0%;transition:width .3s}
     .sync-progress .sp-log{font-family:monospace;font-size:.78em;line-height:1.6}
     .sync-progress .sp-line{padding:2px 0}
     .sync-progress .sp-ok{color:var(--green)}
@@ -252,7 +257,7 @@
     /* ── PAGE365 PHOTO PICKER ── */
     #p365-picker-modal .modal{max-width:920px}
     .p365-toolbar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
-    .p365-toolbar input{flex:1;min-width:200px;padding:9px 12px;border:2px solid var(--purple-pale);border-radius:10px;font-family:'Prompt',sans-serif;font-size:.9em}
+    .p365-toolbar input{flex:1;min-width:200px;padding:9px 12px;border:2px solid var(--purple-pale);border-radius:10px;font-family:var(--font);font-size:.9em}
     .p365-status{font-size:.8em;color:var(--purple-mid);margin-bottom:10px;min-height:18px}
     .p365-search-results{display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto;margin-bottom:12px}
     .p365-search-item{display:flex;gap:10px;align-items:center;padding:8px;border-radius:10px;cursor:pointer;background:var(--pink-pale);transition:background .15s}
@@ -266,15 +271,15 @@
     .p365-variants-bar .vb-chip{background:#fff;padding:4px 10px;border-radius:14px;font-size:.78em;font-weight:600;border:1px solid var(--purple-pale)}
     .p365-variants-bar .vb-chip.sold{background:#fadbd8;color:#7b241c}
     .p365-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;max-height:480px;overflow-y:auto;padding:4px}
-    .p365-photo{position:relative;background:#f7f5fb;border-radius:10px;overflow:hidden;aspect-ratio:1/1;cursor:pointer;border:2px solid transparent;transition:all .15s}
-    .p365-photo:hover{border-color:var(--pink);transform:translateY(-2px);box-shadow:0 4px 12px rgba(232,122,144,.3)}
+    .p365-photo{position:relative;background:var(--hover);border-radius:10px;overflow:hidden;aspect-ratio:1/1;cursor:pointer;border:2px solid transparent;transition:all .15s}
+    .p365-photo:hover{border-color:var(--pink);transform:translateY(-2px);box-shadow:0 4px 12px rgba(168,133,63,.3)}
     .p365-photo img{width:100%;height:100%;object-fit:cover;display:block}
     .p365-photo .p365-photo-pos{position:absolute;top:4px;left:4px;background:rgba(0,0,0,.55);color:#fff;font-size:.7em;padding:2px 6px;border-radius:8px;font-weight:700}
     .p365-photo .p365-assigned{position:absolute;bottom:4px;left:4px;right:4px;display:flex;flex-wrap:wrap;gap:3px}
     .p365-photo .p365-assigned span{background:var(--green);color:#fff;font-size:.66em;font-weight:700;padding:2px 6px;border-radius:6px}
     /* assign menu popover */
     .p365-assign-menu{position:absolute;background:#fff;border:1px solid var(--purple-pale);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.18);padding:8px;z-index:1100;min-width:200px;display:flex;flex-direction:column;gap:4px}
-    .p365-assign-menu button{background:none;border:1px solid var(--purple-pale);padding:7px 10px;border-radius:8px;cursor:pointer;font-family:'Prompt',sans-serif;font-size:.82em;text-align:left;color:var(--text);transition:all .15s}
+    .p365-assign-menu button{background:none;border:1px solid var(--purple-pale);padding:7px 10px;border-radius:8px;cursor:pointer;font-family:var(--font);font-size:.82em;text-align:left;color:var(--text);transition:all .15s}
     .p365-assign-menu button:hover{background:var(--pink-pale);color:var(--pink);border-color:var(--pink)}
     .p365-assign-menu button.divider{border-top:1px dashed var(--purple-pale);margin-top:4px;padding-top:6px;font-weight:700;color:var(--pink)}
 
@@ -287,10 +292,10 @@
     .p365i-targets{display:flex;flex-wrap:wrap;gap:7px;background:var(--pink-pale);border-radius:10px;padding:10px;margin-bottom:10px;max-height:210px;overflow-y:auto}
     .p365i-target{display:flex;align-items:center;gap:7px;padding:5px 9px 5px 5px;border:2px solid var(--purple-pale);border-radius:12px;background:#fff;cursor:pointer;font-size:.78em;font-weight:600;color:var(--text);transition:all .15s;position:relative}
     .p365i-target:hover{border-color:var(--pink)}
-    .p365i-target.active{border-color:var(--pink);background:#fff6f8;box-shadow:0 0 0 3px rgba(232,122,144,.18)}
+    .p365i-target.active{border-color:var(--pink);background:var(--pink-pale);box-shadow:0 0 0 3px rgba(168,133,63,.18)}
     .p365i-target.filled{border-color:var(--green)}
     .p365i-target.off{opacity:.45}
-    .p365i-target img,.p365i-target .ph{width:32px;height:32px;border-radius:7px;object-fit:cover;flex:none;background:#f0eef8;display:flex;align-items:center;justify-content:center;font-size:.95em}
+    .p365i-target img,.p365i-target .ph{width:32px;height:32px;border-radius:7px;object-fit:cover;flex:none;background:var(--hover);display:flex;align-items:center;justify-content:center;font-size:.95em}
     .p365i-target .tlabel{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .p365i-target .tsub{font-size:.85em;font-weight:500;color:var(--purple-mid)}
     .p365i-target .tclear{border:none;background:none;color:var(--red);cursor:pointer;font-size:.9em;padding:0 2px;line-height:1}
@@ -301,8 +306,8 @@
     /* ── PAGE365 PRODUCT MATCHING ── */
     #match-modal .modal{max-width:980px}
     .match-toolbar{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
-    .match-toolbar input{flex:1;min-width:180px;padding:9px 12px;border:2px solid var(--purple-pale);border-radius:10px;font-family:'Prompt',sans-serif;font-size:.9em}
-    .match-toolbar select{padding:9px 12px;border:2px solid var(--purple-pale);border-radius:10px;font-family:'Prompt',sans-serif;font-size:.85em}
+    .match-toolbar input{flex:1;min-width:180px;padding:9px 12px;border:2px solid var(--purple-pale);border-radius:10px;font-family:var(--font);font-size:.9em}
+    .match-toolbar select{padding:9px 12px;border:2px solid var(--purple-pale);border-radius:10px;font-family:var(--font);font-size:.85em}
     .match-status{font-size:.8em;color:var(--purple-mid);margin-bottom:8px;min-height:16px}
     .match-list{display:flex;flex-direction:column;gap:8px;max-height:62vh;overflow-y:auto;padding:2px}
     .match-card{border:1.5px solid var(--purple-pale);border-radius:12px;padding:10px 12px;background:#fff}
@@ -316,11 +321,11 @@
     .match-chip.none{background:#fde0e7;color:#d92626}
     .match-paired{font-size:.82em;color:var(--purple-mid);margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
     .match-paired b{color:var(--text)}
-    .match-btn{border:1px solid var(--purple-pale);background:#fff;color:var(--text);font-family:'Prompt',sans-serif;font-weight:700;font-size:.76em;padding:5px 11px;border-radius:8px;cursor:pointer;transition:all .15s}
+    .match-btn{border:1px solid var(--purple-pale);background:#fff;color:var(--text);font-family:var(--font);font-weight:700;font-size:.76em;padding:5px 11px;border-radius:8px;cursor:pointer;transition:all .15s}
     .match-btn:hover{border-color:var(--pink);color:var(--pink)}
     .match-btn.danger:hover{border-color:var(--red);color:var(--red)}
     .match-search-box{margin-top:8px}
-    .match-search-box input{width:100%;box-sizing:border-box;padding:8px 11px;border:2px solid var(--purple-pale);border-radius:9px;font-family:'Prompt',sans-serif;font-size:.85em}
+    .match-search-box input{width:100%;box-sizing:border-box;padding:8px 11px;border:2px solid var(--purple-pale);border-radius:9px;font-family:var(--font);font-size:.85em}
     .match-results{display:flex;flex-direction:column;gap:4px;max-height:240px;overflow-y:auto;margin-top:6px}
     .match-result{display:flex;gap:9px;align-items:center;padding:6px 8px;border-radius:8px;cursor:pointer;background:var(--pink-pale);transition:background .12s}
     .match-result:hover{background:var(--pink-light)}
@@ -332,7 +337,7 @@
     .match-vrow{display:grid;grid-template-columns:1fr auto 1.2fr;gap:8px;align-items:center;padding:4px 0;font-size:.82em}
     .match-vrow .mv-our{font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .match-vrow .mv-arrow{color:var(--purple-mid)}
-    .match-vrow select{padding:6px 8px;border:1.5px solid var(--purple-pale);border-radius:7px;font-family:'Prompt',sans-serif;font-size:.82em;max-width:100%}
+    .match-vrow select{padding:6px 8px;border:1.5px solid var(--purple-pale);border-radius:7px;font-family:var(--font);font-size:.82em;max-width:100%}
     .match-vrow select.unset{border-color:#f3c6d5;color:#d92626}
     .mv-head{font-size:.74em;color:var(--purple-mid);font-weight:700;display:grid;grid-template-columns:1fr auto 1.2fr;gap:8px;margin-bottom:4px}
 
@@ -366,7 +371,7 @@
 
     /* ── SEARCH ── */
     .search-bar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
-    .search-input{flex:1;min-width:200px;padding:10px 16px;border:2px solid var(--purple-pale);border-radius:10px;font-family:'Prompt',sans-serif;font-size:.9em;color:var(--text)}
+    .search-input{flex:1;min-width:200px;padding:10px 16px;border:2px solid var(--purple-pale);border-radius:10px;font-family:var(--font);font-size:.9em;color:var(--text)}
     .search-input:focus{outline:none;border-color:var(--pink)}
 
     /* ── STATS ── */
@@ -376,7 +381,7 @@
     .stat-label{font-size:.8em;color:var(--purple-mid);font-weight:600;margin-top:4px}
 
     /* ── SYNC LOG ── */
-    .sync-log{background:#1e1e2e;border-radius:10px;padding:14px;font-family:monospace;font-size:.8em;max-height:180px;overflow-y:auto;color:#cdd6f4}
+    .sync-log{background:#1c1b19;border-radius:10px;padding:14px;font-family:monospace;font-size:.8em;max-height:180px;overflow-y:auto;color:#cdd6f4}
     .log-ok{color:#a6e3a1}.log-err{color:#f38ba8}.log-info{color:#89b4fa}
 
     /* ══════════════════════════════════════════════════
@@ -480,7 +485,7 @@
   </style>
 </head>
 <body>
-<script src="hub-login.js?v=65"></script>
+<script src="hub-login.js?v=66"></script>
 <script>HubLogin.enforce();</script>
 
 <!-- ── COMMAND PALETTE (Cmd+K) ── -->
@@ -782,9 +787,9 @@
             <div id="filter-count" style="margin-left:auto;font-size:.82em;color:var(--purple-mid);font-weight:600"></div>
           </div>
           <style>
-            .filter-select{padding:7px 12px;border-radius:8px;border:1px solid var(--pink-light);background:#fff;font-size:.82em;font-weight:500;color:var(--text);font-family:'Prompt',sans-serif;cursor:pointer;min-width:150px}
+            .filter-select{padding:7px 12px;border-radius:8px;border:1px solid var(--pink-light);background:#fff;font-size:.82em;font-weight:500;color:var(--text);font-family:var(--font);cursor:pointer;min-width:150px}
             .filter-select:focus{outline:none;border-color:var(--pink)}
-            body.dark .filter-select{background:#1e1c2e;border-color:#2a2640;color:#e4dfff}
+            body.dark .filter-select{background:#2a2825;border-color:#3a3833;color:#e7e5e4}
           </style>
           <div id="bulk-actions-bar" style="display:none;align-items:center;gap:10px;margin-bottom:10px;padding:10px 14px;background:var(--pink-pale);border-radius:10px">
             <span id="bulk-count" style="font-weight:700;color:var(--pink)">0 รายการ</span>
@@ -869,7 +874,7 @@
           </div>
           <div style="background:#fff3cd;border-radius:8px;padding:10px 12px;font-size:.82em;margin-top:14px;color:#7d5413">
             <strong>👁️ ตัวอย่างข้อความ</strong> (จะแสดงในข้อความ Copy ออเดอร์ของลูกค้า):
-            <pre id="promo-preview" style="white-space:pre-wrap;font-family:'Prompt',sans-serif;margin:8px 0 0;padding:10px;background:#fff;border-radius:6px;font-size:.95em;color:var(--text)"></pre>
+            <pre id="promo-preview" style="white-space:pre-wrap;font-family:var(--font);margin:8px 0 0;padding:10px;background:#fff;border-radius:6px;font-size:.95em;color:var(--text)"></pre>
           </div>
         </div>
         <div class="panel">
@@ -877,11 +882,11 @@
           <div class="form-row">
             <div>
               <label>สีหลัก (Pink)</label>
-              <input type="color" id="theme-pink" value="#FF6B9D" oninput="saveThemeDebounced()" style="width:100%;height:42px;padding:2px;border-radius:8px;border:1px solid var(--pink-light)">
+              <input type="color" id="theme-pink" value="#a8853f" oninput="saveThemeDebounced()" style="width:100%;height:42px;padding:2px;border-radius:8px;border:1px solid var(--pink-light)">
             </div>
             <div>
               <label>สีรอง (Purple)</label>
-              <input type="color" id="theme-purple" value="#9B7EBD" oninput="saveThemeDebounced()" style="width:100%;height:42px;padding:2px;border-radius:8px;border:1px solid var(--pink-light)">
+              <input type="color" id="theme-purple" value="#334155" oninput="saveThemeDebounced()" style="width:100%;height:42px;padding:2px;border-radius:8px;border:1px solid var(--pink-light)">
             </div>
           </div>
           <div class="form-row full">
@@ -1893,7 +1898,7 @@ function renderOrderHistory(all) {
 // ═══════════════════════════════════════════════
 //  THEME / BRANDING
 // ═══════════════════════════════════════════════
-const DEFAULT_THEME = { pink:'#FF6B9D', purple:'#9B7EBD', shopName:'LAMSANGSTORE' };
+const DEFAULT_THEME = { pink:'#a8853f', purple:'#334155', shopName:'LAMSANGSTORE' };
 let _themeSaveTimer = null;
 let _themeApplying = false;
 
@@ -3204,7 +3209,7 @@ function addVariantRow(v) {
   row.dataset.id = id;
   const isSold = (Number(v.stock)||0) <= 0;
   row.innerHTML = `
-    <div class="v-thumb-wrap ${isSold?'sold':''}" onclick="this.parentElement.querySelector('input[type=file]').click()" title="คลิกเพื่อเปลี่ยนรูป">${v.image?`<img class="v-thumb" src="${esc(v.image)}" onerror="this.style.display='none'">`:'<div class="v-thumb" style="background:#f0eef8;display:flex;align-items:center;justify-content:center;font-size:1.1em">🎨</div>'}</div>
+    <div class="v-thumb-wrap ${isSold?'sold':''}" onclick="this.parentElement.querySelector('input[type=file]').click()" title="คลิกเพื่อเปลี่ยนรูป">${v.image?`<img class="v-thumb" src="${esc(v.image)}" onerror="this.style.display='none'">`:'<div class="v-thumb" style="background:var(--hover);display:flex;align-items:center;justify-content:center;font-size:1.1em">🎨</div>'}</div>
     <input type="text" placeholder="SKU" value="${esc(v.sku||'')}" data-field="sku">
     <input type="text" placeholder="ชื่อ (เช่น ดำ, M)" value="${esc(v.name||'')}" data-field="name">
     <input type="number" placeholder="0" value="${Number(v.stock)||0}" min="0" data-field="stock" oninput="updateVariantThumb(this)">
@@ -3287,7 +3292,7 @@ function openApplyToOthers(btn) {
         const im = r.querySelector('[data-field=image]').value || '';
         return `<label class="apply-item">
           <input type="checkbox" data-target="${i}" checked>
-          ${im?`<img src="${esc(im)}">`:'<div style="width:28px;height:28px;background:#f0eef8;border-radius:5px;display:flex;align-items:center;justify-content:center">🎨</div>'}
+          ${im?`<img src="${esc(im)}">`:'<div style="width:28px;height:28px;background:var(--hover);border-radius:5px;display:flex;align-items:center;justify-content:center">🎨</div>'}
           <span style="flex:1"><strong>${esc(nm)}</strong>${sk?` <span style="color:var(--purple-mid);font-size:.85em">• ${esc(sk)}</span>`:''}</span>
         </label>`;
       }).join('')}
@@ -4003,11 +4008,11 @@ function confirmCloseModal(id) {
     <span style="font-size:.9em;font-weight:600;color:#784212">⚠️ ข้อมูลที่กรอกยังไม่ได้บันทึก — ออกแน่ใจไหม?</span>
     <div style="display:flex;gap:8px">
       <button onclick="document.getElementById('${bannerId}').remove()" 
-        style="padding:8px 16px;background:#d5f5e3;color:#1a6e3f;border:1px solid #a9dfbf;border-radius:8px;font-family:'Prompt',sans-serif;font-weight:700;cursor:pointer;font-size:.85em">
+        style="padding:8px 16px;background:#d5f5e3;color:#1a6e3f;border:1px solid #a9dfbf;border-radius:8px;font-family:var(--font);font-weight:700;cursor:pointer;font-size:.85em">
         ✏️ กรอกต่อ
       </button>
       <button onclick="closeModal('${id}');document.getElementById('${bannerId}')?.remove()" 
-        style="padding:8px 16px;background:#fadbd8;color:#7b241c;border:1px solid #f1948a;border-radius:8px;font-family:'Prompt',sans-serif;font-weight:700;cursor:pointer;font-size:.85em">
+        style="padding:8px 16px;background:#fadbd8;color:#7b241c;border:1px solid #f1948a;border-radius:8px;font-family:var(--font);font-weight:700;cursor:pointer;font-size:.85em">
         🚪 ออกโดยไม่บันทึก
       </button>
     </div>
@@ -4182,7 +4187,7 @@ function searchPage365Products() {
     ${filtered.slice(0, 50).map(p => {
       const thumb = p.photo?.small || p.photo?.normal || '';
       return `<div class="p365-search-item" onclick="loadPage365Product(${p.id})">
-        ${thumb?`<img src="${esc(thumb)}" onerror="this.style.display='none'">`:'<div style="width:48px;height:48px;background:#f0eef8;border-radius:8px;display:flex;align-items:center;justify-content:center">📦</div>'}
+        ${thumb?`<img src="${esc(thumb)}" onerror="this.style.display='none'">`:'<div style="width:48px;height:48px;background:var(--hover);border-radius:8px;display:flex;align-items:center;justify-content:center">📦</div>'}
         <div class="info"><b>${esc(p.name)}</b><span>ID ${p.id} • ฿${p.price}</span></div>
       </div>`;
     }).join('')}
@@ -4425,7 +4430,7 @@ function renderP365ImportList() {
       const thumb = p.photo?.small || p.photo?.normal || '';
       const sku = _p365ListSku(p);
       return `<div class="p365-search-item${existing ? ' have' : ''}" onclick="openP365ImportEditor(${p.id})">
-        ${thumb ? `<img src="${esc(thumb)}" onerror="this.style.display='none'">` : '<div style="width:48px;height:48px;background:#f0eef8;border-radius:8px;display:flex;align-items:center;justify-content:center">📦</div>'}
+        ${thumb ? `<img src="${esc(thumb)}" onerror="this.style.display='none'">` : '<div style="width:48px;height:48px;background:var(--hover);border-radius:8px;display:flex;align-items:center;justify-content:center">📦</div>'}
         <div class="info">
           <b>${esc(p.name || '(ไม่มีชื่อ)')}</b>
           <span>ID ${p.id} • ฿${esc(p.price ?? '-')}${sku ? ` • ${esc(sku)}` : ''}</span>
@@ -4982,7 +4987,7 @@ function renderMatchResults(){
   host.innerHTML=list.slice(0,40).map(p=>{
     const thumb=p.photo?.small||p.photo?.normal||'';
     return `<div class="match-result" onclick="pickMatch(${_matchOpenIdx}, ${p.id})">
-      ${thumb?`<img src="${esc(thumb)}" onerror="this.style.display='none'">`:'<div style="width:38px;height:38px;background:#f0eef8;border-radius:6px;flex-shrink:0"></div>'}
+      ${thumb?`<img src="${esc(thumb)}" onerror="this.style.display='none'">`:'<div style="width:38px;height:38px;background:var(--hover);border-radius:6px;flex-shrink:0"></div>'}
       <div class="mr-info"><b>${esc(p.name)}</b><span>ID ${p.id} • ฿${p.price||'-'}</span></div>
     </div>`;
   }).join('');

@@ -72,7 +72,7 @@ window.HubLogin = (function () {
 
   /**
    * ประตูกั้นเต็มจอ — ใช้แอปต่อไม่ได้จนกว่าจะเข้าสู่ระบบ
-   * **หน้าตาเดียวกับหน้าล็อกอิน HRIS** (ร้านสั่ง 30 ก.ย. 2569) พื้นดำ-ทอง · การ์ดขาวขอบทอง · ฟอนต์ Prompt
+   * **หน้าตาเดียวกับหน้าล็อกอิน HRIS** (ร้านสั่ง 30 ก.ย. 2569) พื้นดำ-ทอง · การ์ดขาวขอบทอง · ฟอนต์ Noto Sans Thai (ธีมกลาง Lamsang)
    * ชุดสีเดียวกับ `src/components/hris/HrisShell.tsx` ของเว็บร้าน — แก้ที่หนึ่งต้องตามไปแก้อีกที่
    */
   function lock(msg) {
@@ -82,7 +82,7 @@ window.HubLogin = (function () {
       if (!document.getElementById('hub-login-font')) {
         const f = document.createElement('link');
         f.id = 'hub-login-font'; f.rel = 'stylesheet';
-        f.href = 'https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&display=swap';
+        f.href = 'https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap';
         document.head.appendChild(f);
       }
     } catch (e) {}
@@ -90,15 +90,15 @@ window.HubLogin = (function () {
     el.id = 'hub-login-gate';
     el.setAttribute('style', [
       'position:fixed', 'inset:0', 'z-index:2147483600', 'overflow:auto',
-      'background:#18181b',
-      'background-image:radial-gradient(circle at 5% 5%,rgba(234,179,8,.16),transparent 38%),' +
-        'radial-gradient(circle at 95% 95%,rgba(202,138,4,.16),transparent 38%)',
+      'background:#1c1b19',
+      'background-image:radial-gradient(circle at 5% 5%,rgba(191,156,79,.16),transparent 38%),' +
+        'radial-gradient(circle at 95% 95%,rgba(168,133,63,.16),transparent 38%)',
       'display:flex', 'flex-direction:column', 'align-items:center', 'justify-content:center',
-      'padding:24px 16px', "font-family:'Prompt',sans-serif", 'color:#27272a', 'text-align:center'
+      'padding:24px 16px', "font-family:'Noto Sans Thai',system-ui,-apple-system,sans-serif", 'color:#27272a', 'text-align:center'
     ].join(';'));
     el.innerHTML =
       '<div style="width:100%;max-width:448px;box-sizing:border-box;background:#fff;border-radius:16px;' +
-        'border-top:4px solid #eab308;padding:36px 32px;box-shadow:0 25px 50px -12px rgba(0,0,0,.5)">' +
+        'border-top:4px solid #a8853f;padding:36px 32px;box-shadow:0 25px 50px -12px rgba(0,0,0,.5)">' +
         '<img src="https://lh3.googleusercontent.com/d/1wFGzcl5Y3yEfd39sA2LTbrgeNkgVxm27" alt="Lamsang" ' +
           'style="height:112px;width:auto;margin:0 auto 16px;display:block;object-fit:contain">' +
         '<div style="font-size:30px;font-weight:700;letter-spacing:.025em;color:#27272a">Lamsang Group</div>' +
@@ -107,7 +107,7 @@ window.HubLogin = (function () {
           'border:1px solid #e4e4e7;font-size:14px;color:#52525b">' +
           '🔒 ' + (msg || 'ต้องเข้าสู่ระบบก่อนใช้งาน') + '</div>' +
         '<a href="' + loginHref() + '" style="display:flex;align-items:center;justify-content:center;gap:8px;' +
-          'padding:13px 16px;border-radius:12px;background:#eab308;color:#18181b;font-weight:700;font-size:16px;' +
+          'padding:13px 16px;border-radius:12px;background:#a8853f;color:#fff;font-weight:700;font-size:16px;' +
           'text-decoration:none;box-shadow:0 4px 6px -1px rgba(0,0,0,.1)">' +
           '<svg viewBox="0 0 512 512" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M217.9 105.9 340.7 228.7c7.2 7.2 11.3 17.1 11.3 27.3s-4.1 20.1-11.3 27.3L217.9 406.1c-6.4 6.4-15 9.9-24 9.9-18.7 0-33.9-15.2-33.9-33.9V320H32c-17.7 0-32-14.3-32-32v-64c0-17.7 14.3-32 32-32h128v-62.1c0-18.7 15.2-33.9 33.9-33.9 9 0 17.6 3.6 24 9.9zM352 416h64c17.7 0 32-14.3 32-32V128c0-17.7-14.3-32-32-32h-64c-17.7 0-32-14.3-32-32s14.3-32 32-32h64c53 0 96 43 96 96v256c0 53-43 96-96 96h-64c-17.7 0-32-14.3-32-32s14.3-32 32-32z"/></svg>' +
           'เข้าสู่ระบบ</a>' +
@@ -204,7 +204,7 @@ window.HubLogin = (function () {
       const a = document.createElement('span');
       css(a, {
         width: px + 'px', height: px + 'px', minWidth: px + 'px', borderRadius: av.radius || '50%',
-        background: av.bg || '#18181b', color: av.color || '#fff', boxShadow: av.shadow || 'none',
+        background: av.bg || '#1c1b19', color: av.color || '#fff', boxShadow: av.shadow || 'none',
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         fontSize: Math.round(px * 0.42) + 'px', fontWeight: '700', lineHeight: '1', letterSpacing: '0'
       });
