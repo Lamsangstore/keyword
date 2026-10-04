@@ -8,13 +8,13 @@
   <link rel="icon" type="image/png" sizes="96x96" href="icon-96.png">
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#B894D8">
+  <meta name="theme-color" content="#a8853f">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="คีย์ลัด">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="application-name" content="LAMSANG คีย์ลัด">
-  <meta name="msapplication-TileColor" content="#B894D8">
+  <meta name="msapplication-TileColor" content="#a8853f">
   <meta name="msapplication-TileImage" content="icon-144.png">
   <!-- ══ OG / share ══ -->
   <meta property="og:title" content="LAMSANG คีย์ลัด">
@@ -25,17 +25,20 @@
   <meta property="og:url" content="https://lamsangstore.github.io/keyword/index.html">
   <meta property="og:type" content="website">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <!-- 900 ใช้ในตรา SOLD OUT บนรูปชุดส่งลูกค้า (canvas) — ถ้าไม่ประกาศไว้
+  <!-- ฟอนต์ UI ธีมกลาง Lamsang -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Prompt เก็บไว้ให้ canvas (รูปชุดส่งลูกค้า) เท่านั้น — รูปที่ส่งออกต้องหน้าตาเหมือนเดิม
+       900 ใช้ในตรา SOLD OUT บนรูปชุดส่งลูกค้า (canvas) — ถ้าไม่ประกาศไว้
        เบราว์เซอร์จะปลอมตัวหนาเอง ซึ่ง Safari กับ Chrome ทำไม่เหมือนกัน -->
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <script src="firebase-config.js"></script>
-  <link rel="stylesheet" href="app.css?v=65">
+  <link rel="stylesheet" href="app.css?v=66">
 </head>
 <body>
-<script src="hub-login.js?v=65"></script>
+<script src="hub-login.js?v=66"></script>
 
 <!-- APP STORE TOPBAR -->
 <header class="as-topbar" id="main-topbar">
@@ -240,7 +243,7 @@
           </div>
           <div id="product-toolbar" style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span style="font-size:.78em;font-weight:600;color:var(--muted)">เรียง</span>
-            <select id="sortProduct" onchange="handleSortChange(this.value)" style="padding:7px 14px;border-radius:30px;border:1.5px solid var(--border);font-family:'Prompt',sans-serif;font-size:.8em;font-weight:700;color:var(--ink);background:var(--surface);cursor:pointer;outline:none">
+            <select id="sortProduct" onchange="handleSortChange(this.value)" style="padding:7px 14px;border-radius:30px;border:1.5px solid var(--border);font-family:var(--font);font-size:.8em;font-weight:700;color:var(--ink);background:var(--surface);cursor:pointer;outline:none">
               <option value="name_asc">ชื่อ (ก→ฮ)</option>
               <option value="price_asc">ราคา น้อย→มาก</option>
               <option value="price_desc">ราคา มาก→น้อย</option>
@@ -283,7 +286,7 @@
   </div><!-- /page-inner -->
 </div><!-- /page -->
 
-<script src="app.js?v=65"></script>
+<script src="app.js?v=66"></script>
 
 <!-- COMPOSITE IMAGE MODAL -->
 <div class="ci-modal-overlay" id="ci-modal-overlay" onclick="if(event.target===this)closeCompositeImage()">
