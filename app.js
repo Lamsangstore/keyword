@@ -743,6 +743,8 @@ function subscribePromo() {
         tiers: Array.isArray(tiers) && tiers.length ? tiers : DEFAULT_PROMO.tiers,
         shipping: v.shipping || '',
         footer: v.footer || '',
+        infoFooter: v.infoFooter || '',
+        shortSpecs: (v.shortSpecs && typeof v.shortSpecs === 'object') ? v.shortSpecs : {},
       };
     } else {
       _promoConfig = DEFAULT_PROMO;
@@ -1073,10 +1075,46 @@ function cartAddVariant(idx, vi) {
 // ═══════════════════════════════════════════════
 //  COPY TEMPLATES (เทมเพลตข้อความ chat)
 // ═══════════════════════════════════════════════
+// ── ข้อมูลสินค้าแบบสั้น (ร้านสั่ง 17 พ.ย. 2026 "สั้นกระชับเท่านี้พอทุกสินค้า") ──
+// "B02| Shiny Belt — 179฿ <สเปกสั้น> <ข้อความท้าย>"
+// · สเปกสั้นรายสินค้า: /_adminSettings/promo/shortSpecs/<คีย์สินค้า> (แก้ในหน้าแอดมิน → แก้สินค้า)
+//   ไม่ได้เก็บในแถวสินค้า เพราะมีหลายทางเขียนแถวใหม่ทั้งแถว (sync ชีต · แก้สต๊อก · นำเข้า) คอลัมน์ใหม่จะหายเงียบ ๆ
+// · ข้อความท้าย: /_adminSettings/promo/infoFooter — {หน่วย} = "เส้น" (หมวด 01. เข็มขัด) / "ตัว"
+// · ⚠️ หน้ารวมแชทของเว็บร้าน (src/lib/keyword-shortcuts.ts) ประกอบข้อความด้วยกติกาชุดเดียวกัน แก้ที่นี่ต้องแก้ที่นั่นด้วย
+const DEFAULT_INFO_FOOTER = '✅🩷ส่งฟรี ตั้งแต่ชิ้นแรก (มีปลายทางไม่บวกเพิ่ม) ซื้อ 2 {หน่วย} ลด10% | ซื้อ 3 {หน่วย}ลด15% สินค้ามีพร้อมส่ง สนใจสีไหนแจ้งได้เลยนะคะ';
+const SHORT_CODE_RE = /(?<!ผ้า\s?)\b(BG\d{2}|[A-Z]{1,2}\d{2,3})\b/;
+function shortLabelOf(name) {
+  const n = String(name || '').trim();
+  const m = SHORT_CODE_RE.exec(n.toUpperCase());
+  if (!m) return n;
+  const code = m[1];
+  const rest = n
+    .replace(new RegExp('\\(\\s*' + code + '\\s*\\)', 'i'), ' ')
+    .replace(new RegExp('\\b' + code + '\\b', 'i'), ' ')
+    .replace(/\blamsang\b/i, ' ')
+    .replace(/^[\s|\-–—:]+|[\s|\-–—:]+$/g, '')
+    .replace(/\s{2,}/g, ' ');
+  return rest ? `${code}| ${rest}` : code;
+}
+const shortUnitOf = (row) => /^01\.|เข็มขัด/.test(String(row && row[1] || '')) ? 'เส้น' : 'ตัว';
+function shortInfoOf(row, key) {
+  const m = /\d[\d,]*/.exec(String(row && row[2] || ''));
+  if (!m) return null; // ราคาไม่ใช่ตัวเลข (หมวดพิกัด) = ใช้แบบเดิม
+  const price = Number(m[0].replace(/,/g, '')).toLocaleString('en-US');
+  const spec = String((_promoConfig?.shortSpecs || {})[key] || '').trim();
+  const footer = String(_promoConfig?.infoFooter || DEFAULT_INFO_FOOTER).replace(/\{หน่วย\}|\{unit\}/g, shortUnitOf(row));
+  return [`${shortLabelOf(row[0])} — ${price}฿`, spec, footer.trim()].filter(Boolean).join(' ');
+}
+
 const COPY_TEMPLATES = [
   {
     key: 'info',
     label: '📋 ข้อมูล',
+    text: '{shortInfo}'
+  },
+  {
+    key: 'detail',
+    label: '📄 รายละเอียดเต็ม',
     text: '{name}\nราคา {price}\n{detail}'
   },
   {
@@ -1126,7 +1164,7 @@ const COPY_TEMPLATES = [
   },
 ];
 
-function fillTemplate(tplText, row) {
+function fillTemplate(tplText, row, key) {
   const variants = getVariants(row);
   const inStock = variants.filter(v => vAvail(v));
   const sizes = [...new Set(variants.map(v => parseVariant(v.name).size).filter(Boolean))];
@@ -1153,6 +1191,7 @@ function fillTemplate(tplText, row) {
     ? Object.entries(colorImgs).map(([c, img]) => `• ${c}: ${img}`).join('\n')
     : (row[4] ? `• รูปหลัก: ${row[4]}` : '(ไม่มีรูป)');
   return String(tplText||'')
+    .replace(/\{shortInfo\}/g, () => shortInfoOf(row, key) ?? `${row[0] || ''}\nราคา ${row[2] || ''}\n${row[3] || ''}`)
     .replace(/\{name\}/g, row[0] || '')
     .replace(/\{price\}/g, row[2] || '')
     .replace(/\{tagPrice\}/g, tagPriceNum(row) ? tagPriceNum(row).toLocaleString() : '')
@@ -1173,7 +1212,7 @@ function copyWithTemplate(idx, key) {
   const row = productRows[idx];
   if (!row) return;
   const tpl = COPY_TEMPLATES.find(t => t.key === key) || COPY_TEMPLATES[0];
-  const text = fillTemplate(tpl.text, row).replace(/\n{3,}/g, '\n\n').trim();
+  const text = fillTemplate(tpl.text, row, productKeys[idx]).replace(/\n{3,}/g, '\n\n').trim();
   copyToClipboard(text);
   showSyncToast(`📋 Copy ${tpl.label}`, 'success');
   _customerAudit('copy-template', row[0]||'', tpl.label);

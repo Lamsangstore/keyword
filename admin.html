@@ -872,6 +872,12 @@
               <input type="text" id="promo-footer" placeholder="เลือกชมสินค้าแล้วแคปรูปส่งมาสั่งซื้อในแชทนี้ได้เลยค่ะ" oninput="savePromoDebounced()">
             </div>
           </div>
+          <div class="form-row full">
+            <div>
+              <label>ท้ายข้อความปุ่ม 📋 ข้อมูล (ใช้กับทุกสินค้า · <code>{หน่วย}</code> = เส้น สำหรับเข็มขัด / ตัว สำหรับเสื้อผ้า · ว่าง = ข้อความเริ่มต้น)</label>
+              <textarea id="promo-info-footer" rows="2" oninput="savePromoDebounced()" placeholder="✅🩷ส่งฟรี ตั้งแต่ชิ้นแรก (มีปลายทางไม่บวกเพิ่ม) ซื้อ 2 {หน่วย} ลด10% | ซื้อ 3 {หน่วย}ลด15% สินค้ามีพร้อมส่ง สนใจสีไหนแจ้งได้เลยนะคะ"></textarea>
+            </div>
+          </div>
           <div style="background:#fff3cd;border-radius:8px;padding:10px 12px;font-size:.82em;margin-top:14px;color:#7d5413">
             <strong>👁️ ตัวอย่างข้อความ</strong> (จะแสดงในข้อความ Copy ออเดอร์ของลูกค้า):
             <pre id="promo-preview" style="white-space:pre-wrap;font-family:var(--font);margin:8px 0 0;padding:10px;background:#fff;border-radius:6px;font-size:.95em;color:var(--text)"></pre>
@@ -941,7 +947,8 @@
       <div><label>📍 พิกัด Link (optional)</label><input type="text" id="p-link" placeholder="https://..."></div>
     </div>
     <div class="form-row full">
-      <div><label>รายละเอียด</label><textarea id="p-detail" placeholder="รายละเอียดสินค้า..."></textarea></div>
+      <div><label>ข้อความสั้น — ปุ่ม 📋 ข้อมูล <span style="color:var(--purple-mid);font-weight:400;font-size:.85em">(ต่อจาก "รหัส| ชื่อ — ราคา฿" ก่อนท้ายข้อความกลาง)</span></label><textarea id="p-short" rows="2" placeholder="เช่น ขนาด 2.8 x 105 cm (รูเริ่มต้น 26-37) ‼️เอวเล็กเเจ้งเจาะรูได้ค่า‼️"></textarea></div>
+      <div><label>รายละเอียด <span style="color:var(--purple-mid);font-weight:400;font-size:.85em">(เมนู 📄 รายละเอียดเต็ม)</span></label><textarea id="p-detail" placeholder="รายละเอียดสินค้า..."></textarea></div>
       <div><label>📝 โน้ตภายใน <span style="color:var(--purple-mid);font-weight:400;font-size:.85em">(เฉพาะ admin เห็น — ไม่ส่งให้ลูกค้า)</span></label><textarea id="p-note" placeholder="เช่น: ระวังลายเลื่อนเล็กน้อย / ห้ามลดเกิน 15% / ลูกค้า A สั่งซ้ำ" rows="2" style="background:#fef3c7"></textarea></div>
     </div>
     <!-- Image 1 -->
@@ -1981,6 +1988,7 @@ function subscribeRemotePromo() {
       document.getElementById('promo-header').value = v.header || '';
       document.getElementById('promo-shipping').value = v.shipping || '';
       document.getElementById('promo-footer').value = v.footer || '';
+      document.getElementById('promo-info-footer').value = v.infoFooter || '';
     } else {
       _promoTiers = [...DEFAULT_PROMO.tiers];
       document.getElementById('promo-enabled').checked = true;
@@ -2046,10 +2054,12 @@ async function savePromo() {
     tiers: _promoTiers.filter(t => (Number(t.qty)||0) > 0),
     shipping: document.getElementById('promo-shipping').value.trim(),
     footer: document.getElementById('promo-footer').value.trim(),
+    infoFooter: document.getElementById('promo-info-footer').value.trim(),
     _updatedAt: Date.now()
   };
   try {
-    await db.ref('_adminSettings/promo').set(payload);
+    // update ไม่ใช่ set — ข้อความสั้นรายสินค้า (shortSpecs) อยู่ใต้ promo ด้วย set จะลบทิ้งทั้งชุด
+    await db.ref('_adminSettings/promo').update(payload);
   } catch(e) { console.warn('Save promo failed:', e); }
 }
 
@@ -3154,7 +3164,7 @@ function openProductModal(key = null) {
   editProductKey = key;
   if (key) markEditing(key);
   document.getElementById('product-modal-title').textContent = key ? '✏️ แก้ไขสินค้า' : '➕ เพิ่มสินค้า';
-  const fields = ['p-name','p-type','p-price','p-tagprice','p-sku','p-shopee','p-tiktok','p-lazada','p-page365','p-link','p-img1','p-img2','p-detail','p-note'];
+  const fields = ['p-name','p-type','p-price','p-tagprice','p-sku','p-shopee','p-tiktok','p-lazada','p-page365','p-link','p-img1','p-img2','p-detail','p-note','p-short'];
   fields.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   [1,2].forEach(n => { document.getElementById(`upload-preview-${n}`).style.display='none'; document.getElementById(`upload-status-${n}`).textContent=''; });
 
@@ -3186,6 +3196,11 @@ function openProductModal(key = null) {
       }).catch(()=>{});
     }
     loadVariants(Array.isArray(r[12]) ? r[12] : []);
+    // ข้อความสั้นของปุ่ม 📋 ข้อมูล — เก็บที่ _adminSettings/promo/shortSpecs/<คีย์> ไม่ใช่ในแถวสินค้า (ดู app.js shortInfoOf)
+    db.ref(`_adminSettings/promo/shortSpecs/${key}`).once('value').then(s => {
+      const el = document.getElementById('p-short');
+      if (el && editProductKey === key) el.value = s.val() || '';
+    }).catch(()=>{});
   } else {
     loadVariants([]);
   }
@@ -3372,8 +3387,10 @@ async function saveProduct() {
   btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
 
   try {
+    const shortSpec = (document.getElementById('p-short')?.value || '').trim();
     if (editProductKey) {
       await db.ref(`products/${editProductKey}`).set(row);
+      await db.ref(`_adminSettings/promo/shortSpecs/${editProductKey}`).set(shortSpec || null);
       auditLog('แก้สินค้า', name, `${variants.length} variants`);
       clearEditing(editProductKey);
       // Save internal note keyed by SKU
@@ -3383,7 +3400,8 @@ async function saveProduct() {
         else db.ref(`_productNotes/${sku}`).remove().catch(()=>{});
       }
     } else {
-      await db.ref('products').push(row);
+      const ref = await db.ref('products').push(row);
+      if (shortSpec) await db.ref(`_adminSettings/promo/shortSpecs/${ref.key}`).set(shortSpec);
       auditLog('เพิ่มสินค้า', name, `${variants.length} variants`);
     }
     toast(`บันทึก "${name}" สำเร็จ ✓`, 'success');
