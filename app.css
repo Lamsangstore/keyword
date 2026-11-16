@@ -1089,6 +1089,9 @@
       width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;
       border:1px solid var(--border);cursor:zoom-in;background:var(--hover);
     }
+    .color-img-wrap{position:relative}
+    .color-img-card .sold-stamp{font-size:.62em;padding:3px 8px;letter-spacing:.5px;border-width:1.5px}
+    .color-img-card.sold-out .color-img-thumb{filter:grayscale(.6) brightness(.85)}
     .color-img-name{
       font-weight:700;font-size:.85em;color:var(--text);text-align:center;
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
