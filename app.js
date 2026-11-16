@@ -1764,7 +1764,7 @@ function renderProductGrid(rows){
       const sold=item.sold;
       const low=item.colorName ? (!sold && item.colorStock>0 && item.colorStock<=3) : hasLowStock(_r);
       const copyBtn = item.img
-        ? `<button class="btn btn-info" onclick="event.stopPropagation();copyImageFromUrl('${item.img.replace(/'/g,"\\'")}',this)">🖼️ Copy รูป</button>`
+        ? `<button class="btn btn-info" onclick="event.stopPropagation();copyImageFromUrl('${item.img.replace(/'/g,"\\'")}',this,${sold?'true':'false'})">🖼️ Copy รูป${sold?' (SOLD OUT)':''}</button>`
         : `<button class="btn btn-info" onclick="event.stopPropagation();copyProductInfo(${item.i},this)">📋 Copy</button>`;
       html+=`<div class="pcard${sold?' sold-out':''}" style="animation-delay:${d}ms" onclick="showProductDetail(${item.i})">
         <div class="pcard-img-wrap">
@@ -1898,8 +1898,8 @@ function showProductDetail(idx,push=true){
   const heroFile = heroIsChart ? `${_ciFileBase(row)} ตารางไซส์ ${_ciDateStamp()}` : baseFn;
   const heroActions = heroImg ? `
     <div class="img-actions-row">
-      <button class="img-action-btn copy" onclick="copyImageFromUrl('${heroImg}',this)">📋 Copy</button>
-      <button class="img-action-btn dl" onclick="downloadImageFromUrl('${heroImg}','${heroFile}.png',this)">⬇️ Download</button>
+      <button class="img-action-btn copy" onclick="copyImageFromUrl('${heroImg}',this,${sold && !heroIsChart ? 'true' : 'false'})">📋 Copy</button>
+      <button class="img-action-btn dl" onclick="downloadImageFromUrl('${heroImg}','${heroFile}.png',this,${sold && !heroIsChart ? 'true' : 'false'})">⬇️ Download</button>
     </div>` : '';
   const imgHtml = heroImg
     ? `<div class="detail-img-wrap" style="position:relative">${sold?soldStampHTML():''}<img src="${heroImg}" onload="onImgLoad(this)" loading="lazy" onclick="openLightbox('${heroImg}','${heroLabel}: ${esc(row[0])}')" ${sold?'style="filter:grayscale(.6) brightness(.85)"':''}></div>${heroActions}`
@@ -1912,16 +1912,21 @@ function showProductDetail(idx,push=true){
     const {color} = parseVariant(v.name);
     if (color && !colorImageMap[color] && v.image) colorImageMap[color] = v.image;
   });
+  // สีที่หมด = ทุกตัวเลือกของสีนั้นไม่มีของ (vAvail) → การ์ดขึ้นป้าย + Copy ได้รูปติดป้าย SOLD OUT
+  const colorSold = c => { const vs = variants.filter(v => parseVariant(v.name).color === c); return vs.length > 0 && vs.every(v => !vAvail(v)); };
   const colorImgEntries = Object.entries(colorImageMap);
   const colorImagesHtml = colorImgEntries.length ? `
     <div class="color-img-section">
       <div class="size-section-title">🎨 รูปภาพแยกสี</div>
       <div class="color-img-grid">
         ${colorImgEntries.map(([c, img]) => `
-          <div class="color-img-card">
-            <img class="color-img-thumb" src="${esc(img)}" loading="lazy" onerror="this.style.display='none'" onclick="openLightbox('${_jsq(img)}','${_jsq(c)} - ${_jsq(row[0]||'')}')">
+          <div class="color-img-card${colorSold(c) ? ' sold-out' : ''}">
+            <div class="color-img-wrap">
+              <img class="color-img-thumb" src="${esc(img)}" loading="lazy" onerror="this.style.display='none'" onclick="openLightbox('${_jsq(img)}','${_jsq(c)} - ${_jsq(row[0]||'')}')">
+              ${colorSold(c) ? soldStampHTML() : ''}
+            </div>
             <div class="color-img-name">${esc(c)}</div>
-            <button class="img-action-btn copy" onclick="copyImageFromUrl('${_jsq(img)}',this)">📋 Copy</button>
+            <button class="img-action-btn copy" onclick="copyImageFromUrl('${_jsq(img)}',this,${colorSold(c) ? 'true' : 'false'})">📋 Copy${colorSold(c) ? ' (SOLD OUT)' : ''}</button>
           </div>`).join('')}
       </div>
     </div>` : '';
@@ -2008,8 +2013,8 @@ function showProductDetail(idx,push=true){
           ${heroIsChart && row[4]?`<div class="size-section-title">🛍️ รูปสินค้า</div>
           <img class="size-img" src="${row[4]}" onload="onImgLoad(this)" loading="lazy" onclick="openLightbox('${row[4]}','ภาพสินค้า: ${esc(row[0])}')">
           <div class="img-actions-row">
-            <button class="img-action-btn copy" onclick="copyImageFromUrl('${row[4]}',this)">📋 Copy</button>
-            <button class="img-action-btn dl" onclick="downloadImageFromUrl('${row[4]}','${baseFn}.png',this)">⬇️ Download</button>
+            <button class="img-action-btn copy" onclick="copyImageFromUrl('${row[4]}',this,${sold ? 'true' : 'false'})">📋 Copy</button>
+            <button class="img-action-btn dl" onclick="downloadImageFromUrl('${row[4]}','${baseFn}.png',this,${sold ? 'true' : 'false'})">⬇️ Download</button>
           </div>`:''}
           ${colorImagesHtml}
         </div>`:''}
@@ -2511,7 +2516,7 @@ window.renderProductGrid = function(rows){
       const img=item.img||firstImageOf(row), colorName=item.colorName, sold=item.sold;
       const low=colorName ? (!sold && item.colorStock>0 && item.colorStock<=3) : hasLowStock(row);
       const copyBtn = img
-        ? `<button class="btn btn-info" onclick="event.stopPropagation();copyImageFromUrl('${img.replace(/'/g,"\\'")}',this)">🖼️ Copy รูป</button>`
+        ? `<button class="btn btn-info" onclick="event.stopPropagation();copyImageFromUrl('${img.replace(/'/g,"\\'")}',this,${sold?'true':'false'})">🖼️ Copy รูป${sold?' (SOLD OUT)':''}</button>`
         : `<button class="btn btn-info" onclick="event.stopPropagation();copyProductInfo(${i},this)">📋 Copy</button>`;
       html+=`<div class="pcard${sold?' sold-out':''}" style="animation-delay:${d}ms" onclick="showProductDetail(${i})">
         <div class="pcard-img-wrap">
@@ -3493,26 +3498,52 @@ async function copyInlineComp(idx) {
   }
 }
 
+// ─── ป้ายคาด SOLD OUT บนรูปสีที่หมด (ร้านสั่ง 17 พ.ย. 2026) ───────────
+// "สีไหนหมดให้มีป้ายคาด sold out แต่ยังส่งรูปได้" — Copy/Download รูปสีที่หมด = รูปติดป้าย
+// ⚠️ หน้าตาเดียวกับรูปที่หน้ารวมแชทของเว็บร้านส่ง (src/lib/sold-out-image.ts) แถบดำโปร่งแสงกลางรูป + SOLD OUT สีขาว
+function drawSoldOutBand(ctx, w, h) {
+  const band = Math.max(40, Math.round(Math.min(w, h) * 0.2));
+  const y = Math.round((h - band) / 2);
+  const line = Math.max(2, Math.round(band * 0.04));
+  ctx.save();
+  ctx.fillStyle = 'rgba(17,17,17,0.72)';
+  ctx.fillRect(0, y, w, band);
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.fillRect(0, y, w, line);
+  ctx.fillRect(0, y + band - line, w, line);
+  let size = Math.round(band * 0.56);
+  ctx.font = `800 ${size}px Prompt, Arial, sans-serif`;
+  const tw = ctx.measureText('SOLD OUT').width;
+  if (tw > w * 0.82) { size = Math.floor(size * (w * 0.82) / tw); ctx.font = `800 ${size}px Prompt, Arial, sans-serif`; }
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('SOLD OUT', w / 2, y + band / 2);
+  ctx.restore();
+}
+
 // ─── Image URL → blob (handles CORS via wsrv.nl) ───────────
-async function _fetchImageAsPngBlob(url) {
+async function _fetchImageAsPngBlob(url, soldOut = false) {
   const img = await ciLoadImage(url);
   if (!img) return null;
   const c = document.createElement('canvas');
   c.width = img.naturalWidth || img.width;
   c.height = img.naturalHeight || img.height;
-  c.getContext('2d').drawImage(img, 0, 0);
+  const ctx = c.getContext('2d');
+  ctx.drawImage(img, 0, 0);
+  if (soldOut) drawSoldOutBand(ctx, c.width, c.height);
   return new Promise(resolve => c.toBlob(resolve, 'image/png'));
 }
 
-async function copyImageFromUrl(url, btn) {
+async function copyImageFromUrl(url, btn, soldOut = false) {
   if (!url) return;
   const orig = btn?.innerHTML;
   if (btn) { btn.disabled = true; btn.innerHTML = '⏳ กำลังโหลด...'; }
   try {
-    const blob = await _fetchImageAsPngBlob(url);
+    const blob = await _fetchImageAsPngBlob(url, soldOut);
     if (!blob) throw new Error('โหลดรูปไม่ได้');
     await navigator.clipboard.write([new ClipboardItem({'image/png': blob})]);
-    showSyncToast('Copy รูปสำเร็จ ✓ วางใน LINE/Messenger ได้เลย', 'success');
+    showSyncToast(soldOut ? 'Copy รูปติดป้าย SOLD OUT ✓ วางใน LINE/Messenger ได้เลย' : 'Copy รูปสำเร็จ ✓ วางใน LINE/Messenger ได้เลย', 'success');
   } catch(e) {
     showSyncToast('Copy ไม่สำเร็จ: ' + e.message, 'error');
   } finally {
@@ -3520,12 +3551,12 @@ async function copyImageFromUrl(url, btn) {
   }
 }
 
-async function downloadImageFromUrl(url, filename, btn) {
+async function downloadImageFromUrl(url, filename, btn, soldOut = false) {
   if (!url) return;
   const orig = btn?.innerHTML;
   if (btn) { btn.disabled = true; btn.innerHTML = '⏳ กำลังโหลด...'; }
   try {
-    const blob = await _fetchImageAsPngBlob(url);
+    const blob = await _fetchImageAsPngBlob(url, soldOut);
     if (!blob) throw new Error('โหลดรูปไม่ได้');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
